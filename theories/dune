@@ -1,0 +1,11 @@
+(coq.theory
+ (name lfind)                ; This will determine the toplevel
+                                ; module of th theory, modules will
+                                ; be lfind.A, etc... when seen from
+                                ; outside.
+
+ (package lfind)            
+
+ (libraries lfind.plugin))  ; Here you should declare the
+                                ; dependencies on the ML plugins your
+                                ; Coq files depend.

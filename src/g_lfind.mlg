@@ -1,0 +1,10 @@
+DECLARE PLUGIN "lfind_plugin"
+
+{
+open Ltac_plugin
+
+}
+
+TACTIC EXTEND lfind_tac
+| [ "lfind" ] -> { Lfind_main.lfind_tac }
+END

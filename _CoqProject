@@ -1,0 +1,12 @@
+-Q theories lfind.Plugin
+-Q src lfind.Plugin
+-I src
+
+src/Lattice.ml
+src/log.ml
+src/Utils.ml
+src/lfind_main.ml
+src/Generalize.ml
+src/g_lfind.mlg
+src/lfind_plugin.mlpack
+theories/LFind.v

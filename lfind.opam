@@ -1,0 +1,14 @@
+synopsis:     "Coq Lemma Synthesizer"
+description:  "Synthesizes Lemmas"
+name:         "lfind"
+opam-version: "2.7"
+maintainer:   "dcssiva@cs.ucla.edu"
+authors:      "Aishwarya Sivaraman"
+
+depends: [
+  "ocaml"         { >= "4.07.1"            }
+  "coq"           { >= "8.11.0" & < "8.12" }
+  "dune"          { >= "2.4.0"             }
+]
+
+build: [ "dune" "build" "-p" name "-j" jobs ]
