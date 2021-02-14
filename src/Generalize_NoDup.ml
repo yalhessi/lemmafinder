@@ -81,9 +81,8 @@ let rec get_variables_in_sexp acc expr atom_type_table =
                       in get_variables_in_sexp head_acc tl atom_type_table
   | [] -> acc
 
-let get_conjecture gen sigma var_str counter: string= 
-  let conjecture_name = (gen_conjecture_name (Utils.next_val counter))
-  in let conjecture_str = conjecture_name ^ ": forall " ^ var_str
+let get_conjecture gen sigma var_str counter: string =
+  let conjecture_str = ": forall " ^ var_str
   in let quantified_var_str = Hashtbl.fold (fun k (e, t) acc -> acc ^ "("^ k ^ (get_var_type t) ^")")  sigma conjecture_str
   in quantified_var_str ^ " , " ^ gen
 
@@ -96,7 +95,7 @@ let print_generalizations generalizations atom_type_table =
                )
             generalizations
   in let generalized_conjecture_strings_nodup = Utils.remove_dup generalized_conjecture_strings
-  in List.iter (fun s -> Printf.printf "%s\n" s) generalized_conjecture_strings_nodup
+  in List.iter (fun s -> let conjecture_name = (gen_conjecture_name (Utils.next_val counter)) in Printf.printf "%s\n" (conjecture_name ^ s)) generalized_conjecture_strings_nodup
          
 let construct_all_generalizations generalization_set type_table goal =
   List.map 

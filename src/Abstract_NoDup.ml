@@ -32,9 +32,9 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
   (* in let hypo_terms = List.fold_left (fun acc hypo_sexp -> List.append (collect_terms [] hypo_sexp) acc) [] hypo_sexps *)
   in let hypo_terms = []
   in let conc_terms, atoms = (collect_terms_no_dup [] [] conc_sexp) 
-  in List.iter (fun (e) -> print_endline ((string_of_sexpr e))) conc_terms;
-  let all_terms = List.tl (List.append conc_terms hypo_terms)
-  in let expr_type_table = get_type_table (List.append conc_terms hypo_terms) c_ctxt
+  in let all_terms = List.tl (List.append conc_terms hypo_terms)
+  in Printf.printf "Terms from the goal [%s]\n" (List.fold_left (fun acc e -> acc ^ ";" ^ ((string_of_sexpr e))) "" all_terms);
+  let expr_type_table = get_type_table (List.append conc_terms hypo_terms) c_ctxt
   in let atom_type_table = (update_type_table atoms c_ctxt (Hashtbl.create 100))
   (* in Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n" x y) atom_type_table; *)
   (* in Printf.printf "Length of list of terms %s \n" (string_of_int (List.length all_terms)); *)
