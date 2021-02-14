@@ -20,7 +20,9 @@ let lfind_tac : unit Proofview.tactic =
     let hyps = Proofview.Goal.hyps gl in
     let c_ctxt = {env = env; sigma = sigma}
     in let p_ctxt = {hypotheses = []; goal = (Utils.get_expr_str env sigma goal); functions = []; samples = []}
-    in Lattice.abstract p_ctxt c_ctxt;
+    (* in Abstract_WPositions.abstract p_ctxt c_ctxt; *)
+    in let abstraction = Abstract_NoDup.abstract
+    in  abstraction p_ctxt c_ctxt;
      (* print_endline (string_of_goal gl); *)
      (* Feedback.msg_notice(string_of_goal gl); *)
     (* 

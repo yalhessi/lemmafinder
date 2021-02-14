@@ -25,12 +25,21 @@ let add_term (acc : (Sexp.t list * int) list) (term: Sexp.t list): (Sexp.t list 
     let count = (get_term_count acc term) + 1
     in List.append acc [(term, count)], count
 
+let add_term_remove_dup (acc : Sexp.t list list) (term: Sexp.t list): (Sexp.t list) list =
+  let exists = List.exists (fun e -> Sexp.equal e term) acc
+  in if exists then acc else List.append acc [term]
+  
 let next_val counter = 
-    fun () ->
-      counter := (!counter) + 1;
-      !counter
+  fun () ->
+    counter := (!counter) + 1;
+    !counter
 
 let get_return_type fun_type = 
     match fun_type with
     | [Sexp.Expr [ Atom "forall"; Atom _; Atom ":" ; Atom _; Atom return_type]] -> return_type
     | _ -> ""
+  
+let remove_dup stringL = 
+  List.fold_left (fun acc s -> let is_present = List.exists (String.equal s) acc
+                               in if is_present then acc else List.append acc [s]
+                 ) [] stringL

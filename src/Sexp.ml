@@ -181,3 +181,7 @@ let equal e1 e2 =
   let e1_str = (string_of_sexpr e1)
   in let e2_str = (string_of_sexpr e2)
   in String.equal e1_str e2_str
+
+let size sexp = 
+  String.length (string_of_sexpr sexp)
+
