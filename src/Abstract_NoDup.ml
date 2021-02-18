@@ -42,4 +42,6 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
   (* in Printf.printf "Generalization power set \n [ %s ]\n\n" (powerset_to_string generalization_set); *)
   in Printf.printf "Generalizations \n";
   let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set expr_type_table conc_sexp
-  in (Generalize_NoDup.print_generalizations generalizations atom_type_table);
+  in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table)
+  in List.iter (fun c -> Printf.printf "%s\n" (c.conjecture_str)) conjectures;
+  conjectures

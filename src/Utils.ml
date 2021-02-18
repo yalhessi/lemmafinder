@@ -34,12 +34,10 @@ let next_val counter =
     counter := (!counter) + 1;
     !counter
 
-let get_return_type fun_type = 
+let rec get_return_type acc fun_type =
     match fun_type with
-    | [Sexp.Expr [ Atom "forall"; Atom _; Atom ":" ; Atom _; Atom return_type]] -> return_type
-    | _ -> ""
-  
-let remove_dup stringL = 
-  List.fold_left (fun acc s -> let is_present = List.exists (String.equal s) acc
-                               in if is_present then acc else List.append acc [s]
-                 ) [] stringL
+    | (Sexp.Atom n):: [] -> n
+    | (Sexp.Atom n):: tl -> get_return_type acc tl
+    | (Sexp.Expr e):: tl -> let head_acc = get_return_type acc e
+                            in get_return_type head_acc tl
+    | [] -> acc

@@ -45,7 +45,7 @@ let gen_conjecture_name inc =
   "conj" ^ (string_of_int (inc()))
  
 let get_var_type t = 
-  let return_type = (Utils.get_return_type (of_string t))
+  let return_type = (Utils.get_return_type "" (of_string t))
   in if String.equal return_type ""
       then return_type
       else ":" ^ return_type
@@ -87,7 +87,6 @@ let get_conjecture gen sigma var_str counter: string=
   in quantified_var_str ^ " , " ^ gen
 
 
-  
 let print_generalizations generalizations atom_type_table = 
   let counter = ref 0
   in List.iter (fun (g, sigma) -> 

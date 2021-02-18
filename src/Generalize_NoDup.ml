@@ -1,5 +1,6 @@
 open Sexp
 open Utils
+open LatticeUtils
 
 let gen_var next_val = 
   "lf" ^ (string_of_int (next_val()))
@@ -38,7 +39,9 @@ let generalize_exprL exprL type_table goal =
                     then 
                       acc, sigma
                     else 
+                    (
                       ((Hashtbl.add sigma var_name (e, (Hashtbl.find type_table (string_of_sexpr e))));of_string gen, sigma)
+                    )
              ) 
              (goal, sigma) exprL
 
@@ -46,7 +49,7 @@ let gen_conjecture_name inc =
   "conj" ^ (string_of_int (inc()))
  
 let get_var_type t = 
-  let return_type = (Utils.get_return_type (of_string t))
+  let return_type = (Utils.get_return_type "" (of_string t))
   in if String.equal return_type ""
       then return_type
       else ":" ^ return_type
@@ -83,19 +86,25 @@ let rec get_variables_in_sexp acc expr atom_type_table =
 
 let get_conjecture gen sigma var_str counter: string =
   let conjecture_str = ": forall " ^ var_str
-  in let quantified_var_str = Hashtbl.fold (fun k (e, t) acc -> acc ^ "("^ k ^ (get_var_type t) ^")")  sigma conjecture_str
+  in let quantified_var_str = Hashtbl.fold (fun k (e, t) acc 
+                                            -> acc ^ "("^ k ^ (get_var_type t) ^")"
+                                           )  sigma conjecture_str
   in quantified_var_str ^ " , " ^ gen
 
-
-let print_generalizations generalizations atom_type_table = 
+let get_all_conjectures generalizations atom_type_table = 
   let counter = ref 0
   in let generalized_conjecture_strings = List.map (fun (g, sigma) -> 
                   let var_str = (String.concat "" (get_variables_in_sexp [] g atom_type_table))
-                  in (get_conjecture (string_of_sexpr g) sigma var_str counter)
-               )
+                  in let conjecture_body = (get_conjecture (string_of_sexpr g) sigma var_str counter)
+                  in {sigma=sigma; conjecture_str=""; conjecture_name="";body=conjecture_body}
+                )
             generalizations
-  in let generalized_conjecture_strings_nodup = Utils.remove_dup generalized_conjecture_strings
-  in List.iter (fun s -> let conjecture_name = (gen_conjecture_name (Utils.next_val counter)) in Printf.printf "%s\n" (conjecture_name ^ s)) generalized_conjecture_strings_nodup
+  in let conjectures = remove_conjecture_dups generalized_conjecture_strings
+  in List.fold_left (fun acc c -> 
+                        let conjecture_name = (gen_conjecture_name (Utils.next_val counter))
+                        in let conj = {sigma=c.sigma; body=c.body;conjecture_name=conjecture_name;conjecture_str= (conjecture_name ^ c.body)}
+                        in (conj::acc)
+                    ) [] conjectures
          
 let construct_all_generalizations generalization_set type_table goal =
   List.map 

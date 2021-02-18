@@ -10,7 +10,19 @@ exception Failure of string
 type goal = {
     hypos : string list;
     conc : string ;
-}   
+}
+
+type conjecture = {
+  sigma : (string, Sexp.t list * string) Hashtbl.t;
+  conjecture_str : string;
+  body : string;
+  conjecture_name:string;
+}
+
+let remove_conjecture_dups conjectures = 
+    List.fold_left (fun acc s -> let is_present = List.exists (fun a -> String.equal s.body a.body) acc
+                                 in if is_present then acc else List.append acc [s]
+                   ) [] conjectures
 
 let sort_by_size (terml : Sexp.t list list) = 
     List.sort (fun a b -> (Sexp.size b) - (Sexp.size a)) terml
@@ -35,3 +47,6 @@ let rec sets = function
   | []    -> [[]]
   | x::xs -> let ls = sets xs in
                List.map (fun l -> x::l) ls @ ls
+
+let conjs_to_string conjectures =
+    List.fold_left (fun acc conj -> acc ^ conj.conjecture_str ^ "\n") "" conjectures

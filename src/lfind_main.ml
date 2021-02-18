@@ -3,10 +3,9 @@ open Context
 open Proofview.Notations
 open Sexp
 open ProofContext
-exception HammerError of string
+open Loadpath
+open Loc
 
-(* let warning = CWarnings.create ~name:"name" ~category:"category"
-                            (fun _ -> Pp.strbrk "Synthesizing helper lemma for the above goal") *)
 let msg_in_tactic str : unit Proofview.tactic =
   Proofview.tclLIFT (Proofview.NonLogical.make (fun () ->
       Feedback.msg_warning (Pp.str str)))
@@ -19,19 +18,32 @@ let lfind_tac : unit Proofview.tactic =
     let goal = Proofview.Goal.concl gl in
     let hyps = Proofview.Goal.hyps gl in
     let c_ctxt = {env = env; sigma = sigma}
-    in let p_ctxt = {hypotheses = []; goal = (Utils.get_expr_str env sigma goal); functions = []; samples = []}
+    in let paths = Loadpath.get_load_paths ()
+    in let dir = List.hd (List.rev (String.split_on_char ' ' (Utils.get_str_of_pp (Loadpath.pp (List.hd paths)))))
+    in let full_context = Utils.get_str_of_pp (Prettyp.print_full_context env sigma)
+    in let f_name = ProofContext.get_fname full_context
+    in let p_ctxt = {
+                     hypotheses = []; 
+                     goal = (Utils.get_expr_str env sigma goal); 
+                     functions = []; 
+                     samples = [];
+                     dir = dir;
+                     full_context = full_context;
+                     fname = f_name;
+                    }
+    (* copy the folder for lfind purposes  -- this call is blocking *)
+    (* in let parent_dir, curr_dir = FileUtils.get_parent_curr_dir dir
+    in let lfind_dir = parent_dir ^ "_lfind_" ^ curr_dir
+    in FileUtils.cp_dir dir (lfind_dir); *)
+    
     (* in Abstract_WPositions.abstract p_ctxt c_ctxt; *)
     in let abstraction = Abstract_NoDup.abstract
-    in  abstraction p_ctxt c_ctxt;
-     (* print_endline (string_of_goal gl); *)
-     (* Feedback.msg_notice(string_of_goal gl); *)
-    (* 
-    let typ = Utils.get_type_of_exp env sigma (Utils.str_to_constr "n")
-    in Feedback.msg_notice (Printer.pr_econstr_env env sigma typ);
-     *)
-    (* Feedback.msg_notice (Pp.str(string_of_sexpr_indent se)); *)
-    (* let _ = warning () in
-     Tacticals.New.tclIDTAC *)
-     msg_in_tactic "Synthesizing helper lemmas" >>= fun () ->
+    in let conjectures = abstraction p_ctxt c_ctxt
+    in let provable_conjectures, non_provable_conjectures = (Provable.split_as_provable_non_provable conjectures p_ctxt)
+    in let provable_conjectures_str = LatticeUtils.conjs_to_string provable_conjectures
+    in let generalization_output_str = Printf.sprintf ("Generalization found %d provable lemmas out of %d lemmas\n %s") (List.length provable_conjectures) (List.length conjectures) provable_conjectures_str
+    in Feedback.msg_notice(Pp.str(generalization_output_str));
+
+    msg_in_tactic "Done.." >>= fun () ->
      Tacticals.New.tclIDTAC
   end
