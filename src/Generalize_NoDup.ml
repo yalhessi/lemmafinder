@@ -99,7 +99,8 @@ let get_all_conjectures generalizations atom_type_table =
                   in {sigma=sigma; conjecture_str=""; conjecture_name="";body=conjecture_body}
                 )
             generalizations
-  in let conjectures = remove_conjecture_dups generalized_conjecture_strings
+  in Printf.printf "Size of conjecture before de-duplication %d\n" (List.length generalized_conjecture_strings);
+  let conjectures = remove_conjecture_dups generalized_conjecture_strings
   in List.fold_left (fun acc c -> 
                         let conjecture_name = (gen_conjecture_name (Utils.next_val counter))
                         in let conj = {sigma=c.sigma; body=c.body;conjecture_name=conjecture_name;conjecture_str= (conjecture_name ^ c.body)}

@@ -41,3 +41,24 @@ let rec get_return_type acc fun_type =
     | (Sexp.Expr e):: tl -> let head_acc = get_return_type acc e
                             in get_return_type head_acc tl
     | [] -> acc
+
+let get_hyps hyps =
+  List.map
+    (function
+    | Context.Named.Declaration.LocalAssum(x, y) -> (Context.(x.binder_name), y)
+    | Context.Named.Declaration.LocalDef(x, _, y) -> (Context.(x.binder_name), y))
+    hyps
+
+let get_hyps_strl hyps env sigma =
+  List.fold_left (fun acc (v, hyp) -> 
+                              let var_str = (Names.Id.to_string v)
+                              in let regex_ih  = Str.regexp "IH*"
+                              in let regex_H = Str.regexp "H*"
+                              in let is_match = 
+                                              (* Str.string_match regex_H var_str 0 *)
+                                             (* ||  *)
+                                             Str.string_match regex_ih var_str 0
+                              in (if is_match 
+                                  then (get_expr_str env sigma hyp)::acc
+                                  else acc)
+                 ) [] (get_hyps hyps)

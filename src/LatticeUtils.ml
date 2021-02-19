@@ -50,3 +50,20 @@ let rec sets = function
 
 let conjs_to_string conjectures =
     List.fold_left (fun acc conj -> acc ^ conj.conjecture_str ^ "\n") "" conjectures
+
+let construct_implications conc hyps =
+    List.fold_left (fun acc hyp -> "(" ^ hyp ^  "->" ^ acc ^ ")") conc hyps
+
+let contains s1 s2 =
+    let re = Str.regexp_string s2 in
+    try 
+        ignore (Str.search_forward re s1 0); 
+        true
+    with Not_found -> false
+    
+let get_dir paths =
+  List.fold_left (fun acc path -> let path_str = (Utils.get_str_of_pp (Loadpath.pp (path)))
+                                  in let is_contains = contains path_str "coq"
+                                  in if is_contains || not (String.equal acc "") then acc else List.hd (List.rev (String.split_on_char ' ' path_str))
+                 ) "" paths
+  

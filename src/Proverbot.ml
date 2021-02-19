@@ -1,4 +1,5 @@
 open Stdlib
+open FileUtils
 
 let get_proverbot_path env =
   let path = ""
@@ -8,17 +9,6 @@ let get_proverbot_path env =
                                     in if String.equal var "PROVERBOT" then var_path else path
                      )
                      path env
-
-let rec input_lines l ic : string list =
-  match input_line ic with
-  | line -> input_lines (line :: l) ic
-  | exception End_of_file -> List.rev l
-
-let run_cmd cmd =
-  print_endline cmd;
-  let inp = Unix.open_process_in cmd
-  in let r = input_lines [] inp in
-  close_in inp; r
 
 let scrape_data prelude proverbot fname =
   let python = "python3 " 
@@ -51,10 +41,10 @@ let remove_current_search prelude =
   in let cmd_op = run_cmd cmd
   in ()
 
-let run prelude count conjecture_name =
+let run prelude conjecture_name =
   let env = Unix.environment ()
   in let prover_bot_path = get_proverbot_path env
-  in let fname = " lfind" ^ count ^".v "
+  in let fname = " lfind" ^ conjecture_name ^".v "
   in scrape_data prelude prover_bot_path fname;
   search prelude prover_bot_path fname;
   let code = (output_code prelude conjecture_name)
