@@ -22,6 +22,7 @@ let search prelude proverbot fname =
   in let script = proverbot ^ "src/search_file.py "
   in let weigths_file  = " --weightsfile=" ^ proverbot ^"data/polyarg-weights.dat "
   in let cmd = python ^ script ^ "--prelude="^ prelude ^ weigths_file ^  fname ^ " -P"
+               ^ " -o " ^ prelude ^ "/search-report"
   in let run_op = run_cmd cmd
   in List.iter (Printf.printf "Line from stdout: %s\n") run_op
 

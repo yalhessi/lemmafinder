@@ -47,10 +47,10 @@ let lfind_tac : unit Proofview.tactic =
     in let generalization_output_str = Printf.sprintf ("Generalization found %d provable lemmas out of %d lemmas\n %s") (List.length provable_conjectures) (List.length conjectures) provable_conjectures_str
     in Feedback.msg_notice(Pp.str(generalization_output_str));
 
-    (* in let valid_conjectures, non_valid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
+    let valid_conjectures, non_valid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
     in let valid_conjectures_str = LatticeUtils.conjs_to_string valid_conjectures
     in let generalization_output_str = Printf.sprintf ("Generalization found %d valid lemmas out of %d lemmas\n %s") (List.length valid_conjectures) (List.length conjectures) valid_conjectures_str
-    in Feedback.msg_notice(Pp.str(generalization_output_str)); *)
+    in Feedback.msg_notice(Pp.str(generalization_output_str));
 
     msg_in_tactic "Done.." >>= fun () ->
     Tacticals.New.tclIDTAC

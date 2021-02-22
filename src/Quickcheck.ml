@@ -6,8 +6,9 @@ let quickcheck prelude fname =
   in run_cmd cmd
 
 let output_code op =
-  List.iter (fun o -> print_endline o) op;
-  false
+  let last_line = List.hd (List.rev op)
+  in let is_contains = LatticeUtils.contains last_line "Passed"
+  in is_contains
 
 let run prelude conjecture_name =
   let fname = "/lfind" ^ conjecture_name ^".v "

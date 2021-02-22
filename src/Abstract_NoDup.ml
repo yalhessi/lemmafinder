@@ -54,7 +54,9 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
   in let generalization_set = sets all_terms
   (* in Printf.printf "Generalization power set \n [ %s ]\n\n" (powerset_to_string generalization_set); *)
   in Printf.printf "Generalizations \n";
-  let hypo_implies_conc = LatticeUtils.construct_implications p_ctxt.goal p_ctxt.hypotheses
+  let hypo_implies_conc =
+    if with_hyp then LatticeUtils.construct_implications p_ctxt.goal p_ctxt.hypotheses
+    else (string_of_sexpr conc_sexp)
   in print_endline hypo_implies_conc;
   let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set expr_type_table (of_string hypo_implies_conc)
   in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table)

@@ -3,6 +3,7 @@ Coq Lemma Synthesis Plugin
 
 Software Versions:
 
+- opam 2.0.7
 - Dune 2.7
 - Coq 8.11.2
 - opam switch 4.07.1+flambda
