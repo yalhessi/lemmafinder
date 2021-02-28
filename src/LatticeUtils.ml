@@ -17,6 +17,8 @@ type conjecture = {
   conjecture_str : string;
   body : string;
   conjecture_name:string;
+  body_sexp : Sexp.t list;
+  lfind_vars : string list;
 }
 
 let remove_conjecture_dups conjectures = 
@@ -28,9 +30,9 @@ let sort_by_size (terml : Sexp.t list list) =
     List.sort (fun a b -> (Sexp.size b) - (Sexp.size a)) terml
 
 let update_type_table (atoms : string list) c_ctx type_tbl = 
-    List.iter (fun a -> let typ = Utils.get_type_of_exp c_ctx.env c_ctx.sigma (Utils.str_to_constr a)
-                        in let typ_str = Utils.get_str_of_pp (Printer.pr_econstr_env c_ctx.env c_ctx.sigma typ)
-                        in Hashtbl.replace type_tbl (a) typ_str
+    List.iter (fun a -> 
+                    let typ = TypeUtils.get_type_of_atom c_ctx.env c_ctx.sigma a
+                    in Hashtbl.replace type_tbl (a) typ
               ) atoms; type_tbl
 
 let add_variable (variables: string list ) (var: string): string list = 
@@ -53,17 +55,12 @@ let conjs_to_string conjectures =
 
 let construct_implications conc hyps =
     List.fold_left (fun acc hyp -> "(" ^ hyp ^  "->" ^ acc ^ ")") conc hyps
-
-let contains s1 s2 =
-    let re = Str.regexp_string s2 in
-    try 
-        ignore (Str.search_forward re s1 0); 
-        true
-    with Not_found -> false
     
 let get_dir paths =
   List.fold_left (fun acc path -> let path_str = (Utils.get_str_of_pp (Loadpath.pp (path)))
                                   in let is_contains = contains path_str "coq"
-                                  in if is_contains || not (String.equal acc "") then acc else List.hd (List.rev (String.split_on_char ' ' path_str))
+                                  in if is_contains || not (String.equal acc "") 
+                                  then acc 
+                                  else List.hd (List.rev (String.split_on_char ' ' path_str))
                  ) "" paths
   

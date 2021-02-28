@@ -1,6 +1,8 @@
 open Sexp
 open Utils
 open LatticeUtils
+open ProofContext
+open ExprUtils
 
 let gen_var next_val = 
   "lf" ^ (string_of_int (next_val()))
@@ -33,56 +35,29 @@ let generalize_exprL exprL type_table goal =
   let sigma = Hashtbl.create 100
   in let counter = ref 0 
   in List.fold_left 
-             (fun (acc, sigma) e ->
+             (fun (acc, sigma, vars) e ->
                 let gen, var_name = (generalize_expr acc e (Utils.next_val counter))
                 in if String.equal var_name ""
                     then 
-                      acc, sigma
+                      acc, sigma, vars
                     else 
                     (
-                      ((Hashtbl.add sigma var_name (e, (Hashtbl.find type_table (string_of_sexpr e))));of_string gen, sigma)
+                      (
+                        (Hashtbl.add sigma var_name (e, (Hashtbl.find type_table (string_of_sexpr e))));
+                        of_string gen, sigma, var_name::vars
+                      )
                     )
-             ) 
-             (goal, sigma) exprL
+             )
+             (goal, sigma, []) exprL
 
 let gen_conjecture_name inc = 
   "conj" ^ (string_of_int (inc()))
  
 let get_var_type t = 
-  let return_type = (Utils.get_return_type "" (of_string t))
+  let return_type = (TypeUtils.get_return_type "" (of_string t))
   in if String.equal return_type ""
       then return_type
       else ":" ^ return_type
-
-let is_variable var atom_type_table = 
-  let type_from_tbl = try (Hashtbl.find atom_type_table var) with Not_found -> ""
-  in match type_from_tbl with
-  | "" -> false
-  | v -> 
-            begin 
-              let sexpr_type  = of_string ("(" ^ v ^ ")")
-              in
-              match sexpr_type with
-              | [Expr [(Atom n)]] -> if String.equal n "Set" or String.equal n "Prop" then false else true
-              | _ -> false
-            end
-  
-let add_variable acc v_type = 
-  let var_exists = List.exists (fun e -> String.equal e v_type) acc
-  in if var_exists then acc else (v_type :: acc)
-
-let rec get_variables_in_sexp acc expr atom_type_table = 
-  match expr with
-  | (Atom v) :: tl -> if (is_variable v atom_type_table)
-                        then 
-                        let new_acc = (add_variable acc ("(" ^ v ^":"^ (Hashtbl.find atom_type_table v) ^ ")")) 
-                        in get_variables_in_sexp new_acc
-                         tl atom_type_table
-                        else get_variables_in_sexp (acc) tl atom_type_table
-
-  | (Expr e) :: tl -> let head_acc = get_variables_in_sexp acc  e atom_type_table
-                      in get_variables_in_sexp head_acc tl atom_type_table
-  | [] -> acc
 
 let get_conjecture gen sigma var_str counter: string =
   let conjecture_str = ": forall " ^ var_str
@@ -91,19 +66,33 @@ let get_conjecture gen sigma var_str counter: string =
                                            )  sigma conjecture_str
   in quantified_var_str ^ " , " ^ gen
 
-let get_all_conjectures generalizations atom_type_table = 
+let get_all_conjectures generalizations atom_type_table (p_ctxt : proof_context)= 
   let counter = ref 0
-  in let generalized_conjecture_strings = List.map (fun (g, sigma) -> 
-                  let var_str = (String.concat "" (get_variables_in_sexp [] g atom_type_table))
+  in let generalized_conjecture_strings = List.map (fun (g, sigma, vars) ->
+                  let gvars = (get_variables_in_expr g [] p_ctxt.vars)
+                  in let var_str = (List.fold_left (fun acc v -> acc ^ (" (" ^ v ^":"^ (Hashtbl.find atom_type_table v) ^ ")")) "" gvars)
                   in let conjecture_body = (get_conjecture (string_of_sexpr g) sigma var_str counter)
-                  in {sigma=sigma; conjecture_str=""; conjecture_name="";body=conjecture_body}
+                  in {
+                      sigma=sigma; 
+                      conjecture_str="";
+                      conjecture_name="";
+                      body=conjecture_body;
+                      body_sexp=g;
+                      lfind_vars=vars;
+                     }
                 )
             generalizations
   in Printf.printf "Size of conjecture before de-duplication %d\n" (List.length generalized_conjecture_strings);
   let conjectures = remove_conjecture_dups generalized_conjecture_strings
-  in List.fold_left (fun acc c -> 
+  in List.fold_left (fun acc (c:conjecture) -> 
                         let conjecture_name = (gen_conjecture_name (Utils.next_val counter))
-                        in let conj = {sigma=c.sigma; body=c.body;conjecture_name=conjecture_name;conjecture_str= (conjecture_name ^ c.body)}
+                        in let conj = {sigma=c.sigma;
+                                       body=c.body;
+                                       conjecture_name=conjecture_name;
+                                       conjecture_str=(conjecture_name ^ c.body);
+                                       body_sexp=c.body_sexp;
+                                       lfind_vars=c.lfind_vars
+                                      }
                         in (conj::acc)
                     ) [] conjectures
          

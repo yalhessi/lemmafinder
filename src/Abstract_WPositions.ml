@@ -13,10 +13,9 @@ let rec collect_terms_w_position (acc: (Sexp.t list * int) list) (atoms : string
 
 let get_type_table (terms: (Sexp.t list * int) list) c_ctx =  
   let type_tbl = Hashtbl.create (List.length terms)
-  in List.iter (fun (term, count) -> let typ = Utils.get_type_of_exp c_ctx.env c_ctx.sigma (Utils.str_to_constr (string_of_sexpr term))
-                            in let typ_str = Utils.get_str_of_pp (Printer.pr_econstr_env c_ctx.env c_ctx.sigma typ)
-                            in Hashtbl.replace type_tbl (string_of_sexpr term) typ_str
-                ) 
+  in List.iter (fun (term, count) -> let typ = TypeUtils.get_type_of_exp c_ctx.env c_ctx.sigma term
+                            in Hashtbl.replace type_tbl (string_of_sexpr term) typ
+                )
                 terms; type_tbl
 
 let powerset_to_string (p_set: (Sexp.t list * int) list list) = 

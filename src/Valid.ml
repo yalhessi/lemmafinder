@@ -23,5 +23,5 @@ let split_as_true_and_false conjectures p_ctxt : conjecture list * conjecture li
                                     let is_provable = check_validity c p_ctxt
                                     in if is_provable 
                                         then (c::true_conj, false_conj) 
-                                        else (true_conj, c::false_conj)
+                                        else (true_conj, List.append false_conj [c])
                     ) ([], []) conjectures

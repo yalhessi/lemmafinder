@@ -3,6 +3,7 @@ type proof_context =
     hypotheses : string list;
     goal : string;
     functions : string list;
+    vars : string list;
     samples :  string list list;
     fname: string;
     dir: string;

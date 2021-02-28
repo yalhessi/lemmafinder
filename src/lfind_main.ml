@@ -5,6 +5,7 @@ open Sexp
 open ProofContext
 open Loadpath
 open Loc
+open Names
 
 let msg_in_tactic str : unit Proofview.tactic =
   Proofview.tclLIFT (Proofview.NonLogical.make (fun () ->
@@ -19,6 +20,8 @@ let lfind_tac : unit Proofview.tactic =
     let hyps = Proofview.Goal.hyps gl in
     let hyps_strl = Utils.get_hyps_strl hyps env sigma in
     let c_ctxt = {env = env; sigma = sigma}
+    in let vars = Utils.get_vars_in_expr goal
+  
     in let paths = Loadpath.get_load_paths ()
     (* in List.iter (fun path -> print_endline (Utils.get_str_of_pp (Loadpath.pp  (path)))) paths; *)
     (* let dir = List.hd (List.rev (String.split_on_char ' ' (Utils.get_str_of_pp (Loadpath.pp (List.hd paths))))) *)
@@ -36,22 +39,23 @@ let lfind_tac : unit Proofview.tactic =
                      dir = lfind_dir;
                      full_context = full_context;
                      fname = f_name;
+                     vars = vars;
                     }
-    (* copy the folder for lfind purposes  -- this call is blocking *)
-    
+
     (* in Abstract_WPositions.abstract p_ctxt c_ctxt; *)
     in let abstraction = Abstract_NoDup.abstract
     in let conjectures = abstraction p_ctxt c_ctxt
-    in let provable_conjectures, non_provable_conjectures = (Provable.split_as_provable_non_provable conjectures p_ctxt)
+    (* in let provable_conjectures, non_provable_conjectures = (Provable.split_as_provable_non_provable conjectures p_ctxt)
     in let provable_conjectures_str = LatticeUtils.conjs_to_string provable_conjectures
     in let generalization_output_str = Printf.sprintf ("Generalization found %d provable lemmas out of %d lemmas\n %s") (List.length provable_conjectures) (List.length conjectures) provable_conjectures_str
-    in Feedback.msg_notice(Pp.str(generalization_output_str));
+    in Feedback.msg_notice(Pp.str(generalization_output_str)); *)
 
-    let valid_conjectures, non_valid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
+    in let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
     in let valid_conjectures_str = LatticeUtils.conjs_to_string valid_conjectures
     in let generalization_output_str = Printf.sprintf ("Generalization found %d valid lemmas out of %d lemmas\n %s") (List.length valid_conjectures) (List.length conjectures) valid_conjectures_str
     in Feedback.msg_notice(Pp.str(generalization_output_str));
 
-    msg_in_tactic "Done.." >>= fun () ->
-    Tacticals.New.tclIDTAC
+    List.iter (Synthesize.synthesize p_ctxt) invalid_conjectures ;
+
+    Tacticals.New.tclZEROMSG (Pp.str ("Done.."))
   end

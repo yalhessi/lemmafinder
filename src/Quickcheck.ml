@@ -7,7 +7,7 @@ let quickcheck prelude fname =
 
 let output_code op =
   let last_line = List.hd (List.rev op)
-  in let is_contains = LatticeUtils.contains last_line "Passed"
+  in let is_contains = Utils.contains last_line "Passed"
   in is_contains
 
 let run prelude conjecture_name =
