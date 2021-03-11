@@ -1,4 +1,3 @@
-
 let get_parent_curr_dir dir = 
   let rec aux acc curr dir_split = 
     match dir_split with
@@ -23,7 +22,24 @@ let run_cmd cmd =
   in let r = input_lines [] inp in
   close_in inp; r
 
+let rm_dir dir =
+  let cmd = "rm -rf " ^ dir
+  in let cmd_op = run_cmd cmd
+  in ()
+
 let cp_dir src dst =
+  rm_dir dst;
   let cmd = "cp -r " ^ src ^ " " ^ dst
   in let cmd_op = run_cmd cmd
   in ()
+
+let read_file filename =
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true; do
+      lines := input_line chan :: !lines
+    done; !lines
+  with End_of_file ->
+    close_in chan;
+    !lines

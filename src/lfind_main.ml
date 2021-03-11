@@ -21,7 +21,6 @@ let lfind_tac : unit Proofview.tactic =
     let hyps_strl = Utils.get_hyps_strl hyps env sigma in
     let c_ctxt = {env = env; sigma = sigma}
     in let vars = Utils.get_vars_in_expr goal
-  
     in let paths = Loadpath.get_load_paths ()
     (* in List.iter (fun path -> print_endline (Utils.get_str_of_pp (Loadpath.pp  (path)))) paths; *)
     (* let dir = List.hd (List.rev (String.split_on_char ' ' (Utils.get_str_of_pp (Loadpath.pp (List.hd paths))))) *)

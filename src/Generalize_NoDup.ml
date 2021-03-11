@@ -66,7 +66,7 @@ let get_conjecture gen sigma var_str counter: string =
                                            )  sigma conjecture_str
   in quantified_var_str ^ " , " ^ gen
 
-let get_all_conjectures generalizations atom_type_table (p_ctxt : proof_context)= 
+let get_all_conjectures generalizations atom_type_table expr_type_table (p_ctxt : proof_context)= 
   let counter = ref 0
   in let generalized_conjecture_strings = List.map (fun (g, sigma, vars) ->
                   let gvars = (get_variables_in_expr g [] p_ctxt.vars)
@@ -79,6 +79,7 @@ let get_all_conjectures generalizations atom_type_table (p_ctxt : proof_context)
                       body=conjecture_body;
                       body_sexp=g;
                       lfind_vars=vars;
+                      all_expr_type_table = expr_type_table
                      }
                 )
             generalizations
@@ -91,7 +92,8 @@ let get_all_conjectures generalizations atom_type_table (p_ctxt : proof_context)
                                        conjecture_name=conjecture_name;
                                        conjecture_str=(conjecture_name ^ c.body);
                                        body_sexp=c.body_sexp;
-                                       lfind_vars=c.lfind_vars
+                                       lfind_vars=c.lfind_vars;
+                                       all_expr_type_table = c.all_expr_type_table;
                                       }
                         in (conj::acc)
                     ) [] conjectures

@@ -64,6 +64,6 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
     else (string_of_sexpr conc_sexp)
   in print_endline hypo_implies_conc;
   let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set expr_type_table (of_string hypo_implies_conc)
-  in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table p_ctxt)
+  in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table expr_type_table p_ctxt)
   in List.iter (fun c -> Printf.printf "%s\n" (c.conjecture_str)) conjectures;
   conjectures
