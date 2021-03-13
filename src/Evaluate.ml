@@ -3,18 +3,14 @@ open ExprUtils
 
 let generate_eval_file p_ctxt eval_str : string =
   let lfind_file = p_ctxt.dir ^ "/lfind_eval.v"
-  in FileUtils.remove_file lfind_file;
-  let content = "Require Import " ^ p_ctxt.fname ^ ".\n" 
-                ^ "Require Import List.\n Import ListNotations.\n"
+  in let content = p_ctxt.declarations 
+                   ^ "\n Require Import " ^ p_ctxt.fname ^ ".\n"
                 ^ eval_str
-  in let oc = open_out lfind_file in
-  Printf.fprintf oc "%s" content;
-  close_out oc;
+  in FileUtils.write_to_file lfind_file content;
   lfind_file
 
-let run_eval fname =
-  (* TODO: fix this hardcoding for namespace, we can get this when getting the path *)
-  let cmd = "coqc -R . test " ^ fname
+let run_eval fname namespace =
+  let cmd = "coqc -R . " ^ namespace  ^ " " ^ fname
   in FileUtils.run_cmd cmd
 
 let get_eval_definition expr vars =
@@ -56,5 +52,5 @@ let evaluate_coq_expr expr examples p_ctxt =
   print_endline (Sexp.string_of_sexpr expr);
   let evalstr = get_evaluate_str expr p_ctxt.vars examples
   in let efile = generate_eval_file p_ctxt evalstr
-  in let output = run_eval efile
+  in let output = run_eval efile p_ctxt.namespace
   in get_expr_vals output

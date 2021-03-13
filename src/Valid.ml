@@ -3,15 +3,13 @@ open ProofContext
 
 let generate_lfind_file p_ctxt conjecture name : string =
   let lfind_file = p_ctxt.dir ^ "/lfind" ^ name ^ ".v"
-  in FileUtils.remove_file lfind_file;
-  let content = "From QuickChick Require Import QuickChick.\n"
+  in let content = p_ctxt.declarations 
+                ^ "\n From QuickChick Require Import QuickChick.\n"
                 ^ "Require Import " ^ p_ctxt.fname ^ ".\n" 
                 ^ "Lemma " ^ conjecture ^ ".\n"
                 ^ "Admitted.\n"
                 ^ "QuickChick " ^ name ^ ".\n"
-  in let oc = open_out lfind_file in
-  Printf.fprintf oc "%s" content;
-  close_out oc;
+  in FileUtils.write_to_file lfind_file content;
   lfind_file
 
 let check_validity conjecture p_ctxt : bool =

@@ -43,3 +43,9 @@ let read_file filename =
   with End_of_file ->
     close_in chan;
     !lines
+  
+let write_to_file fname content =
+  remove_file fname;
+  let oc = open_out fname in
+  Printf.fprintf oc "%s" content;
+  close_out oc;

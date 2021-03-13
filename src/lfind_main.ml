@@ -24,12 +24,13 @@ let lfind_tac : unit Proofview.tactic =
     in let paths = Loadpath.get_load_paths ()
     (* in List.iter (fun path -> print_endline (Utils.get_str_of_pp (Loadpath.pp  (path)))) paths; *)
     (* let dir = List.hd (List.rev (String.split_on_char ' ' (Utils.get_str_of_pp (Loadpath.pp (List.hd paths))))) *)
-    in let dir = LatticeUtils.get_dir paths
+    in let namespace, dir = LatticeUtils.get_dir paths
     in let parent_dir, curr_dir = FileUtils.get_parent_curr_dir dir in
     let lfind_dir = parent_dir ^ "_lfind_" ^ curr_dir in
     FileUtils.cp_dir dir (lfind_dir);
     let full_context = Utils.get_str_of_pp (Prettyp.print_full_context env sigma)
     in let f_name = ProofContext.get_fname full_context
+    in let declarations = ProofContext.get_decalarations lfind_dir f_name
     in let p_ctxt = {
                      hypotheses = hyps_strl; 
                      goal = (Utils.get_expr_str env sigma goal); 
@@ -39,9 +40,10 @@ let lfind_tac : unit Proofview.tactic =
                      full_context = full_context;
                      fname = f_name;
                      vars = vars;
+                     namespace = namespace;
+                     declarations = declarations;
                     }
 
-    (* in Abstract_WPositions.abstract p_ctxt c_ctxt; *)
     in let abstraction = Abstract_NoDup.abstract
     in let conjectures = abstraction p_ctxt c_ctxt
     (* in let provable_conjectures, non_provable_conjectures = (Provable.split_as_provable_non_provable conjectures p_ctxt)

@@ -32,7 +32,7 @@ let get_example_index examplestr index examples lfind_var_outputs vars_for_synth
                  ) "" vars_for_synthesis
   
 let gen_synthesis_examples examples lfind_var_outputs output_examples vars_for_synthesis =
-  List.iteri (fun index op -> 
+  List.mapi (fun index op -> 
                               let input_str = get_example_index "" index examples lfind_var_outputs vars_for_synthesis
                               in let opstr = input_str ^ op ^ ";"
                               in print_endline opstr
