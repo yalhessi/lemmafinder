@@ -79,7 +79,8 @@ let get_all_conjectures generalizations atom_type_table expr_type_table (p_ctxt 
                       body=conjecture_body;
                       body_sexp=g;
                       lfind_vars=vars;
-                      all_expr_type_table = expr_type_table
+                      all_expr_type_table = expr_type_table;
+                      atom_type_table = atom_type_table;
                      }
                 )
             generalizations
@@ -94,6 +95,7 @@ let get_all_conjectures generalizations atom_type_table expr_type_table (p_ctxt 
                                        body_sexp=c.body_sexp;
                                        lfind_vars=c.lfind_vars;
                                        all_expr_type_table = c.all_expr_type_table;
+                                       atom_type_table = c.atom_type_table;
                                       }
                         in (conj::acc)
                     ) [] conjectures

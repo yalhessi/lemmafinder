@@ -49,7 +49,6 @@ let get_expr_vals output =
                  ) output []
 
 let evaluate_coq_expr expr examples p_ctxt =
-  print_endline (Sexp.string_of_sexpr expr);
   let evalstr = get_evaluate_str expr p_ctxt.vars examples
   in let efile = generate_eval_file p_ctxt evalstr
   in let output = run_eval efile p_ctxt.namespace

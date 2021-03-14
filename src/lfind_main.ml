@@ -30,7 +30,7 @@ let lfind_tac : unit Proofview.tactic =
     FileUtils.cp_dir dir (lfind_dir);
     let full_context = Utils.get_str_of_pp (Prettyp.print_full_context env sigma)
     in let f_name = ProofContext.get_fname full_context
-    in let declarations = ProofContext.get_decalarations lfind_dir f_name
+    in let declarations = ProofContext.get_declarations lfind_dir f_name
     in let p_ctxt = {
                      hypotheses = hyps_strl; 
                      goal = (Utils.get_expr_str env sigma goal); 

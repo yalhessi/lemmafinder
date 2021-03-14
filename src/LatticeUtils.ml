@@ -20,6 +20,7 @@ type conjecture = {
   body_sexp : Sexp.t list;
   lfind_vars : string list;
   all_expr_type_table : (string, string) Hashtbl.t;
+  atom_type_table : (string, string) Hashtbl.t;
 }
 
 let remove_conjecture_dups conjectures = 

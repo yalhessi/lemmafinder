@@ -30,7 +30,7 @@ let get_fname full_context =
   in let fname = List.hd (List.rev (String.split_on_char '.' library))
   in fname
 
-let get_decalarations dir fname =
+let get_declarations dir fname =
   let lines = FileUtils.read_file (dir ^ "/" ^ fname ^ ".v")
   in List.fold_right (fun line acc -> 
                             let is_comment = Utils.contains line "*"
