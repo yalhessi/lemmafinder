@@ -1,15 +1,6 @@
 open Stdlib
 open FileUtils
 
-let get_proverbot_path env =
-  let path = ""
-  in Array.fold_left (fun path p -> let p_list = Array.of_list(String.split_on_char '=' p)
-                                    in let var = (try (Array.get p_list 0) with Invalid_argument _ -> "")
-                                    in let var_path = try (Array.get p_list 1) with Invalid_argument _ -> ""
-                                    in if String.equal var "PROVERBOT" then var_path else path
-                     )
-                     path env
-
 let scrape_data prelude proverbot fname =
   let python = "python3 " 
   in let script = proverbot ^ "src/scrape.py "
@@ -43,8 +34,7 @@ let remove_current_search prelude =
   in ()
 
 let run prelude conjecture_name =
-  let env = Unix.environment ()
-  in let prover_bot_path = get_proverbot_path env
+  let prover_bot_path = Utils.get_env_var "PROVERBOT" 
   in let fname = " lfind" ^ conjecture_name ^".v "
   in scrape_data prelude prover_bot_path fname;
   search prelude prover_bot_path fname;

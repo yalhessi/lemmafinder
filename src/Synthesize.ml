@@ -12,12 +12,14 @@ let add_synthesis_term acc gen_vars term type_tbl =
   in if String.equal return_type "Type"
     then acc 
     else 
-        (let exists = List.exists (fun e -> Sexp.equal e term) acc
-        in if exists 
-          then acc
-          else if term_contains_gen_var term gen_vars
-                then acc
-                else term :: acc)
+        (
+          let exists = List.exists (fun e -> Sexp.equal e term) acc
+          in if exists 
+             then acc
+             else if term_contains_gen_var term gen_vars
+                  then acc
+                  else term :: acc
+        )
 
 let rec get_terms_to_synthesize (acc : Sexp.t list list) (conjecture: Sexp.t list)
                                 (gen_vars: string list) type_tbl : Sexp.t list list =

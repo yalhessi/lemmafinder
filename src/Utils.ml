@@ -83,3 +83,12 @@ let get_vars_in_expr expr =
 and vars_of_constrarray a : string list =
     List.fold_left (fun acc elem -> List.append acc (aux elem acc)) [] (Array.to_list a)
 in aux constr_goal []
+
+let get_env_var env_var : string =
+  let env = Unix.environment ()
+  in Array.fold_left (fun path p -> let p_list = Array.of_list(String.split_on_char '=' p)
+                                    in let var = (try (Array.get p_list 0) with Invalid_argument _ -> "")
+                                    in let var_path = try (Array.get p_list 1) with Invalid_argument _ -> ""
+                                    in if String.equal var env_var then var_path else path
+                     )
+                     "" env
