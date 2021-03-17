@@ -13,6 +13,7 @@ In the folder that you run make or coqc export the following environment variabl
 
 ```
 export PROVERBOT=<path to proverbot folder>
+export MYTH=<path to myth folder>
 ```
 
 ## How to build and install

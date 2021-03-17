@@ -50,9 +50,6 @@ let generalize_exprL exprL type_table goal =
              )
              (goal, sigma, []) exprL
 
-let gen_conjecture_name inc = 
-  "conj" ^ (string_of_int (inc()))
- 
 let get_var_type t = 
   let return_type = (TypeUtils.get_return_type "" (of_string t))
   in if String.equal return_type ""
@@ -87,7 +84,7 @@ let get_all_conjectures generalizations atom_type_table expr_type_table (p_ctxt 
   in Printf.printf "Size of conjecture before de-duplication %d\n" (List.length generalized_conjecture_strings);
   let conjectures = remove_conjecture_dups generalized_conjecture_strings
   in List.fold_left (fun acc (c:conjecture) -> 
-                        let conjecture_name = (gen_conjecture_name (Utils.next_val counter))
+                        let conjecture_name = (gen_conjecture_name "" (Utils.next_val counter))
                         in let conj = {sigma=c.sigma;
                                        body=c.body;
                                        conjecture_name=conjecture_name;

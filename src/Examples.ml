@@ -33,6 +33,6 @@ let get_example_index examplestr index examples lfind_var_outputs vars_for_synth
   
 let gen_synthesis_examples examples lfind_var_outputs output_examples vars_for_synthesis =
   List.mapi (fun index op -> 
-                              let input_str = get_example_index "" index examples lfind_var_outputs vars_for_synthesis
-                              in if Int.equal 0 index then input_str ^ op else input_str ^ op ^ ";"
+                    let input_str = get_example_index "" index examples lfind_var_outputs vars_for_synthesis
+                    in if Int.equal 0 index then input_str ^ op else input_str ^ op ^ ";"
              ) output_examples

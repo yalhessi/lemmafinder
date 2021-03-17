@@ -185,3 +185,19 @@ let equal e1 e2 =
 let size sexp = 
   String.length (string_of_sexpr sexp)
 
+let replace_sub_sexp sexp sub_expr repl_expr =
+  let rec aux (acc: string list) = function 
+  | (Atom tag)::tl -> (aux ((protect tag)::acc) tl)
+  | (Expr e)::tl ->
+    let str_to_concat= (aux [] e)
+    in let to_app = if (equal e sub_expr) then repl_expr
+      else 
+        "(" ^
+        (String.concat " " str_to_concat)
+        ^ ")"
+      in
+      aux (to_app::acc) tl
+  | [] -> (List.rev acc)
+  in
+  let str_expr = (aux [] sexp)
+  in String.concat " " str_expr

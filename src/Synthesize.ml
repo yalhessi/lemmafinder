@@ -1,5 +1,7 @@
 open LatticeUtils
 open ProofContext
+open Stats
+open Consts
 
 let term_contains_gen_var term gen_vars =
   List.exists (fun gvar -> 
@@ -9,25 +11,34 @@ let term_contains_gen_var term gen_vars =
 let add_synthesis_term acc gen_vars term type_tbl =
   let term_type = try (Hashtbl.find type_tbl (Sexp.string_of_sexpr term)) with _ -> ""
   in let return_type = TypeUtils.get_return_type "" (Sexp.of_string term_type)
-  in if String.equal return_type "Type"
-    then acc 
+  in if String.equal return_type type_decl
+    then acc, false
     else 
         (
           let exists = List.exists (fun e -> Sexp.equal e term) acc
           in if exists 
-             then acc
+             then acc, false
              else if term_contains_gen_var term gen_vars
-                  then acc
-                  else term :: acc
+                  then acc, false
+                  else term :: acc, true
         )
 
+(* 
+   We pick terms based on the size. 
+   Add the largest expression that can be replaced for synthesis. 
+*)
 let rec get_terms_to_synthesize (acc : Sexp.t list list) (conjecture: Sexp.t list)
                                 (gen_vars: string list) type_tbl : Sexp.t list list =
   match conjecture with
   | (Atom a) :: tl -> get_terms_to_synthesize acc tl gen_vars type_tbl
-  | (Expr head) :: tl -> let new_acc = (add_synthesis_term acc gen_vars head type_tbl)
-                          in let head_terms = get_terms_to_synthesize new_acc head gen_vars type_tbl
+  | (Expr head) :: tl -> let new_acc, is_added = (add_synthesis_term acc gen_vars head type_tbl)
+                         in if is_added then
+                         get_terms_to_synthesize new_acc tl gen_vars type_tbl
+                         else 
+                         (
+                          let head_terms = get_terms_to_synthesize new_acc head gen_vars type_tbl
                           in get_terms_to_synthesize head_terms tl gen_vars type_tbl
+                         )
   | [] -> acc
 
 let evaluate_generalized_expr conjecture examples p_ctxt =
@@ -72,23 +83,70 @@ let get_type_vars (conjecture : conjecture) vars =
                                       Hashtbl.add type_tbl v (TypeUtils.get_return_type "" (Sexp.of_string expr_type))
                ) vars; type_tbl
 
-let synthesize p_ctxt conjecture =
-  Printf.printf "Synthesizing for conjecture %s\n" conjecture.conjecture_str;
-  let examples = Examples.get_examples (p_ctxt.dir ^ "/examples.txt")
-  in
-  let lfind_var_outputs = evaluate_generalized_expr conjecture examples p_ctxt
-  in let synth_terms = get_terms_to_synthesize [] conjecture.body_sexp conjecture.lfind_vars conjecture.all_expr_type_table
-  (* the following part will be a iter over all synth terms for now I am taking the head element *)
-  in let sorted_synth_terms = LatticeUtils.sort_by_size synth_terms
-  in let curr_synth_term = List.hd (sorted_synth_terms)
-  in Printf.printf "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term);
+let get_quantified_var var_types =
+  Hashtbl.fold (fun k v acc -> if String.equal k synthesis_op
+                               then acc
+                               else acc ^ " " ^ "(" ^ k ^ " : " ^ v ^ ")"
+               ) var_types ""
+
+let get_synthesis_conjecture curr_synth_term conjecture var_types counter synthesized_expr  =
+  let synthesized_expr = "(" ^ synthesized_expr ^ ")"
+  in let replaced_conj = Sexp.replace_sub_sexp conjecture.body_sexp curr_synth_term synthesized_expr
+  in let conj_prefix = conjecture.conjecture_name ^ "synth"
+  in let synth_conj_name = LatticeUtils.gen_conjecture_name conj_prefix counter
+  in let synth_conj = synth_conj_name ^ " " ^ ": forall " ^ (get_quantified_var var_types) ^ ", " ^ replaced_conj
+  in let synthesis_conjecture = {
+                                  sigma = Hashtbl.create 0;
+                                  conjecture_str = synth_conj;
+                                  body = replaced_conj;
+                                  conjecture_name = synth_conj_name;
+                                  body_sexp = [];
+                                  lfind_vars = [];
+                                  all_expr_type_table = Hashtbl.create 0;
+                                  atom_type_table = var_types
+                                }
+  in synthesized_expr, synthesis_conjecture
+
+let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture =
+  List.filter (fun (_, conj) -> (Valid.check_validity conj p_ctxt)) synthesized_conjectures
+
+let synthesize_lemmas curr_synth_term conjecture examples p_ctxt generalized_var_output =
+  Printf.printf "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term);
   let output_examples = (Evaluate.evaluate_coq_expr curr_synth_term examples p_ctxt)
   in let vars_for_synthesis = (get_variables_except_expr conjecture.body_sexp curr_synth_term [] p_ctxt.vars conjecture.lfind_vars)
   in let var_types = get_type_vars conjecture vars_for_synthesis
   in let output_type = (Hashtbl.find conjecture.all_expr_type_table (Sexp.string_of_sexpr curr_synth_term))
-  in Hashtbl.add var_types "output" ( TypeUtils.get_return_type "" (Sexp.of_string output_type));
-  Hashtbl.iter (fun k v -> Printf.printf "%s -> %s\n" k v) var_types;
-  (* construct the string of examples to dump to synthesis file *)
-  let myth_examples = Examples.gen_synthesis_examples examples lfind_var_outputs output_examples vars_for_synthesis
-  in let vars_for_synthesis = List.append vars_for_synthesis ["output"]
-  in Myth.enumerate_expressions p_ctxt conjecture.conjecture_name myth_examples var_types vars_for_synthesis
+  in Hashtbl.add var_types synthesis_op ( TypeUtils.get_return_type "" (Sexp.of_string output_type));
+  let myth_examples = Examples.gen_synthesis_examples examples generalized_var_output output_examples vars_for_synthesis
+  in let vars_for_synthesis = List.append vars_for_synthesis [synthesis_op]
+  in let enumerated_exprs = Myth.enumerate_expressions p_ctxt conjecture.conjecture_name myth_examples var_types vars_for_synthesis
+  in let counter = ref 0
+  in let synthesized_conjectures = List.map (get_synthesis_conjecture curr_synth_term conjecture var_types (Utils.next_val counter)) enumerated_exprs
+  in let valid_conjectures = filter_valid_conjectures synthesized_conjectures p_ctxt conjecture
+  in let synth_stat = {
+                        synthesis_term = (Sexp.string_of_sexpr curr_synth_term);
+                        enumerated_exprs = enumerated_exprs;
+                        valid_lemmas = valid_conjectures;
+                        provable_lemmas = [];
+                      }
+  in synth_stat
+
+let synthesize p_ctxt conjecture =
+  Printf.printf "Synthesizing for conjecture %s\n" conjecture.conjecture_str;
+  let examples = Examples.get_examples (p_ctxt.dir ^ "/examples.txt")
+  in
+  let generalized_var_output = evaluate_generalized_expr conjecture examples p_ctxt
+  in let synth_terms = get_terms_to_synthesize [] conjecture.body_sexp conjecture.lfind_vars conjecture.all_expr_type_table
+  (* the following part will be a iter over all synth terms for now I am taking the head element *)
+  in let sorted_synth_terms = LatticeUtils.sort_by_size synth_terms
+  in let synth_stats = List.map (fun synth_term -> (synthesize_lemmas synth_term conjecture examples p_ctxt generalized_var_output)) sorted_synth_terms
+  in let gen_stat = {
+                      conjecture = conjecture;
+                      is_valid = false;
+                      is_provable = false;
+                      synthesis_stats = synth_stats;
+                    }
+  in Log.write_to_log (genstat_to_string gen_stat) !Log.stats_log_file;
+  global_stat := gen_stat :: !global_stat;
+  ()
+  

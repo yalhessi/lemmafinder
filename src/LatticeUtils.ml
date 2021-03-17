@@ -71,4 +71,7 @@ let get_dir paths =
                                       in (namespace, dir)
                                   )
                  ) ("", "") paths
-  
+
+let gen_conjecture_name prefix inc = 
+    prefix ^ "conj" ^ (string_of_int (inc()))
+                   

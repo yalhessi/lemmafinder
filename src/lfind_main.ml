@@ -22,8 +22,6 @@ let lfind_tac : unit Proofview.tactic =
     let c_ctxt = {env = env; sigma = sigma}
     in let vars = Utils.get_vars_in_expr goal
     in let paths = Loadpath.get_load_paths ()
-    (* in List.iter (fun path -> print_endline (Utils.get_str_of_pp (Loadpath.pp  (path)))) paths; *)
-    (* let dir = List.hd (List.rev (String.split_on_char ' ' (Utils.get_str_of_pp (Loadpath.pp (List.hd paths))))) *)
     in let namespace, dir = LatticeUtils.get_dir paths
     in let parent_dir, curr_dir = FileUtils.get_parent_curr_dir dir in
     let lfind_dir = parent_dir ^ "_lfind_" ^ curr_dir in
@@ -43,8 +41,9 @@ let lfind_tac : unit Proofview.tactic =
                      namespace = namespace;
                      declarations = declarations;
                     }
-
-    in let abstraction = Abstract_NoDup.abstract
+    in Log.stats_log_file := lfind_dir ^ Consts.log_file;
+    Log.error_log_file := lfind_dir ^ Consts.error_log_file;
+    let abstraction = Abstract_NoDup.abstract
     in let conjectures = abstraction p_ctxt c_ctxt
     (* in let provable_conjectures, non_provable_conjectures = (Provable.split_as_provable_non_provable conjectures p_ctxt)
     in let provable_conjectures_str = LatticeUtils.conjs_to_string provable_conjectures
@@ -57,6 +56,7 @@ let lfind_tac : unit Proofview.tactic =
     in Feedback.msg_notice(Pp.str(generalization_output_str));
 
     List.iter (Synthesize.synthesize p_ctxt) invalid_conjectures ;
+    Stats.summarize !Stats.global_stat;
 
     Tacticals.New.tclZEROMSG (Pp.str ("Done.."))
   end
