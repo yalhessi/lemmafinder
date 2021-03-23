@@ -57,20 +57,6 @@ let conjs_to_string conjectures =
 
 let construct_implications conc hyps =
     List.fold_left (fun acc hyp -> "(" ^ hyp ^  "->" ^ acc ^ ")") conc hyps
-    
-let get_dir paths =
-  List.fold_left (fun (namespace, dir) path -> let path_str = (Utils.get_str_of_pp (Loadpath.pp (path)))
-                                  in let is_contains = contains path_str "coq"
-                                  in if is_contains || not (String.equal dir "") 
-                                  then (namespace, dir)
-                                  else 
-                                  (
-                                      let pathl = (String.split_on_char ' ' path_str)
-                                      in let namespace = List.hd pathl
-                                      in let dir = List.hd (List.rev pathl)
-                                      in (namespace, dir)
-                                  )
-                 ) ("", "") paths
 
 let gen_conjecture_name prefix inc = 
     prefix ^ "conj" ^ (string_of_int (inc()))

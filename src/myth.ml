@@ -30,7 +30,7 @@ let run synth_fname p_ctxt conjecture_name =
   let myth_path = Utils.get_env_var "MYTH"
   in let myth_output_path = p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ conjecture_name ^ "synthesis.txt"
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
-  in let myth_cmd = Consts.fmt  "%s -enum %s > %s" myth_path synth_fname myth_output_path
+  in let myth_cmd = Consts.fmt  "%s %s > %s" myth_path synth_fname myth_output_path
   in let run_myth = run_cmd (Consts.fmt "%s %s" timeout_cmd  myth_cmd)
   in List.rev (read_file myth_output_path)
 
