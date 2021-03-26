@@ -26,16 +26,17 @@ let generate_synthesis_file p_ctxt conjecture_name examples var_types vars : str
   in FileUtils.write_to_file lfind_file all_content;
   lfind_file
 
-let run synth_fname p_ctxt conjecture_name =
+let run synth_fname p_ctxt conjecture_name enumerate=
   let myth_path = Utils.get_env_var "MYTH"
   in let myth_output_path = p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ conjecture_name ^ "synthesis.txt"
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
-  in let myth_cmd = Consts.fmt  "%s %s > %s" myth_path synth_fname myth_output_path
+  in let myth_cmd = Consts.fmt  "%s %s %s > %s" myth_path enumerate synth_fname myth_output_path
   in let run_myth = run_cmd (Consts.fmt "%s %s" timeout_cmd  myth_cmd)
   in List.rev (read_file myth_output_path)
 
-let enumerate_expressions p_cxt conjecture_name examples var_types vars =
+let enumerate_expressions p_cxt conjecture_name examples var_types vars is_enum =
   let synth_file = generate_synthesis_file p_cxt conjecture_name examples var_types vars
-  in print_endline ("Written to synth file " ^ synth_file);
-  let myth_op = run synth_file p_cxt conjecture_name
-  in try (List.tl myth_op) with _ -> []
+  in Log.debug (Consts.fmt "Written to synth file %s\n"  synth_file);
+  let enumerate = if is_enum then "-enum" else ""
+  in let myth_op = run synth_file p_cxt conjecture_name enumerate
+  in if is_enum then (try (List.tl myth_op) with _ -> []) else myth_op

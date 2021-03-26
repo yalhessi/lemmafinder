@@ -1,8 +1,8 @@
 open FileUtils
 
-let quickcheck prelude fname namespace =
+let quickcheck fname namespace =
   (* TODO: fix this hardcoding for namespace, we can get this when getting the path *)
-  let cmd = Consts.fmt "coqc -R . %s %s%s" namespace prelude fname
+  let cmd = Consts.fmt "coqc -R . %s %s" namespace fname
   in run_cmd cmd
 
 let output_code op =
@@ -10,6 +10,5 @@ let output_code op =
   in let is_contains = Utils.contains last_line "Passed"
   in is_contains
 
-let run prelude conjecture_name namespace =
-  let fname = "/lfind" ^ conjecture_name ^".v "
-  in (output_code (quickcheck prelude fname namespace))
+let run fname namespace =
+  (output_code (quickcheck fname namespace))

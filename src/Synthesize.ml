@@ -110,8 +110,11 @@ let get_synthesis_conjecture curr_synth_term conjecture var_types counter synthe
 let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture =
   List.filter (fun (_, conj) -> (Valid.check_validity conj p_ctxt)) synthesized_conjectures
 
+let filter_provable_conjectures valid_conjectures p_ctxt original_conjecture =
+  List.filter (fun (_, conj) -> (Provable.check_lfind_theorem_add_axiom p_ctxt conj.conjecture_str)) valid_conjectures
+
 let synthesize_lemmas curr_synth_term conjecture examples p_ctxt generalized_var_output =
-  Printf.printf "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term);
+  Log.debug (Consts.fmt "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term));
   let output_examples = (Evaluate.evaluate_coq_expr curr_synth_term examples p_ctxt)
   in let vars_for_synthesis = (get_variables_except_expr conjecture.body_sexp curr_synth_term [] p_ctxt.vars conjecture.lfind_vars)
   in let var_types = get_type_vars conjecture vars_for_synthesis
@@ -119,21 +122,23 @@ let synthesize_lemmas curr_synth_term conjecture examples p_ctxt generalized_var
   in Hashtbl.add var_types synthesis_op ( TypeUtils.get_return_type "" (Sexp.of_string output_type));
   let myth_examples = Examples.gen_synthesis_examples examples generalized_var_output output_examples vars_for_synthesis
   in let vars_for_synthesis = List.append vars_for_synthesis [synthesis_op]
-  in let enumerated_exprs = Myth.enumerate_expressions p_ctxt conjecture.conjecture_name myth_examples var_types vars_for_synthesis
+  in let enumerated_exprs = Myth.enumerate_expressions p_ctxt conjecture.conjecture_name myth_examples var_types vars_for_synthesis true
   in let counter = ref 0
   in let synthesized_conjectures = List.map (get_synthesis_conjecture curr_synth_term conjecture var_types (Utils.next_val counter)) enumerated_exprs
   in let valid_conjectures = filter_valid_conjectures synthesized_conjectures p_ctxt conjecture
+  in let provable_conjectures = filter_provable_conjectures valid_conjectures p_ctxt conjecture
   in let synth_stat = {
                         synthesis_term = (Sexp.string_of_sexpr curr_synth_term);
                         enumerated_exprs = enumerated_exprs;
                         valid_lemmas = valid_conjectures;
-                        provable_lemmas = [];
+                        provable_lemmas = provable_conjectures;
                       }
   in synth_stat
 
 let synthesize p_ctxt conjecture =
-  Printf.printf "Synthesizing for conjecture %s\n" conjecture.conjecture_str;
-  let examples = Examples.get_examples (p_ctxt.dir ^ "/examples.txt")
+  Log.debug(Consts.fmt "Synthesizing for conjecture %s\n" conjecture.conjecture_str);
+  let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
+  in let examples = Examples.get_examples example_file
   in
   let generalized_var_output = evaluate_generalized_expr conjecture examples p_ctxt
   in let synth_terms = get_terms_to_synthesize [] conjecture.body_sexp conjecture.lfind_vars conjecture.all_expr_type_table

@@ -81,7 +81,7 @@ let get_all_conjectures generalizations atom_type_table expr_type_table (p_ctxt 
                      }
                 )
             generalizations
-  in Printf.printf "Size of conjecture before de-duplication %d\n" (List.length generalized_conjecture_strings);
+  in Log.debug(Consts.fmt "Size of conjecture before de-duplication %d\n" (List.length generalized_conjecture_strings));
   let conjectures = remove_conjecture_dups generalized_conjecture_strings
   in List.fold_left (fun acc (c:conjecture) -> 
                         let conjecture_name = (gen_conjecture_name "" (Utils.next_val counter))

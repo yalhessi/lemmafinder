@@ -17,7 +17,7 @@ let rec input_lines l ic : string list =
   | exception End_of_file -> List.rev l
 
 let run_cmd cmd =
-  print_endline cmd;
+  Log.debug(Consts.fmt "%s\n" cmd);
   let inp = Unix.open_process_in cmd
   in let r = input_lines [] inp in
   close_in inp; r

@@ -69,6 +69,7 @@ let construct_proof_context gl =
     in let namespace, dir = get_dir paths
     in let parent_dir, curr_dir = FileUtils.get_parent_curr_dir dir in
     let lfind_dir = parent_dir ^ "_lfind_" ^ curr_dir in
+    Log.enable_debug (lfind_dir ^ Consts.debug_log_file);
     FileUtils.cp_dir dir (lfind_dir);    
     let full_context = Utils.get_str_of_pp (Prettyp.print_full_context env sigma)
     in let f_name = get_fname full_context

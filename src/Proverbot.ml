@@ -4,18 +4,17 @@ open FileUtils
 let scrape_data prelude proverbot fname =
   let python = "python3 " 
   in let script = proverbot ^ "src/scrape.py "
-  in let cmd = python ^ script ^ "--prelude="^ prelude ^ fname ^" -P"
+  in let cmd = python ^ script ^ "--prelude="^ prelude ^ " " ^ fname ^" -P"
   in let run_op = run_cmd cmd
   in ()
 
-let search prelude proverbot fname =
+let search prelude proverbot fname axiom_opt=
   let python = "python3 " 
   in let script = proverbot ^ "src/search_file.py "
-  in let weigths_file  = " --weightsfile=" ^ proverbot ^"data/polyarg-weights.dat "
-  in let cmd = python ^ script ^ "--prelude="^ prelude ^ weigths_file ^  fname ^ " -P"
-               ^ " -o " ^ prelude ^ "/search-report"
+  in let weights_file  = proverbot ^"data/polyarg-weights.dat "
+  in let cmd = Consts.fmt "%s %s --prelude=%s --weightsfile=%s %s %s -P -o %s/search-report" python script prelude weights_file fname axiom_opt prelude
   in let run_op = run_cmd cmd
-  in List.iter (Printf.printf "Line from stdout: %s\n") run_op
+  in Log.debug(List.fold_left (fun acc c -> acc ^ (Consts.fmt "Line from stdout: %s\n" c)) "" run_op)
 
 let output_code prelude conjecture_name : bool =
   let cmd = "cat " ^ prelude ^"/search-report/*-proofs.txt | grep SUCCESS | grep " ^ conjecture_name ^ ": -c"
@@ -33,11 +32,12 @@ let remove_current_search prelude =
   in let cmd_op = run_cmd cmd
   in ()
 
-let run prelude conjecture_name =
-  let prover_bot_path = Utils.get_env_var "PROVERBOT" 
-  in let fname = " lfind" ^ conjecture_name ^".v "
-  in scrape_data prelude prover_bot_path fname;
-  search prelude prover_bot_path fname;
-  let code = (output_code prelude conjecture_name)
-  in Printf.printf "Code for conjecture %s is %b\n" conjecture_name code;
+let run prelude proof_name fname axiom_fname : bool =
+  remove_current_search prelude;
+  let prover_bot_path = Utils.get_env_var "PROVERBOT"  
+  (* in scrape_data prelude prover_bot_path fname; *)
+  in let axiom_opt = if String.equal axiom_fname "" then "" else "--add-axioms=" ^ axiom_fname
+  in search prelude prover_bot_path fname axiom_opt;
+  let code = (output_code prelude proof_name)
+  in Log.debug(Consts.fmt "Code for conjecture %s is %b\n" proof_name code);
   code
