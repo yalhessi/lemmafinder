@@ -2,6 +2,7 @@ open LatticeUtils
 open ProofContext
 open Stats
 open Consts
+exception Mismatch_Examples of string
 
 let term_contains_gen_var term gen_vars =
   List.exists (fun gvar -> 
@@ -46,10 +47,11 @@ let evaluate_generalized_expr conjecture examples p_ctxt =
   in List.fold_left (fun acc lvar -> 
                             let expr, _ = Hashtbl.find conjecture.sigma lvar
                             in let expr_output = (Evaluate.evaluate_coq_expr expr examples p_ctxt)
-                            in (Hashtbl.add acc lvar expr_output);
+                            in Log.debug (Consts.fmt "for var %s the number of eval output is %d\n" (lvar) (List.length expr_output));
+                            (Hashtbl.add acc lvar expr_output);
                             acc
-                     )
-                 (Hashtbl.create no_lfind_vars) conjecture.lfind_vars
+                    )
+                    (Hashtbl.create no_lfind_vars) conjecture.lfind_vars
 
 let add_conj_vars conj_vars vars lfind_vars var =
 let is_exists_in_vars = List.exists (fun v -> String.equal v var) vars
@@ -113,16 +115,17 @@ let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture 
 let filter_provable_conjectures valid_conjectures p_ctxt original_conjecture =
   List.filter (fun (_, conj) -> (Provable.check_lfind_theorem_add_axiom p_ctxt conj.conjecture_str)) valid_conjectures
 
-let synthesize_lemmas curr_synth_term conjecture examples p_ctxt generalized_var_output =
+let synthesize_lemmas curr_synth_term conjecture ml_examples coq_examples p_ctxt generalized_var_output =
   Log.debug (Consts.fmt "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term));
-  let output_examples = (Evaluate.evaluate_coq_expr curr_synth_term examples p_ctxt)
+  
+  let output_examples = (Evaluate.evaluate_coq_expr curr_synth_term coq_examples p_ctxt)
   in let vars_for_synthesis = (get_variables_except_expr conjecture.body_sexp curr_synth_term [] p_ctxt.vars conjecture.lfind_vars)
   in let var_types = get_type_vars conjecture vars_for_synthesis
   in let output_type = (Hashtbl.find conjecture.all_expr_type_table (Sexp.string_of_sexpr curr_synth_term))
   in Hashtbl.add var_types synthesis_op ( TypeUtils.get_return_type "" (Sexp.of_string output_type));
-  let myth_examples = Examples.gen_synthesis_examples examples generalized_var_output output_examples vars_for_synthesis
+  let myth_examples = Examples.gen_synthesis_examples ml_examples generalized_var_output output_examples vars_for_synthesis
   in let vars_for_synthesis = List.append vars_for_synthesis [synthesis_op]
-  in let enumerated_exprs = Myth.enumerate_expressions p_ctxt conjecture.conjecture_name myth_examples var_types vars_for_synthesis true
+  in let enumerated_exprs = Myth.enumerate_expressions p_ctxt conjecture.conjecture_name myth_examples var_types vars_for_synthesis false
   in let counter = ref 0
   in let synthesized_conjectures = List.map (get_synthesis_conjecture curr_synth_term conjecture var_types (Utils.next_val counter)) enumerated_exprs
   in let valid_conjectures = filter_valid_conjectures synthesized_conjectures p_ctxt conjecture
@@ -135,23 +138,36 @@ let synthesize_lemmas curr_synth_term conjecture examples p_ctxt generalized_var
                       }
   in synth_stat
 
-let synthesize p_ctxt conjecture =
+let synthesize p_ctxt ml_examples coq_examples conjecture=
   Log.debug(Consts.fmt "Synthesizing for conjecture %s\n" conjecture.conjecture_str);
-  let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
-  in let examples = Examples.get_examples example_file
-  in
-  let generalized_var_output = evaluate_generalized_expr conjecture examples p_ctxt
-  in let synth_terms = get_terms_to_synthesize [] conjecture.body_sexp conjecture.lfind_vars conjecture.all_expr_type_table
-  (* the following part will be a iter over all synth terms for now I am taking the head element *)
-  in let sorted_synth_terms = LatticeUtils.sort_by_size synth_terms
-  in let synth_stats = List.map (fun synth_term -> (synthesize_lemmas synth_term conjecture examples p_ctxt generalized_var_output)) sorted_synth_terms
-  in let gen_stat = {
-                      conjecture = conjecture;
-                      is_valid = false;
-                      is_provable = false;
-                      synthesis_stats = synth_stats;
-                    }
-  in Log.write_to_log (genstat_to_string gen_stat) !Log.stats_log_file;
-  global_stat := gen_stat :: !global_stat;
-  ()
+  Log.debug(Consts.fmt "#Coq Input Examples %d\n" (List.length coq_examples));
+  Log.debug(Consts.fmt "#ML Input Examples %d\n" (List.length ml_examples));
+  
+  let generalized_var_output = evaluate_generalized_expr conjecture coq_examples p_ctxt
+  in let is_example_size_mismatch = Hashtbl.fold (fun k v is_mismatch -> if List.length ml_examples != List.length v then true else is_mismatch) generalized_var_output false
+  in if is_example_size_mismatch then raise @@ Mismatch_Examples "Mismatch between input examples and generalized variable output"
+  else 
+  (
+    let synth_terms = get_terms_to_synthesize [] conjecture.body_sexp conjecture.lfind_vars conjecture.all_expr_type_table
+    in let sorted_synth_terms = LatticeUtils.sort_by_size synth_terms
+    in let synth_stats = List.map (fun synth_term -> 
+                                      (synthesize_lemmas  synth_term 
+                                                          conjecture
+                                                          ml_examples
+                                                          coq_examples
+                                                          p_ctxt 
+                                                          generalized_var_output
+                                      )
+                                  ) sorted_synth_terms
+    in let gen_stat = {
+                        conjecture = conjecture;
+                        is_valid = false;
+                        is_provable = false;
+                        synthesis_stats = synth_stats;
+                      }
+    in Log.write_to_log (genstat_to_string gen_stat) !Log.stats_log_file;
+    global_stat := gen_stat :: !global_stat;
+    ()
+  )
+
   

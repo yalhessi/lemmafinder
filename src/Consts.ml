@@ -10,4 +10,6 @@ let error_log_file = "/error_lfind_log.txt"
 
 let myth_timeout = "80"
 
+let coq_printing_depth = "Set Printing Depth 1000."
+
 let fmt = Printf.sprintf

@@ -18,12 +18,16 @@ let lfind_tac  : unit Proofview.tactic =
         in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
 
-        let op = FileUtils.run_cmd "export is_lfind=true"
+        let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
+        in let coq_examples = Examples.get_examples example_file
+        in let ml_examples = Examples.get_ml_examples coq_examples p_ctxt
+
+        in let op = FileUtils.run_cmd "export is_lfind=true"
         in let abstraction = Abstract_NoDup.abstract
         in let conjectures = abstraction p_ctxt c_ctxt
 
         in let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
-        in List.iter (Synthesize.synthesize p_ctxt) invalid_conjectures ;
+        in List.iter (Synthesize.synthesize p_ctxt ml_examples coq_examples) invalid_conjectures ;
 
         Stats.summarize !Stats.global_stat;
 

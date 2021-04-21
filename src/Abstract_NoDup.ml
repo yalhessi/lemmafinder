@@ -47,8 +47,9 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
                         else conc_atoms
   in let expr_type_table = get_type_table (List.append conc_terms hypo_terms) c_ctxt
   in let atom_type_table = (update_type_table atoms c_ctxt (Hashtbl.create 100))
-  
-  in let all_terms = if with_hyp 
+  in LogUtils.write_tbl_to_log expr_type_table "Expr Type table";
+  LogUtils.write_tbl_to_log atom_type_table "Atom Type table";
+  let all_terms = if with_hyp 
                         then List.tl (List.append conc_terms (List.tl hypo_terms)) 
                         else List.tl (conc_terms)
   in let terms = get_generalizable_terms all_terms expr_type_table

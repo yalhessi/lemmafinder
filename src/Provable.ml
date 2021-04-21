@@ -31,5 +31,5 @@ let split_as_provable_non_provable conjectures p_ctxt : conjecture list * conjec
 
 let check_lfind_theorem_add_axiom p_ctxt additional_conj : bool =
   let axiom_file = generate_axiom_file p_ctxt additional_conj
-  in let fname = p_ctxt.fname ^ "_original.v"
+  in let fname = p_ctxt.fname ^ ".v"
   in Proverbot.run p_ctxt.dir p_ctxt.proof_name fname axiom_file

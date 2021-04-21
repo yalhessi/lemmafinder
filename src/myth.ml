@@ -2,7 +2,8 @@ open ProofContext
 open FileUtils
 
 let manual_coq_to_ocaml_type typ = 
-  if Utils.contains typ "list" then "list" else typ
+  typ
+  (* if Utils.contains typ "list" then "list" else typ *)
 
 let get_example_func examples var_types vars =
   let types = List.fold_left (fun acc v -> let updated_typ = manual_coq_to_ocaml_type (try Hashtbl.find var_types v with _ -> "")
@@ -26,17 +27,38 @@ let generate_synthesis_file p_ctxt conjecture_name examples var_types vars : str
   in FileUtils.write_to_file lfind_file all_content;
   lfind_file
 
+let get_myth_exprs myth_output =
+  let val_accum = ref ""
+  in List.fold_left (fun acc l -> 
+                         if Utils.contains l ";;"
+                         then
+                         (
+                            val_accum := !val_accum ^ l;
+                            Log.debug (!val_accum);
+                            let updated_acc = !val_accum :: acc
+                            in val_accum := "";
+                            updated_acc
+                         ) 
+                         else
+                         (
+                          val_accum := !val_accum ^ "\n" ^ l;
+                          acc
+                         )
+                 ) [] myth_output
+
 let run synth_fname p_ctxt conjecture_name enumerate=
   let myth_path = Utils.get_env_var "MYTH"
   in let myth_output_path = p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ conjecture_name ^ "synthesis.txt"
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
   in let myth_cmd = Consts.fmt  "%s %s %s > %s" myth_path enumerate synth_fname myth_output_path
   in let run_myth = run_cmd (Consts.fmt "%s %s" timeout_cmd  myth_cmd)
-  in List.rev (read_file myth_output_path)
+  in get_myth_exprs (List.rev (read_file myth_output_path))
 
 let enumerate_expressions p_cxt conjecture_name examples var_types vars is_enum =
   let synth_file = generate_synthesis_file p_cxt conjecture_name examples var_types vars
   in Log.debug (Consts.fmt "Written to synth file %s\n"  synth_file);
   let enumerate = if is_enum then "-enum" else ""
   in let myth_op = run synth_file p_cxt conjecture_name enumerate
-  in if is_enum then (try (List.tl myth_op) with _ -> []) else myth_op
+  in let coq_myth_expr = CoqofOcaml.get_coq_exprs myth_op p_cxt conjecture_name
+  in coq_myth_expr
+  

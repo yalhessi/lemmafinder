@@ -1,11 +1,14 @@
 open ProofContext
 open ExprUtils
+open ExtractToML
 
 let generate_eval_file p_ctxt eval_str : string =
   let lfind_file = p_ctxt.dir ^ "/lfind_eval.v"
-  in let content = p_ctxt.declarations 
-                   ^ "\n Require Import " ^ p_ctxt.fname ^ ".\n"
-                ^ eval_str
+  in let content = Consts.fmt "%s\nRequire Import %s.\n%s\n%s"
+                   p_ctxt.declarations 
+                   p_ctxt.fname
+                   Consts.coq_printing_depth
+                   eval_str
   in FileUtils.write_to_file lfind_file content;
   lfind_file
 
@@ -41,15 +44,51 @@ let get_evaluate_str expr vars examples =
                     ) eval_def examples
 
 let get_expr_vals output =
-  List.fold_right (fun op acc -> if Utils.contains op ":" 
-                                then acc
-                                else 
-                                let value = List.hd (List.rev (String.split_on_char '=' op))
-                                in ("(" ^ value ^ ")")::acc
-                 ) output []
+  let val_accm = ref ""
+  in List.fold_left (fun acc op -> 
+                          if Utils.contains op ":"
+                            then (
+                              let updated_acc = ("(" ^ !val_accm ^ ")")::acc
+                                in val_accm := "";
+                                updated_acc
+                                  (* if Utils.contains !val_accm "..."
+                                    then acc
+                                  else 
+                                    (
+                                    let updated_acc = ("(" ^ !val_accm ^ ")")::acc
+                                    in val_accm := "";
+                                    updated_acc
+                                    ) *)
+                                 )
+                          else 
+                            (
+                              if Utils.contains op "="
+                              then 
+                              (
+                                val_accm := List.hd (List.rev (String.split_on_char '=' op));
+                                acc
+                              )
+                              else
+                              (
+                                val_accm := !val_accm ^ op;
+                                acc
+                              )
+                            )
+                 ) [] output
 
 let evaluate_coq_expr expr examples p_ctxt =
   let evalstr = get_evaluate_str expr p_ctxt.vars examples
   in let efile = generate_eval_file p_ctxt evalstr
   in let output = run_eval efile p_ctxt.namespace
-  in get_expr_vals output
+  in LogUtils.write_list_to_log output "evalresult";
+  let expr_output  = get_expr_vals output
+  in let names, defs = get_defs_evaluated_examples expr_output
+  in let ext_coqfile = generate_ml_extraction_file p_ctxt names defs
+  in let output = run_ml_extraction ext_coqfile p_ctxt.namespace
+  in let ext_mlfile = Consts.fmt "%s/lfind_extraction.ml" p_ctxt.dir
+  in let ext_output = List.rev (FileUtils.read_file ext_mlfile)
+  in let extracted_values = get_ml_evaluated_examples ext_output
+  in Log.debug (Consts.fmt "length of examples %d\n" (List.length examples));
+  Log.debug (Consts.fmt "length of extracted examples %d\n" (List.length extracted_values));
+  List.iter (fun e -> Log.debug (Consts.fmt "Val: %s" (e))) extracted_values;
+  extracted_values

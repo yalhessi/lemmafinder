@@ -6,6 +6,7 @@ Software Versions:
 - opam 2.0.7
 - Dune 2.7
 - Coq 8.11.2
+- coqofocaml
 - opam switch 4.07.1+flambda
 
 ## Environment Setup
@@ -14,6 +15,7 @@ In the folder that you run make or coqc export the following environment variabl
 ```
 export PROVERBOT=<path to proverbot folder>
 export MYTH=<path to myth folder>
+export COQOFOCAML=<path to coqofocaml folder>
 ```
 
 ## How to build and install
