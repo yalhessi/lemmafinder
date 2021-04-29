@@ -10,7 +10,16 @@ let gen_var next_val =
 let generalize_expr s expr next_val =
   let var_name = ref ""
   in let rec aux (acc: string list) = function 
-  | (Atom tag)::tl -> (aux ((protect tag)::acc) tl)
+  | (Atom tag)::tl -> 
+                      if (equal [Atom tag] (expr)) then
+                      (
+                        if String.equal !var_name ""
+                        then 
+                          var_name := (gen_var next_val);
+                        (aux ((!var_name)::acc) tl)
+                      )
+                     else
+                        (aux ((protect tag)::acc) tl)
   | (Expr e)::tl ->
     let str_to_concat= (aux [] e)
     in let to_app = if (equal e expr) then
@@ -50,9 +59,10 @@ let generalize_exprL exprL type_table goal =
              )
              (goal, sigma, []) exprL
 
-let get_var_type t = 
-  let return_type = (TypeUtils.get_return_type "" (of_string t))
-  in if String.equal return_type ""
+let get_var_type t =
+  let return_type = try (TypeUtils.get_return_type "" (of_string t)) with _ -> t
+  in
+  if String.equal return_type ""
       then return_type
       else ":" ^ return_type
 
@@ -68,8 +78,10 @@ let get_all_conjectures generalizations atom_type_table expr_type_table (p_ctxt 
   in let generalized_conjecture_strings = List.map (fun (g, sigma, vars) ->
                   let gvars = (get_variables_in_expr g [] p_ctxt.vars)
                   in let var_str = (List.fold_left (fun acc v -> acc ^ (" (" ^ v ^":"^ (Hashtbl.find atom_type_table v) ^ ")")) "" gvars)
-                  in let conjecture_body = (get_conjecture (string_of_sexpr g) sigma var_str counter)
-                  in {
+                  in
+                  let conjecture_body = (get_conjecture (string_of_sexpr g) sigma var_str counter)
+                  in
+                   {
                       sigma=sigma; 
                       conjecture_str="";
                       conjecture_name="";

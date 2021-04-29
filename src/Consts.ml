@@ -13,3 +13,5 @@ let myth_timeout = "80"
 let coq_printing_depth = "Set Printing Depth 1000."
 
 let fmt = Printf.sprintf
+
+let extract_nat = "Extract Inductive nat => nat [ \"O\" \"S\" ]."

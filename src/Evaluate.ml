@@ -47,19 +47,12 @@ let get_expr_vals output =
   let val_accm = ref ""
   in List.fold_left (fun acc op -> 
                           if Utils.contains op ":"
-                            then (
-                              let updated_acc = ("(" ^ !val_accm ^ ")")::acc
+                            then 
+                            (
+                                let updated_acc = ("(" ^ !val_accm ^ ")")::acc
                                 in val_accm := "";
                                 updated_acc
-                                  (* if Utils.contains !val_accm "..."
-                                    then acc
-                                  else 
-                                    (
-                                    let updated_acc = ("(" ^ !val_accm ^ ")")::acc
-                                    in val_accm := "";
-                                    updated_acc
-                                    ) *)
-                                 )
+                            )
                           else 
                             (
                               if Utils.contains op "="

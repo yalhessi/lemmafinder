@@ -24,13 +24,22 @@ let powerset_to_string (p_set: (Sexp.t list) list list) =
                           in acc ^ "\n" ^ elem_str
                   ) "" p_set
 
-let get_generalizable_terms all_terms expr_type_table =
-  List.fold_left (fun acc term -> let term_type = Hashtbl.find expr_type_table (string_of_sexpr term)
-                                  in let return_type = TypeUtils.get_return_type "" (of_string term_type)
+let get_generalizable_terms all_terms expr_type_table atom_type_table =
+  List.fold_left (fun acc term -> let term_type = try 
+                                                     Hashtbl.find expr_type_table (string_of_sexpr term)
+                                                  with _ ->
+                                                     Hashtbl.find atom_type_table (string_of_sexpr term)
+                                  in let return_type = try TypeUtils.get_return_type "" (of_string term_type) with _ -> term_type
                                   in if String.equal return_type "Type"
                                      then acc
                                      else (add_term_remove_dup acc term)
                  ) [] all_terms
+
+let add_heuristic_atoms all_atoms current_terms =
+  List.fold_left (fun acc a -> if Utils.contains a "nil" 
+                               then [Atom a]::acc 
+                               else acc 
+                 ) current_terms all_atoms
 
 let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
   let with_hyp = false
@@ -52,13 +61,16 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
   let all_terms = if with_hyp 
                         then List.tl (List.append conc_terms (List.tl hypo_terms)) 
                         else List.tl (conc_terms)
-  in let terms = get_generalizable_terms all_terms expr_type_table
+  in let all_terms = add_heuristic_atoms atoms all_terms
+  in let terms = get_generalizable_terms all_terms expr_type_table atom_type_table
   in Log.debug (Consts.fmt "Size of terms list %d\n and Terms from the goal [%s]\n" (List.length terms) (List.fold_left (fun acc e -> acc ^ ";" ^ ((string_of_sexpr e))) "" terms));
   let generalization_set = sets terms
   in let hypo_implies_conc =
     if with_hyp then LatticeUtils.construct_implications p_ctxt.goal p_ctxt.hypotheses
     else (string_of_sexpr conc_sexp)
-  in let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set expr_type_table (of_string hypo_implies_conc)
+  in let all_type_table = Hashtbl.fold (fun k v acc -> Hashtbl.add acc k v; acc ) atom_type_table expr_type_table
+  in let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set all_type_table (of_string hypo_implies_conc)
   in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table expr_type_table p_ctxt)
-  in Log.debug (Consts.fmt "Generalizations: \n%s\n" (List.fold_left (fun acc c -> acc ^ (c.conjecture_str) ^ "\n") "" conjectures));
+  in
+  Log.debug (Consts.fmt "Generalizations: \n%s\n" (List.fold_left (fun acc c -> acc ^ (c.conjecture_str) ^ "\n") "" conjectures));
   conjectures
