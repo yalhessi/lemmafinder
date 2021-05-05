@@ -73,4 +73,4 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
   in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table expr_type_table p_ctxt)
   in
   Log.debug (Consts.fmt "Generalizations: \n%s\n" (List.fold_left (fun acc c -> acc ^ (c.conjecture_str) ^ "\n") "" conjectures));
-  conjectures
+  terms, conjectures

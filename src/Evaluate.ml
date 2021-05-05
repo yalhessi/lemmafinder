@@ -31,15 +31,19 @@ let strip str =
   let str = Str.replace_first (Str.regexp "^ +") "" str in
   Str.replace_first (Str.regexp " +$") "" str
 
-let get_input_string vars example =
+(* Either the variable is from the original statement or it is a generalized variable which can be found from the expr mapping *)
+let get_input_string vars example lfind_sigma =
   List.fold_left (fun acc v ->
-                        acc ^ " " ^ (Hashtbl.find example v)
+                        let v_example = try (Hashtbl.find example v) 
+                                        with _ -> let generalized_term,_ = (Hashtbl.find lfind_sigma v)
+                                                  in (Hashtbl.find example (Sexp.string_of_sexpr generalized_term))
+                        in acc ^ " " ^ v_example
                  ) "" vars
 
-let get_evaluate_str expr vars examples =
+let get_evaluate_str expr vars examples lfind_sigma =
   let expr_vars = get_variables_in_expr expr [] vars
   in let eval_def = get_eval_definition expr expr_vars
-  in List.fold_left (fun acc example -> let input = get_input_string expr_vars example
+  in List.fold_left (fun acc example -> let input = get_input_string expr_vars example lfind_sigma
                                         in acc ^ get_compute_string input
                     ) eval_def examples
 
@@ -69,19 +73,19 @@ let get_expr_vals output =
                             )
                  ) [] output
 
-let evaluate_coq_expr expr examples p_ctxt =
-  let evalstr = get_evaluate_str expr p_ctxt.vars examples
+let evaluate_coq_expr expr examples p_ctxt all_vars (lfind_sigma:(string, Sexp.t list * string) Hashtbl.t) : ((string list) * (string list))=
+  let evalstr = get_evaluate_str expr all_vars examples lfind_sigma
   in let efile = generate_eval_file p_ctxt evalstr
   in let output = run_eval efile p_ctxt.namespace
   in LogUtils.write_list_to_log output "evalresult";
-  let expr_output  = get_expr_vals output
-  in let names, defs = get_defs_evaluated_examples expr_output
+  let coq_output  = get_expr_vals output
+  in let names, defs = get_defs_evaluated_examples coq_output
   in let ext_coqfile = generate_ml_extraction_file p_ctxt names defs
   in let output = run_ml_extraction ext_coqfile p_ctxt.namespace
   in let ext_mlfile = Consts.fmt "%s/lfind_extraction.ml" p_ctxt.dir
   in let ext_output = List.rev (FileUtils.read_file ext_mlfile)
-  in let extracted_values = get_ml_evaluated_examples ext_output
+  in let ml_output = get_ml_evaluated_examples ext_output
   in Log.debug (Consts.fmt "length of examples %d\n" (List.length examples));
-  Log.debug (Consts.fmt "length of extracted examples %d\n" (List.length extracted_values));
-  List.iter (fun e -> Log.debug (Consts.fmt "Val: %s" (e))) extracted_values;
-  extracted_values
+  Log.debug (Consts.fmt "length of extracted examples %d\n" (List.length ml_output));
+  List.iter (fun e -> Log.debug (Consts.fmt "Val: %s" (e))) ml_output;
+  (coq_output, ml_output)

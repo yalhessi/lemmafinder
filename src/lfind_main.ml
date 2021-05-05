@@ -6,6 +6,7 @@ open ProofContext
 open Loadpath
 open Loc
 open Names
+open LatticeUtils
 
 let lfind_tac  : unit Proofview.tactic =
   Proofview.Goal.enter
@@ -24,10 +25,23 @@ let lfind_tac  : unit Proofview.tactic =
 
         in let op = FileUtils.run_cmd "export is_lfind=true"
         in let abstraction = Abstract_NoDup.abstract
-        in let conjectures = abstraction p_ctxt c_ctxt
+        in let generalized_terms, conjectures = abstraction p_ctxt c_ctxt
 
-        in let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
-        in List.iter (Synthesize.synthesize p_ctxt ml_examples coq_examples) invalid_conjectures ;
+        (* get ml and coq version of the generalized examples *)
+        in let coq_examples, ml_examples = (ExampleUtils.evaluate_terms generalized_terms coq_examples ml_examples p_ctxt)
+        in List.iter (fun c -> LogUtils.write_tbl_to_log c "COQE") coq_examples;
+        List.iter (fun c -> LogUtils.write_tbl_to_log c "MLE") ml_examples;
+        
+        let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
+        in 
+        List.iter (  
+          fun c -> 
+          print_endline c.conjecture_name;
+          (* if (String.equal c.conjecture_name "conj9") then *)
+          (Synthesize.synthesize p_ctxt ml_examples coq_examples c);
+          (* else () *)
+          ) 
+          invalid_conjectures ;
 
         Stats.summarize !Stats.global_stat;
 

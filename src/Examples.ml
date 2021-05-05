@@ -33,9 +33,18 @@ let get_ml_examples examples p_ctxt =
                       List.append acc [extracted_values]
                  ) [] examples
 
-let get_example_index examplestr index examples lfind_var_outputs vars_for_synthesis =
+let get_example_index examplestr index examples vars_for_synthesis lfind_sigma =
   List.fold_left (fun examplestr v ->
-                    let lvar_ops  = (try (Hashtbl.find lfind_var_outputs v) with _ -> [])
+                    (* either the var is generalized or original *)
+                    let index_example_tbl = (List.nth examples index)
+                    in let op = try Hashtbl.find index_example_tbl v
+                             with _ ->
+                             (
+                               let generalized_term, _ = (Hashtbl.find lfind_sigma v)
+                               in (Hashtbl.find index_example_tbl (Sexp.string_of_sexpr generalized_term))
+                             )
+                    in examplestr ^ op ^ " => "
+                    (* let lvar_ops  = (try (Hashtbl.find lfind_var_outputs v) with _ -> [])
                     in
                     match lvar_ops with
                     | [] -> (
@@ -45,13 +54,17 @@ let get_example_index examplestr index examples lfind_var_outputs vars_for_synth
                     | egs -> (
                               let op = List.nth egs index
                               in examplestr ^ op ^ " => "
-                             )
+                             ) *)
                  ) "" vars_for_synthesis
 
-let gen_synthesis_examples examples lfind_var_outputs output_examples vars_for_synthesis =
+let gen_synthesis_examples (examples:(string, string) Hashtbl.t list) 
+                           (output_examples: string list)
+                           (vars_for_synthesis: string list)
+                           (lfind_sigma:(string, Sexp.t list * string) Hashtbl.t)
+                           : string list=
   List.mapi (
              fun index op ->
-                  let input_str = get_example_index "" index examples lfind_var_outputs vars_for_synthesis
+                  let input_str = get_example_index "" index examples vars_for_synthesis lfind_sigma
                   in 
                   if Int.equal 0 index then input_str ^ op else input_str ^ op ^ ";"
             ) output_examples
