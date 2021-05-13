@@ -12,12 +12,12 @@ let search prelude proverbot fname axiom_opt=
   let python = "python3 " 
   in let script = proverbot ^ "src/search_file.py "
   in let weights_file  = proverbot ^"data/polyarg-weights.dat "
-  in let cmd = Consts.fmt "%s %s --prelude=%s --weightsfile=%s %s %s -P -o %s/search-report" python script prelude weights_file fname axiom_opt prelude
+  in let cmd = Consts.fmt "timeout 50 %s %s --prelude=%s --weightsfile=%s %s %s -P -o %s/search-report" python script prelude weights_file fname axiom_opt prelude
   in let run_op = run_cmd cmd
   in Log.debug(List.fold_left (fun acc c -> acc ^ (Consts.fmt "Line from stdout: %s\n" c)) "" run_op)
 
 let output_code prelude conjecture_name : bool =
-  let cmd = "cat " ^ prelude ^"/search-report/*-proofs.txt | grep SUCCESS | grep " ^ conjecture_name ^ ": -c"
+  let cmd = "cat " ^ prelude ^"/search-report/*-proofs.txt | grep SUCCESS | grep " ^ Consts.lfind_lemma ^ " -c"
   in let cmd_op = run_cmd cmd
   in if cmd_op = [] 
       then false 

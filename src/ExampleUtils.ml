@@ -8,7 +8,7 @@ let combine_examples (input_examples: ((string, string) Hashtbl.t) list)
                                 fun acc tbl -> 
                                       let tbl_cpy = Hashtbl.copy tbl
                                       in let index = (Utils.next_val counter ())
-                                      in Hashtbl.iter (fun k _ -> 
+                                      in Hashtbl.iter (fun k _ ->
                                                             let gen_examples = (Hashtbl.find generalized_examples k)
                                                             in (Hashtbl.add tbl_cpy k (List.nth gen_examples index));
                                                       ) generalized_examples;

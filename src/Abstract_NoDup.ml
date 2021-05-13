@@ -11,9 +11,10 @@ let rec collect_terms_no_dup (acc: (Sexp.t list) list) (atoms : string list) (se
                           in collect_terms_no_dup head_terms head_atoms tl
   | [] -> acc, atoms
 
-let get_type_table (terms: (Sexp.t list) list) c_ctx =  
+let get_type_table (terms: (Sexp.t list) list) c_ctx =
   let type_tbl = Hashtbl.create (List.length terms)
-  in List.iter (fun term -> let typ = TypeUtils.get_type_of_exp c_ctx.env c_ctx.sigma term
+  in List.iter (fun term -> let typ = 
+                                    try TypeUtils.get_type_of_exp c_ctx.env c_ctx.sigma term with _ -> ""
                             in Hashtbl.replace type_tbl (string_of_sexpr term) typ
                )
                terms; type_tbl
@@ -36,7 +37,8 @@ let get_generalizable_terms all_terms expr_type_table atom_type_table =
                  ) [] all_terms
 
 let add_heuristic_atoms all_atoms current_terms =
-  List.fold_left (fun acc a -> if Utils.contains a "nil" 
+  (* Get nil that are not polymorphic, if it is polymorphic we already capture them in the terms for generalization *)
+  List.fold_left (fun acc a -> if Utils.contains a "nil" && not (Utils.contains a "@")
                                then [Atom a]::acc 
                                else acc 
                  ) current_terms all_atoms
@@ -64,7 +66,7 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
   in let all_terms = add_heuristic_atoms atoms all_terms
   in let terms = get_generalizable_terms all_terms expr_type_table atom_type_table
   in Log.debug (Consts.fmt "Size of terms list %d\n and Terms from the goal [%s]\n" (List.length terms) (List.fold_left (fun acc e -> acc ^ ";" ^ ((string_of_sexpr e))) "" terms));
-  let generalization_set = sets terms
+  let generalization_set = List.filter (fun g -> if (List.length g) == 0 then false else true) (sets terms)
   in let hypo_implies_conc =
     if with_hyp then LatticeUtils.construct_implications p_ctxt.goal p_ctxt.hypotheses
     else (string_of_sexpr conc_sexp)

@@ -4,11 +4,12 @@ let generate_ml_extraction_file p_ctxt names defs : string =
   let lfind_file = Consts.fmt "%s/lfind_extraction.v" p_ctxt.dir
   in let extraction_filename = Consts.fmt "\"%s/lfind_extraction.ml\"" p_ctxt.dir
   in let content = Consts.fmt 
-                    "%s\n Require Import %s.\n %s\n %s\n 
+                    "%s\n Require Import %s.\n %s\n %s\n %s\n 
                     Extraction %s %s."
                     p_ctxt.declarations
                     p_ctxt.fname
                     Consts.extract_nat
+                    Consts.extract_list
                     defs
                     extraction_filename
                     names

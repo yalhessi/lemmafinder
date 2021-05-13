@@ -12,9 +12,8 @@ let generate_ml_file p_ctxt conjecture_name expr: string =
 let run ml_fname p_ctxt conjecture_name =
   let coqofocaml_path = Utils.get_env_var "COQOFOCAML"
   in let coqofocaml_output_path = Consts.fmt "%s/%s%s_coqofml.v" p_ctxt.dir p_ctxt.fname  conjecture_name
-  in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
   in let coqofocaml_cmd = Consts.fmt  "%s %s -output %s" coqofocaml_path ml_fname coqofocaml_output_path
-  in let run_coqofocaml = run_cmd (Consts.fmt "%s %s" timeout_cmd  coqofocaml_cmd)
+  in let run_coqofocaml = run_cmd (Consts.fmt "%s"  coqofocaml_cmd)
   in List.rev (read_file coqofocaml_output_path)
 
 let get_synth_expr coq_defs =
@@ -71,4 +70,8 @@ let get_coq_of_expr  p_ctxt conjecture_name expr =
   coq_expr
 
 let get_coq_exprs exprs p_ctxt conjecture_name =
-  List.map (get_coq_of_expr p_ctxt conjecture_name) exprs
+  let count = ref 0
+  in List.fold_right ( fun e acc ->
+                                  if Utils.next_val count () > 15 then acc
+                                  else (get_coq_of_expr p_ctxt conjecture_name e) :: acc
+                     ) exprs []

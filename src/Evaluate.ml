@@ -87,5 +87,4 @@ let evaluate_coq_expr expr examples p_ctxt all_vars (lfind_sigma:(string, Sexp.t
   in let ml_output = get_ml_evaluated_examples ext_output
   in Log.debug (Consts.fmt "length of examples %d\n" (List.length examples));
   Log.debug (Consts.fmt "length of extracted examples %d\n" (List.length ml_output));
-  List.iter (fun e -> Log.debug (Consts.fmt "Val: %s" (e))) ml_output;
   (coq_output, ml_output)

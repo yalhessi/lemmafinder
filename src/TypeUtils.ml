@@ -65,9 +65,13 @@ let get_type_of_exp env sigma exp =
 let get_type_of_atom env sigma atom =
   let exp_constr = (Utils.str_to_constr atom)
   in let (sigma, t) = Constrintern.interp_constr_evars env sigma exp_constr in
-  let typ = Retyping.get_type_of ~lax:false ~polyprop:false env sigma t
-  in let typ_str = get_type_str typ env sigma
-  in typ_str
+  let typ = 
+            try Retyping.get_type_of ~lax:false ~polyprop:false env sigma t
+            with _ -> let (sigma, typ) = Typing.type_of env sigma t in
+                      typ
+  in
+  let typ_str = get_type_str typ env sigma
+  in if Utils.contains typ_str "(" then (String.sub typ_str 1 (String.length typ_str - 2)) else typ_str
 
 let rec get_return_type acc fun_type =
   match fun_type with

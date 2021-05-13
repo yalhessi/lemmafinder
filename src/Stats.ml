@@ -37,17 +37,20 @@ let get_synthesized_provable_lemmas stats=
 
 let summarize stats=
     let no_valid_gen_lemmas = List.length (List.filter (fun g -> g.is_valid) stats)
+    in let no_gen_provable_lemmas = List.length (List.filter (fun g -> g.is_provable) stats)
     in let total_synthesized_valid_lemmas = get_synthesized_valid_lemmas stats
     in let total_synthesized_provable_lemmas = get_synthesized_provable_lemmas stats
     in let summary =  (fmt "\n### SUMMARY ###\n"
     ^
     fmt "# Generalizations : %d\n" (List.length stats)
     ^
-    fmt "#Valid lemmas from Generalization : %d\n" no_valid_gen_lemmas
+    fmt "#Generalizations not disprovable : %d\n" no_valid_gen_lemmas
     ^
-    fmt "#Valid lemmas from Synthesis : %d\n" total_synthesized_valid_lemmas
+    fmt "#Generalizations useful in proving original goal: %d\n" no_gen_provable_lemmas
     ^
-    fmt "#Lemmas from Synthesis that can prove the original goal: %d\n" total_synthesized_provable_lemmas)
+    fmt "#Synthesized Lemmas not disprovable : %d\n" total_synthesized_valid_lemmas
+    ^
+    fmt "#Synthesized Lemmas useful in proving original goal: %d\n" total_synthesized_provable_lemmas)
 
     in Log.write_to_log summary !Log.stats_log_file; ()
 

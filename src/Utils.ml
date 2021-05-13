@@ -13,8 +13,11 @@ let contains s1 s2 =
 let get_str_of_pp pp_expr : string= 
     Pp.string_of_ppcmds pp_expr
 
-let get_expr_str env sigma expr : string= 
-  "(" ^ (get_str_of_pp (Printer.pr_goal_concl_style_env env sigma expr)) ^ ")"
+let get_exp_str env sigma expr : string =
+  (get_str_of_pp (Printer.pr_goal_concl_style_env env sigma expr))
+
+let get_sexp_compatible_expr_str env sigma expr : string = 
+  "(" ^ (get_exp_str env sigma expr) ^ ")"
 
 let get_term_count terms exp =
     List.fold_left (fun acc (e, count) -> if Sexp.equal e exp then (count) else acc) 0 terms
@@ -47,7 +50,7 @@ let get_hyps_strl hyps env sigma =
                               in let is_match = 
                                           Str.string_match regex_ih var_str 0
                               in (if is_match 
-                                  then (get_expr_str env sigma hyp)::acc
+                                  then (get_sexp_compatible_expr_str env sigma hyp)::acc
                                   else acc)
                  ) [] (get_hyps hyps)
 
