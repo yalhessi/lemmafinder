@@ -41,17 +41,18 @@ let get_declarations dir fname =
                      ) lines ""
 
 let get_dir paths =
-List.fold_left (fun (namespace, dir) path -> let path_str = (Utils.get_str_of_pp (Loadpath.pp (path)))
-                                in let is_contains = Utils.contains path_str "coq"
-                                in if is_contains || not (String.equal dir "") 
-                                then (namespace, dir)
-                                else 
-                                (
-                                    let pathl = (String.split_on_char ' ' path_str)
-                                    in let namespace = List.hd pathl
-                                    in let dir = List.hd (List.rev pathl)
-                                    in (namespace, dir)
-                                )
+List.fold_left (fun (namespace, dir) path -> 
+                  let path_str = (Utils.get_str_of_pp (Loadpath.pp (path)))
+                  in let is_contains = Utils.contains path_str "coq"
+                  in if is_contains || not (String.equal dir "") 
+                  then (namespace, dir)
+                  else 
+                  (
+                      let pathl = (String.split_on_char ' ' path_str)
+                      in let namespace = List.hd pathl
+                      in let dir = List.hd (List.rev pathl)
+                      in (namespace, dir)
+                  )
                 ) ("", "") paths
 
 let construct_proof_context gl =
@@ -83,7 +84,7 @@ let construct_proof_context gl =
         full_context = full_context;
         fname = f_name;
         vars = vars;
-        namespace = namespace;
+        namespace = List.hd (String.split_on_char '\n' namespace);
         declarations = declarations;
         proof_name = proof_name;
        }

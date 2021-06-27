@@ -5,7 +5,7 @@ open Stats
 let generate_lfind_file p_ctxt conjecture name : string =
   let lfind_file = p_ctxt.dir ^ "/lfind" ^ name ^ ".v"
   in let content = p_ctxt.declarations 
-                ^ "\n From QuickChick Require Import QuickChick.\n"
+                ^ "\n "^ Consts.quickchick_import ^ "\n"
                 ^ "Require Import " ^ p_ctxt.fname ^ ".\n" 
                 ^ "Lemma " ^ conjecture ^ ".\n"
                 ^ "Admitted.\n"

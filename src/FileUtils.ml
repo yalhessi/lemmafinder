@@ -17,6 +17,7 @@ let rec input_lines l ic : string list =
   | exception End_of_file -> List.rev l
 
 let run_cmd cmd =
+  print_endline(cmd);
   Log.debug(Consts.fmt "%s\n" cmd);
   let inp = Unix.open_process_in cmd
   in let r = input_lines [] inp in
@@ -46,6 +47,6 @@ let read_file filename =
   
 let write_to_file fname content =
   remove_file fname;
-  let oc = open_out fname in
-  Printf.fprintf oc "%s" content;
+  let oc = open_out_gen [Open_wronly; Open_creat; Open_trunc; Open_text] 0o777 fname
+  in Printf.fprintf oc "%s" content;
   close_out oc;

@@ -1,3 +1,5 @@
+let lfind_declare_module = "Declare ML Module \"lfind_plugin\"."
+
 let synthesis_op = "lfind_output"
 
 let type_decl = "Type"
@@ -19,3 +21,13 @@ let extract_nat = "Extract Inductive nat => nat [ \"O\" \"S\" ]."
 let extract_list = "Extract Inductive list => list [ \"Nil\" \"Cons\" ]."
 
 let lfind_lemma = "lfind_state"
+
+let quickchick_import = "From QuickChick Require Import QuickChick."
+
+let string_scope = "Open Scope string_scope.\n"
+
+let extract_print = "Extract Constant print => \"Extract.print\".\n"
+
+let require_extraction = "\nRequire Coq.extraction.Extraction.\nExtraction Language OCaml.\n"
+
+let vernac_success = "Success."

@@ -7,3 +7,7 @@ open Ltac_plugin
 TACTIC EXTEND lfind_tac
 | [ "lfind" ] -> { Lfind_main.lfind_tac}
 END
+
+VERNAC COMMAND EXTEND Success CLASSIFIED AS QUERY
+| [ "Success" ] -> { Feedback.msg_info (Pp.str "lemmafinder_success") }
+END

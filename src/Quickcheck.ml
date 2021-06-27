@@ -1,7 +1,6 @@
 open FileUtils
 
 let quickcheck fname namespace =
-  (* TODO: fix this hardcoding for namespace, we can get this when getting the path *)
   let cmd = Consts.fmt "coqc -R . %s %s" namespace fname
   in run_cmd cmd
 

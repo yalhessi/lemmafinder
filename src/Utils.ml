@@ -95,3 +95,8 @@ let get_env_var env_var : string =
                                     in if String.equal var env_var then var_path else path
                      )
                      "" env
+
+let get_modules file_name : string list =
+  let cmd = "grep \"Module\" " ^ file_name
+  in let modules = FileUtils.run_cmd cmd
+  in List.fold_left (fun acc m-> (List.nth (String.split_on_char ' ' m) 1)::acc) [] modules
