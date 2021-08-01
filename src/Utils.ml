@@ -76,7 +76,9 @@ let get_vars_in_expr expr =
                               in aux c ty_vars
       | LetIn (na,b,ty,c) ->  let ty_vars = aux ty vars
                               in aux c ty_vars
-      | App (f,args)      ->  let f_vars = aux f vars
+      (* | Const (c,u) -> print_endline (Names.Constant.to_string c); vars *)
+      | App (f,args)      ->
+      let f_vars = aux f vars
                               in let args_vars = (vars_of_constrarray args)
                               in List.fold_left 
                                   (fun acc v -> add_var acc v) f_vars args_vars
@@ -86,6 +88,32 @@ let get_vars_in_expr expr =
 and vars_of_constrarray a : string list =
     List.fold_left (fun acc elem -> List.append acc (aux elem acc)) [] (Array.to_list a)
 in aux constr_goal []
+
+
+let get_funcs_in_expr expr funcs=
+  let constr_goal = (econstr_to_constr expr)
+  in let rec aux constr_goal (funcs : string list) =
+      match Constr.kind constr_goal with
+      | Cast (ty1,ck,ty2) ->  let ty1_vars = aux ty1 funcs
+                              in aux ty2 ty1_vars
+      | Prod (na,ty,c)    ->  let ty_vars = aux ty funcs
+                              in aux c ty_vars
+      | Lambda (na,ty,c)  ->  let ty_vars = aux ty funcs
+                              in aux c ty_vars
+      | LetIn (na,b,ty,c) ->  let ty_vars = aux ty funcs
+                              in aux c ty_vars
+      | Const (c,u) -> add_var funcs (Names.Constant.to_string c)
+      | App (f,args)      ->
+      let f_vars = aux f funcs
+                              in let args_vars = (vars_of_constrarray args)
+                              in List.fold_left 
+                                  (fun acc v -> add_var acc v) f_vars args_vars
+      | Proj (p,c)        ->  aux c funcs
+      | Case (ci,p,c,bl)  ->  aux c funcs
+      | _ -> funcs
+and vars_of_constrarray a : string list =
+    List.fold_left (fun acc elem -> List.append acc (aux elem acc)) [] (Array.to_list a)
+in aux constr_goal funcs
 
 let get_env_var env_var : string =
   let env = Unix.environment ()

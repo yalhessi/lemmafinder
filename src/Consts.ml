@@ -31,3 +31,5 @@ let extract_print = "Extract Constant print => \"Extract.print\".\n"
 let require_extraction = "\nRequire Coq.extraction.Extraction.\nExtraction Language OCaml.\n"
 
 let vernac_success = "Success."
+
+let extraction_import = "Require Import Extraction."

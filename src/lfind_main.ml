@@ -8,7 +8,12 @@ open Loc
 open Names
 open LatticeUtils
 
+
 exception Invalid_Examples
+exception Invalid_MLFile
+exception NotFound_MLFile
+exception Rewrite_Fail
+exception Myth_Fail
 
 let construct_state_as_lemma gl =
   let goal = Proofview.Goal.concl gl in
@@ -54,7 +59,36 @@ let lfind_tac  : unit Proofview.tactic =
         let p_ctxt, c_ctxt = construct_proof_context gl
         in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
-
+        let module_names = Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
+        (* Generate .ml file and check if it is parsable by myth *)
+        in
+        let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
+        in 
+        if not (Sys.file_exists ml_file) then 
+        (
+          print_endline("Need to generate file");
+          print_endline(ml_file);
+          let op = GenerateMLFile.generate_ml_file p_ctxt module_names
+          in print_endline (string_of_int (List.length op));
+          let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
+          in
+          if not is_success then raise Invalid_MLFile else 
+          (
+            if not (Sys.file_exists ml_file) then raise NotFound_MLFile
+            else
+            (* Now call the library to rewrite the ast *)
+            let run_op = GenerateMLFile.run p_ctxt.dir (p_ctxt.fname^"_lfind_orig")
+            in let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "rewrite_success") ) false run_op
+            in if not is_success then raise Rewrite_Fail else
+            (
+              let run_op = Myth.run_parse p_ctxt (p_ctxt.fname^"_lfind_orig")
+              in let is_exception = List.fold_left (fun acc l -> acc || (Utils.contains l "exception") ) false run_op
+              in if is_exception then raise Myth_Fail else
+              Feedback.msg_info (Pp.str "lemmafinder_ml_generation_success");
+            )
+          )          
+        )
+        else ();
         (* if example file exists use it, else generate examples *)
         let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
         in 
@@ -63,8 +97,7 @@ let lfind_tac  : unit Proofview.tactic =
           (* namespace *)
           (* get the required types *)
           print_endline "Example file not found, generating";
-          let module_names = Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
-          in let op = GenerateExamples.generate_example p_ctxt typs module_names curr_state_lemma var_typs vars
+          let op = GenerateExamples.generate_example p_ctxt typs module_names curr_state_lemma var_typs vars
           in print_endline (string_of_int (List.length op));
           let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
           in
@@ -75,7 +108,7 @@ let lfind_tac  : unit Proofview.tactic =
         )
         else 
         ();
-(* 
+
         let coq_examples = Examples.get_examples example_file
         in let ml_examples = Examples.get_ml_examples coq_examples p_ctxt
         in let op = FileUtils.run_cmd "export is_lfind=true"
@@ -106,7 +139,7 @@ let lfind_tac  : unit Proofview.tactic =
           ) 
           invalid_conjectures ;
 
-        Stats.summarize !Stats.global_stat; *)
+        Stats.summarize !Stats.global_stat;
 
         Tacticals.New.tclZEROMSG (Pp.str ("LFIND Successful."))
       end

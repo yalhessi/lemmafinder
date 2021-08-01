@@ -11,6 +11,7 @@ type proof_context =
     namespace: string;
     declarations: string;
     proof_name: string;
+    funcs: string list;
   }
 
 type coq_context = 
@@ -66,6 +67,10 @@ let construct_proof_context gl =
     let hyps_strl = Utils.get_hyps_strl hyps env sigma in
     let c_ctxt = {env = env; sigma = sigma}
     in let vars = Utils.get_vars_in_expr goal
+    in let funcs = Utils.get_funcs_in_expr goal []
+    in let hyp_funcs = List.fold_left 
+                        (fun acc (_,h) -> (Utils.get_funcs_in_expr h acc)
+                        ) funcs (Utils.get_hyps hyps)
     in let paths = Loadpath.get_load_paths ()
     in let namespace, dir = get_dir paths
     in let parent_dir, curr_dir = FileUtils.get_parent_curr_dir dir in
@@ -87,6 +92,7 @@ let construct_proof_context gl =
         namespace = List.hd (String.split_on_char '\n' namespace);
         declarations = declarations;
         proof_name = proof_name;
+        funcs = hyp_funcs;
        }
     in p_ctxt, c_ctxt
                   

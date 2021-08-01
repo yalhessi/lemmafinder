@@ -54,6 +54,15 @@ let run synth_fname p_ctxt conjecture_name enumerate=
   in let run_myth = run_cmd (Consts.fmt "%s %s" timeout_cmd  myth_cmd)
   in get_myth_exprs (List.rev (read_file myth_output_path))
 
+let run_parse p_ctxt fname=
+  let myth_path = Utils.get_env_var "MYTH"
+  in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
+  in let parse_file = Consts.fmt "%s/lfind_myth_parse_%s.ml" p_ctxt.dir fname
+  in let myth_cmd = Consts.fmt  "%s -parse %s" myth_path parse_file
+  in
+  let run_myth = run_cmd (Consts.fmt "%s %s" timeout_cmd  myth_cmd)
+  in run_myth
+  
 let enumerate_expressions p_cxt conjecture_name examples var_types vars is_enum =
   let synth_file = generate_synthesis_file p_cxt conjecture_name examples var_types vars
   in Log.debug (Consts.fmt "Written to synth file %s\n"  synth_file);

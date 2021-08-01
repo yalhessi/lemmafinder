@@ -43,13 +43,14 @@ let generate_example p_ctxt typs modules current_lemma var_typs vars =
 
   in let module_imports = List.fold_left (fun acc m -> acc ^ ("Import " ^ m ^"\n")) "" modules
   in let quickchick_import = Consts.quickchick_import
-  in let qc_include = Consts.fmt ("QCInclude \"%s/\".\n") p_ctxt.dir
+  in let qc_include = Consts.fmt ("QCInclude \"%s/\".") p_ctxt.dir
+  
   in let typ_derive = List.fold_left (fun acc t -> acc ^ (derive_typ_quickchick t)) "" typs
 
   in let typs_parameter_print = List.fold_left (fun acc t -> match acc with | "" -> t | _ -> acc ^ " -> " ^ t)  "" typs
   in let parameter_print = Consts.fmt ("Parameter print : %s -> string -> %s.\n") (List.hd typs) (List.hd typs)
   
-  in let typ_quickchick_content = Consts.fmt ("%s\n%s\n%s\n%s\n%s\n%s%s\n") Consts.lfind_declare_module import_file module_imports current_lemma quickchick_import 
+  in let typ_quickchick_content = Consts.fmt ("%s\n%s\n%s\n%s\n%s\n%s\n%s\n") Consts.lfind_declare_module import_file module_imports current_lemma quickchick_import 
   qc_include typ_derive
   in let example_print_content = Consts.fmt("%s\n%s%s")  Consts.string_scope parameter_print Consts.extract_print
   in let collect_content = construct_data_collection vars typs var_typs
