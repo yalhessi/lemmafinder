@@ -9,13 +9,13 @@ let run dir fname=
   let run_rewrite = run_cmd (Consts.fmt "%s %s" timeout_cmd  rewrite_command)
   in run_rewrite
 
-let generate_ml_file p_ctxt modules =
+let generate_ml_file p_ctxt =
   let ml_extraction_file = Consts.fmt ("%s/%s") p_ctxt.dir "lfind_ml_generator.v"
   in
   let import_file = 
   Consts.fmt "From %s Require Import %s."(p_ctxt.namespace) (p_ctxt.fname)  
 
-  in let module_imports = List.fold_left (fun acc m -> acc ^ ("Import " ^ m ^"\n")) "" modules  
+  in let module_imports = List.fold_left (fun acc m -> acc ^ ("Import " ^ m ^"\n")) "" p_ctxt.modules  
   in let extract_functions = List.fold_left (fun acc f -> acc ^ " " ^ f) "" p_ctxt.funcs
   in let extraction = Consts.fmt "Extraction \"%s/%s_lfind_orig.ml\" %s." p_ctxt.dir p_ctxt.fname extract_functions
   

@@ -5,7 +5,7 @@ import shutil
 
 from typing import Tuple
 
-lfind_decl = "From lfind Require Import LFind."
+lfind_decl = "From lfind Require Import LFind.\nUnset Printing Notations.\nSet Printing Implicit.\n"
 
 def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser = argparse.ArgumentParser(
@@ -22,6 +22,12 @@ def get_locations(folder):
      lemma_dict = json.loads(j.read())    
     return lemma_dict
 
+def get_all_lemmas(folder):
+    benchmark_file = os.path.join(folder, "lemmafinder_all_lemmas.txt")
+    with open(benchmark_file, 'r') as j:
+     all_lemmas = json.loads(j.read())    
+    return all_lemmas
+
 def lemma_finder_copy(source_folder, dest_folder) -> None:
     print(dest_folder)
     if os.path.isdir(dest_folder):
@@ -33,7 +39,7 @@ def write_lemmafinder_content(file, content):
     with open(file,"w") as f:
         f.write("".join(content))
 
-def run(source_folder, helper_lemma_dict, log_directory):
+def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
     counter = 0
     all_lemmas = 0
     filtered_helper_lemma_dict = {}
@@ -70,6 +76,7 @@ def run(source_folder, helper_lemma_dict, log_directory):
                     next_valid_index_found = True
                 index = index + 1
             lfind_content.extend(content[index:])
+            print(f"destination folder is {destination_folder}")
             write_lemmafinder_content(os.path.join(destination_folder, file_name),lfind_content)
             log_file = f"{log_directory}/lfind_benchmark_log"
             make_cmd = f"cd {destination_folder} && make > {log_file}"
@@ -80,19 +87,40 @@ def run(source_folder, helper_lemma_dict, log_directory):
             # sys.exit(0)
             if "lemmafinder_example_generation_success" in contents:
                 print("Success: " + location[2])
-                counter += 1
-                if file in filtered_helper_lemma_dict:
-                    filtered_helper_lemma_dict[file].append(location)
-                else:
-                    filtered_helper_lemma_dict[file] = [location]
+                # get log file and write it in the log_directory
+                try:
+                    log_folder = os.path.join(os.path.dirname(source_folder),"_lfind_" + str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + lemma_name)
+                    lfind_summary_log = os.path.join(log_folder, "lfind_summary_log.txt")
+                    lfind_log = os.path.join(log_folder, "lfind_log.txt")
+                    with open(lfind_summary_log, 'r') as j:
+                        lfind_log_content = j.read()
+                    content_to_append = f"Theorem statement:\n{all_lemmas_from_file[location[0]]}\n\nRequired Helper Statement:\n{all_lemmas_from_file[location[2]]}\n"
+                    lfind_log_w = os.path.join(log_directory, f"{location[0]}_{location[1]}_{location[2]}")
+                    with open(lfind_log_w, "w") as w:
+                        w.write(content_to_append)
+                        w.write(lfind_log_content)
+                        w.write(f"\nMore log here {lfind_log}\n")
+                        w.write(f"Original Coq file here {file}\n")
+                        w.close()
+                    counter += 1
+                    if file in filtered_helper_lemma_dict:
+                        filtered_helper_lemma_dict[file].append(location)
+                    else:
+                        filtered_helper_lemma_dict[file] = [location]
+                except:
+                    print("error processing this")
+            # import sys
+            # sys.exit(0)
         write_lemmafinder_content(os.path.join(destination_folder, file_name),content)
+            
     return filtered_helper_lemma_dict, counter, all_lemmas
 
 def main() -> None:
     args, parser = parse_arguments()
     helper_lemma_dict = get_locations(args.prelude)
+    all_lemmas_from_file = get_all_lemmas(args.prelude)
     print(helper_lemma_dict)
-    filtered_helper_lemmas, total_lemmas, all_lemmas = run(args.prelude, helper_lemma_dict, args.log_directory)
+    filtered_helper_lemmas, total_lemmas, all_lemmas = run(args.prelude, helper_lemma_dict, args.log_directory, all_lemmas_from_file)
     print(filtered_helper_lemmas)
     print(f"#Lemmas w atleast one helper/#Lemmas: {total_lemmas}/{all_lemmas} in {len(filtered_helper_lemmas)} coq files in 78 projects")
 

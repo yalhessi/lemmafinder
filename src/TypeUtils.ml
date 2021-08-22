@@ -81,3 +81,10 @@ let rec get_return_type acc fun_type =
   | (Sexp.Expr e):: tl -> let head_acc = get_return_type acc e
                           in get_return_type head_acc tl
   | [] -> acc
+
+let derive_typ_quickchick typ_name : string= 
+  Consts.fmt ("Derive Show for %s.\n
+              Derive Arbitrary for %s.\n
+              Instance Dec_Eq_%s : Dec_Eq %s.\n
+              Proof. dec_eq. Qed.\n")
+              typ_name typ_name typ_name typ_name

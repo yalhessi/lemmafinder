@@ -4,9 +4,12 @@ open ExtractToML
 
 let generate_eval_file p_ctxt eval_str : string =
   let lfind_file = p_ctxt.dir ^ "/lfind_eval.v"
-  in let content = Consts.fmt "%s\nRequire Import %s.\n%s\n%s"
-                   p_ctxt.declarations 
+  in let module_imports = List.fold_left (fun acc m -> acc ^ ("Import " ^ m ^"\n")) "" p_ctxt.modules
+  in let content = Consts.fmt "%s\nFrom %s Require Import %s.\n%s\n%s\n%s"
+                   p_ctxt.declarations
+                   p_ctxt.namespace 
                    p_ctxt.fname
+                   module_imports
                    Consts.coq_printing_depth
                    eval_str
   in FileUtils.write_to_file lfind_file content;

@@ -1,5 +1,6 @@
 let stats_log_file : string ref = ref ""
 let error_log_file : string ref = ref ""
+let stats_summary_file : string ref = ref ""
 let log_chan = ref stderr
 let debug_file : string ref = ref ""
 

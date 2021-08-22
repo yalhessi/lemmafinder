@@ -4,12 +4,17 @@ open Stats
 
 let generate_lfind_file p_ctxt conjecture name : string =
   let lfind_file = p_ctxt.dir ^ "/lfind" ^ name ^ ".v"
-  in let content = p_ctxt.declarations 
-                ^ "\n "^ Consts.quickchick_import ^ "\n"
-                ^ "Require Import " ^ p_ctxt.fname ^ ".\n" 
-                ^ "Lemma " ^ conjecture ^ ".\n"
-                ^ "Admitted.\n"
-                ^ "QuickChick " ^ name ^ ".\n"
+  in let module_imports = List.fold_left (fun acc m -> acc ^ ("Import " ^ m ^"\n")) "" p_ctxt.modules
+  in let typ_derive = List.fold_left (fun acc t -> acc ^ (TypeUtils.derive_typ_quickchick t)) "" p_ctxt.types
+  in let content = Consts.fmt "%s\n%s\nFrom %s Require Import %s.\n%s\n%s\nLemma %s.\nAdmitted.\nQuickChick %s.\n"
+                   p_ctxt.declarations 
+                   Consts.quickchick_import
+                   p_ctxt.namespace
+                   p_ctxt.fname
+                   module_imports
+                   typ_derive
+                   conjecture
+                   name
   in FileUtils.write_to_file lfind_file content;
   lfind_file
 

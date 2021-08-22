@@ -51,7 +51,8 @@ let lfind_tac  : unit Proofview.tactic =
   Proofview.Goal.enter
   begin fun gl ->
     let is_running = Utils.get_env_var "is_lfind"
-    in if String.equal is_running "true" then Tacticals.New.tclZEROMSG (Pp.str ("Recursive Lfind..Aborting"))
+    in 
+    if String.equal is_running "true" then Tacticals.New.tclZEROMSG (Pp.str ("Recursive Lfind..Aborting"))
     else
       begin
         let curr_state_lemma, typs, var_typs, vars = construct_state_as_lemma gl
@@ -59,16 +60,20 @@ let lfind_tac  : unit Proofview.tactic =
         let p_ctxt, c_ctxt = construct_proof_context gl
         in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
-        let module_names = Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
-        (* Generate .ml file and check if it is parsable by myth *)
-        in
-        let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
+        Log.stats_summary_file := p_ctxt.dir ^ Consts.summary_log_file;
+        let module_names = []
+          (* Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v") *)
+        in 
+        let p_ctxt = {p_ctxt with modules = module_names; types = typs}
+
+        (* Generate .ml file and check if it is parsable by myth *)        
+        in let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
         in 
         if not (Sys.file_exists ml_file) then 
         (
           print_endline("Need to generate file");
           print_endline(ml_file);
-          let op = GenerateMLFile.generate_ml_file p_ctxt module_names
+          let op = GenerateMLFile.generate_ml_file p_ctxt
           in print_endline (string_of_int (List.length op));
           let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
           in
@@ -81,7 +86,7 @@ let lfind_tac  : unit Proofview.tactic =
             in let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "rewrite_success") ) false run_op
             in if not is_success then raise Rewrite_Fail else
             (
-              let run_op = Myth.run_parse p_ctxt (p_ctxt.fname^"_lfind_orig")
+              let run_op = Myth.run_parse p_ctxt (p_ctxt.fname^"_wsynth")
               in let is_exception = List.fold_left (fun acc l -> acc || (Utils.contains l "exception") ) false run_op
               in if is_exception then raise Myth_Fail else
               Feedback.msg_info (Pp.str "lemmafinder_ml_generation_success");
@@ -89,13 +94,12 @@ let lfind_tac  : unit Proofview.tactic =
           )          
         )
         else ();
+
         (* if example file exists use it, else generate examples *)
         let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
         in 
         if not (Sys.file_exists example_file) then 
         (
-          (* namespace *)
-          (* get the required types *)
           print_endline "Example file not found, generating";
           let op = GenerateExamples.generate_example p_ctxt typs module_names curr_state_lemma var_typs vars
           in print_endline (string_of_int (List.length op));
@@ -103,8 +107,6 @@ let lfind_tac  : unit Proofview.tactic =
           in
           if not is_success then raise Invalid_Examples else 
           Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
-          (* generate .v file with the appropriate imports *)
-          (* call quickchick to derive generators *)
         )
         else 
         ();
@@ -114,11 +116,12 @@ let lfind_tac  : unit Proofview.tactic =
         in let op = FileUtils.run_cmd "export is_lfind=true"
         in let abstraction = Abstract_NoDup.abstract
         in let generalized_terms, conjectures = abstraction p_ctxt c_ctxt
-
+        in
         (* create a lemma file to use with proverbot *)
-        in let curr_state_lemma_file = Consts.fmt "%s/%s.v" p_ctxt.dir Consts.lfind_lemma
-        in let content = Consts.fmt "%s\n Require Import %s.\n %s"
+        let curr_state_lemma_file = Consts.fmt "%s/%s.v" p_ctxt.dir Consts.lfind_lemma
+        in let content = Consts.fmt "%s\nFrom %s Require Import %s.\n %s"
                          p_ctxt.declarations
+                         p_ctxt.namespace
                          p_ctxt.fname
                          curr_state_lemma
         in FileUtils.write_to_file curr_state_lemma_file content;
@@ -139,7 +142,7 @@ let lfind_tac  : unit Proofview.tactic =
           ) 
           invalid_conjectures ;
 
-        Stats.summarize !Stats.global_stat;
+        Stats.summarize !Stats.global_stat curr_state_lemma;
 
         Tacticals.New.tclZEROMSG (Pp.str ("LFIND Successful."))
       end

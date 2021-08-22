@@ -12,6 +12,8 @@ type proof_context =
     declarations: string;
     proof_name: string;
     funcs: string list;
+    modules: string list;
+    types: string list;
   }
 
 type coq_context = 
@@ -93,6 +95,8 @@ let construct_proof_context gl =
         declarations = declarations;
         proof_name = proof_name;
         funcs = hyp_funcs;
+        modules = [];
+        types = [];
        }
     in p_ctxt, c_ctxt
                   

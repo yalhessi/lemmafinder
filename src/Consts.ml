@@ -8,6 +8,8 @@ let debug_log_file = "/lfind_debug_log.txt"
 
 let log_file = "/lfind_log.txt"
 
+let summary_log_file = "/lfind_summary_log.txt"
+
 let error_log_file = "/error_lfind_log.txt"
 
 let myth_timeout = "80"
@@ -33,3 +35,5 @@ let require_extraction = "\nRequire Coq.extraction.Extraction.\nExtraction Langu
 let vernac_success = "Success."
 
 let extraction_import = "Require Import Extraction."
+
+let def_qc_num_examples = "Extract Constant defNumTests => \"100\"."

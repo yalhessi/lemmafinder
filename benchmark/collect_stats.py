@@ -16,8 +16,10 @@ def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
 
 def get_all_lemmas(folder):
     lemmas = {}
+    lemma_name_content = {}
     no_lemmas = 0
     lemma_name = ""
+    lemma_content = ""
     for directory, subdirectories, files in os.walk(folder):
         for file in files:
             if file.endswith(".v"):
@@ -26,14 +28,19 @@ def get_all_lemmas(folder):
                         for line in f:
                             if ("Lemma" in line or "Theorem" in line) and ("forall" in line):
                                 lemma_name = line.split()[1]
+                                lemma_content = line
                             elif ("Proof" in line or "Admitted" in line) and (len(lemma_name) > 0):
                                 lemmas[lemma_name] = 1
+                                lemma_name_content[lemma_name] = lemma_content.replace("\n","")
                                 no_lemmas +=1
                                 lemma_name = ""
+                                lemma_content = ""
+                            else:
+                                lemma_content = lemma_content + line
                 except Exception as e:
                     print(e)
                     print (f"Error processing {directory}/{file}")
-    return lemmas, no_lemmas
+    return lemmas, no_lemmas, lemma_name_content
 
 def count_file(file, lemma_names, lemma_files_names):
     count_helper = 0
@@ -75,11 +82,11 @@ def count_file(file, lemma_names, lemma_files_names):
         print (f"Error processing {file}")
     return count_helper
 
-def count(folder):
+def count(folder, output_folder):
     no_coq_files = 0
     no_with_helper = 0
-    lemmas, no_lemmas = get_all_lemmas(folder)
-    print(lemmas)
+    lemmas, no_lemmas, lemma_content = get_all_lemmas(folder)
+    write_lemmas(lemma_content, output_folder)
     lemma_files_names = {}
     for directory, dirs, files in os.walk(folder):
         for file in files:
@@ -87,6 +94,10 @@ def count(folder):
                 no_coq_files += 1
                 no_with_helper += count_file(os.path.join(directory, file), lemmas, lemma_files_names)
     return no_coq_files,no_with_helper,no_lemmas, lemma_files_names
+
+def write_lemmas(content, output_dir):
+    with open(os.path.join(output_dir,"lemmafinder_all_lemmas.txt"), "w") as f:
+        f.write(json.dumps(content))
 
 def write_op(lemma_file_name, output_dir):
     with open(os.path.join(output_dir,"lemmafinder_bench.txt"), "w") as f:
@@ -97,7 +108,7 @@ def write_op(lemma_file_name, output_dir):
 
 def main() -> None:
     args, parser = parse_arguments()
-    no_coq_files, no_with_helper, total_lemmas, lemma_file_names = count(args.prelude)
+    no_coq_files, no_with_helper, total_lemmas, lemma_file_names = count(args.prelude, args.output)
     write_op(lemma_file_names,args.output)
     print(f"#Lemmas w atleast one helper/#Lemmas: {no_with_helper}/{total_lemmas} in {no_coq_files} coq files in 78 projects")
 

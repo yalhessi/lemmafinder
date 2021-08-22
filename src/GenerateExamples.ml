@@ -1,12 +1,5 @@
 open ProofContext
 
-let derive_typ_quickchick typ_name : string= 
-  Consts.fmt ("Derive Show for %s.\n
-              Derive Arbitrary for %s.\n
-              Instance Dec_Eq_%s : Dec_Eq %s.\n
-              Proof. dec_eq. Qed.\n")
-             typ_name typ_name typ_name typ_name
-
 let construct_data_collection vars typs var_typs = 
   let examples,_ = List.fold_left (fun (acc, index) vt -> let pipe = match acc with
                                         | "" -> ""
@@ -45,13 +38,13 @@ let generate_example p_ctxt typs modules current_lemma var_typs vars =
   in let quickchick_import = Consts.quickchick_import
   in let qc_include = Consts.fmt ("QCInclude \"%s/\".") p_ctxt.dir
   
-  in let typ_derive = List.fold_left (fun acc t -> acc ^ (derive_typ_quickchick t)) "" typs
+  in let typ_derive = List.fold_left (fun acc t -> acc ^ (TypeUtils.derive_typ_quickchick t)) "" typs
 
   in let typs_parameter_print = List.fold_left (fun acc t -> match acc with | "" -> t | _ -> acc ^ " -> " ^ t)  "" typs
   in let parameter_print = Consts.fmt ("Parameter print : %s -> string -> %s.\n") (List.hd typs) (List.hd typs)
   
-  in let typ_quickchick_content = Consts.fmt ("%s\n%s\n%s\n%s\n%s\n%s\n%s\n") Consts.lfind_declare_module import_file module_imports current_lemma quickchick_import 
-  qc_include typ_derive
+  in let typ_quickchick_content = Consts.fmt ("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n") Consts.lfind_declare_module import_file module_imports current_lemma quickchick_import 
+  qc_include Consts.def_qc_num_examples typ_derive
   in let example_print_content = Consts.fmt("%s\n%s%s")  Consts.string_scope parameter_print Consts.extract_print
   in let collect_content = construct_data_collection vars typs var_typs
   in let content = typ_quickchick_content ^ example_print_content ^ collect_content ^ "QuickChick collect_data.\n" ^ Consts.vernac_success

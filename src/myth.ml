@@ -20,7 +20,7 @@ let get_example_func examples var_types vars =
   in func
 
 let generate_synthesis_file p_ctxt conjecture_name examples var_types vars : string =
-  let coq_ml_file = p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".ml"
+  let coq_ml_file = Consts.fmt "%s/%s.ml" p_ctxt.dir p_ctxt.fname
   in let lfind_file = p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ conjecture_name ^ ".ml"
   in let ml_content = List.rev (FileUtils.read_file coq_ml_file)
   in let all_content = (String.concat "\n" ml_content) ^ (get_example_func examples var_types vars)
@@ -57,7 +57,7 @@ let run synth_fname p_ctxt conjecture_name enumerate=
 let run_parse p_ctxt fname=
   let myth_path = Utils.get_env_var "MYTH"
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
-  in let parse_file = Consts.fmt "%s/lfind_myth_parse_%s.ml" p_ctxt.dir fname
+  in let parse_file = Consts.fmt "%s/%s.ml" p_ctxt.dir fname
   in let myth_cmd = Consts.fmt  "%s -parse %s" myth_path parse_file
   in
   let run_myth = run_cmd (Consts.fmt "%s %s" timeout_cmd  myth_cmd)
