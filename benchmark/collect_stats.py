@@ -3,6 +3,7 @@
 import argparse
 import os
 import json
+import re
 
 from typing import Tuple
 
@@ -13,6 +14,16 @@ def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser.add_argument('--prelude', default=".")
     parser.add_argument('--output', default=".")
     return parser.parse_args(), parser
+
+def isProofStatement(line):
+    line = line.strip()
+    if re.search("^Theorem.*\:",line) is not None:
+        return True
+    if re.search("^Lemma.*\:",line) is not None:
+        return True
+    if re.search("^Corollary.*\:",line) is not None:
+        return True
+    return False
 
 def get_all_lemmas(folder):
     lemmas = {}
@@ -26,8 +37,8 @@ def get_all_lemmas(folder):
                 try:
                     with open(os.path.join(directory, file)) as f:
                         for line in f:
-                            if ("Lemma" in line or "Theorem" in line) and ("forall" in line):
-                                lemma_name = line.split()[1]
+                            if isProofStatement(line):
+                                lemma_name = line.split()[1].replace(":","")
                                 lemma_content = line
                             elif ("Proof" in line or "Admitted" in line) and (len(lemma_name) > 0):
                                 lemmas[lemma_name] = 1
@@ -63,6 +74,7 @@ def count_file(file, lemma_names, lemma_files_names):
                             elif len(content) > index + 2 and (content[index+2].replace('.','')) in lemma_names:
                                 helper_indices.append((index+2, content[index+2].replace('.','')))
                         index+=1
+                    
                     helper_indices_len = 0
                     while helper_indices_len < len(helper_indices):
                         if file not in lemma_files_names:
@@ -71,8 +83,8 @@ def count_file(file, lemma_names, lemma_files_names):
                         helper_indices_len += 1
                         count_helper+=1
                         # start_proof = False
-                if ("Lemma" in line or "Theorem" in line or "Corollary") and ("forall" in line):
-                    lemma_name = line.split()[1]
+                if isProofStatement(line):
+                    lemma_name = line.split()[1].replace(":","")
                 if "Proof" in line:
                     start_proof = True
                 if "Qed" in line or "Admitted" in line:
@@ -102,8 +114,6 @@ def write_lemmas(content, output_dir):
 def write_op(lemma_file_name, output_dir):
     with open(os.path.join(output_dir,"lemmafinder_bench.txt"), "w") as f:
         f.write(json.dumps(lemma_file_name))
-        # for k in lemma_file_name:
-        #     f.write(f"{k}:[{lemma_file_name[k]}]\n")
 
 
 def main() -> None:
