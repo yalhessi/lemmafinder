@@ -1,4 +1,5 @@
 open Sexp
+open LatticeUtils
 
 let add_expr_vars expr_vars vars var =
   let is_exists_in_vars = List.exists (fun v -> String.equal v var) vars
@@ -42,3 +43,13 @@ let subst_lfind_vars_in_expr expr sigma =
   in
   let str_expr = (aux [] expr)
   in String.concat " " str_expr
+
+let get_type_vars (conjecture : conjecture) vars =
+  let type_tbl = Hashtbl.create (List.length vars)
+  in List.iter ( fun v -> let _, expr_type = try (Hashtbl.find conjecture.sigma v) 
+                                          with _ -> [], ""
+                                    in if String.equal "" expr_type
+                                      then Hashtbl.add type_tbl v (Hashtbl.find conjecture.atom_type_table v)
+                                      else 
+                                      Hashtbl.add type_tbl v (try TypeUtils.get_return_type "" (Sexp.of_string expr_type) with _ -> expr_type)
+                ) vars; type_tbl

@@ -17,11 +17,13 @@ let generate_eval_file p_ctxt eval_str : string =
 
 let run_eval fname namespace =
   let cmd = "coqc -R . " ^ namespace  ^ " " ^ fname
-  in FileUtils.run_cmd cmd
+  in try FileUtils.run_cmd cmd with _ -> []
 
-let get_eval_definition expr vars =
-  let varstring = List.fold_left (fun acc v -> acc ^ " " ^ v) "" vars 
-  in let eval_def = "Definition lfind_eval " ^ varstring
+let get_eval_definition expr vars (var_typs:(string, string) Hashtbl.t)=
+  let var_string = match Hashtbl.length var_typs with
+                  | 0 -> List.fold_left (fun acc v -> acc ^ " " ^ v) "" vars 
+                  | _ -> List.fold_left (fun acc v -> acc ^ " " ^ "(" ^ v ^ " : " ^ ((Hashtbl.find var_typs v)) ^")") "" vars 
+  in let eval_def = "Definition lfind_eval " ^ var_string
                     ^ ":=\n"
                     ^ (Sexp.string_of_sexpr expr)
                     ^ ".\n"
@@ -43,9 +45,9 @@ let get_input_string vars example lfind_sigma =
                         in acc ^ " " ^ v_example
                  ) "" vars
 
-let get_evaluate_str expr vars examples lfind_sigma =
+let get_evaluate_str expr vars examples lfind_sigma (var_typs:(string, string) Hashtbl.t) =
   let expr_vars = get_variables_in_expr expr [] vars
-  in let eval_def = get_eval_definition expr expr_vars
+  in let eval_def = get_eval_definition expr expr_vars var_typs
   in List.fold_left (fun acc example -> let input = get_input_string expr_vars example lfind_sigma
                                         in acc ^ get_compute_string input
                     ) eval_def examples
@@ -76,8 +78,13 @@ let get_expr_vals output =
                             )
                  ) [] output
 
-let evaluate_coq_expr expr examples p_ctxt all_vars (lfind_sigma:(string, Sexp.t list * string) Hashtbl.t) : ((string list) * (string list))=
-  let evalstr = get_evaluate_str expr all_vars examples lfind_sigma
+let evaluate_coq_expr expr examples p_ctxt all_vars 
+(lfind_sigma:(string, Sexp.t list * string) Hashtbl.t) conj
+: ((string list) * (string list)) =
+  let var_typs =  match conj with
+                  | None -> (Hashtbl.create 0)
+                  | Some c -> ExprUtils.get_type_vars c all_vars
+  in let evalstr = get_evaluate_str expr all_vars examples lfind_sigma var_typs
   in let efile = generate_eval_file p_ctxt evalstr
   in let output = run_eval efile p_ctxt.namespace
   in LogUtils.write_list_to_log output "evalresult";
