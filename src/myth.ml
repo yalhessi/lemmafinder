@@ -34,7 +34,6 @@ let get_myth_exprs myth_output =
                          then
                          (
                             val_accum := !val_accum ^ l;
-                            Log.debug (!val_accum);
                             let updated_acc = !val_accum :: acc
                             in val_accum := "";
                             updated_acc

@@ -69,7 +69,7 @@ let summarize stats curr_state_lemma =
     ^
     fmt "#Generalizations not disprovable : %d\n" no_valid_gen_lemmas
     ^
-    fmt "#Generalizations useful in proving original goal: %d\nLemmas\n%s" len_gen_provable_lemmas gen_provable_lemmas
+    fmt "#Generalizations useful in proving original goal: %d\nLemmas\n%s\n" len_gen_provable_lemmas gen_provable_lemmas
     ^
     fmt "#Synthesized Lemmas not disprovable : %d\n" total_synthesized_valid_lemmas
     ^

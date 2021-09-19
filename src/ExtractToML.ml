@@ -22,7 +22,7 @@ let generate_ml_extraction_file p_ctxt names defs : string =
 
 let run_ml_extraction fname namespace =
   let cmd = "coqc -R . " ^ namespace  ^ " " ^ fname
-  in FileUtils.run_cmd cmd
+  in try FileUtils.run_cmd cmd with _ -> []
   
 let build_def example def_name =
   Consts.fmt "Definition %s := %s.\n" def_name example

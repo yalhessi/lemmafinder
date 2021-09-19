@@ -61,12 +61,12 @@ let get_synth_expr coq_defs =
                  ) "" coq_defs
 
 let get_coq_of_expr  p_ctxt conjecture_name expr =
-  Log.debug(Consts.fmt "coq_expr is :%s" expr);
+  Log.debug(Consts.fmt "original_expr is :%s" expr);
   let ml_file = generate_ml_file p_ctxt conjecture_name expr
   in let coq_defs = run ml_file p_ctxt conjecture_name
-  in LogUtils.write_list_to_log coq_defs "Coq Defs";
-  let coq_expr = get_synth_expr coq_defs
-  in Log.debug coq_expr;
+  (* in LogUtils.write_list_to_log coq_defs "Coq Defs"; *)
+  in let coq_expr = get_synth_expr coq_defs
+  in Log.debug (Consts.fmt "coq_expr is :%s" coq_expr);
   coq_expr
 
 let get_coq_exprs exprs p_ctxt conjecture_name =
