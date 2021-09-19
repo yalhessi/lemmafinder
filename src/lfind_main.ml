@@ -141,8 +141,9 @@ let lfind_tac  : unit Proofview.tactic =
           (* else () *)
           ) 
           invalid_conjectures ;
-
+        Log.debug ("Completed Synthesis");
         Stats.summarize !Stats.global_stat curr_state_lemma;
+        Log.debug ("COMPLETED LFIND SYNTHESIZER");
 
         Tacticals.New.tclZEROMSG (Pp.str ("LFIND Successful."))
       end
