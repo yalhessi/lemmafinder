@@ -66,7 +66,9 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
   in let all_terms = add_heuristic_atoms atoms all_terms
   in let terms = get_generalizable_terms all_terms expr_type_table atom_type_table
   in Log.debug (Consts.fmt "Size of terms list %d\n and Terms from the goal [%s]\n" (List.length terms) (List.fold_left (fun acc e -> acc ^ ";" ^ ((string_of_sexpr e))) "" terms));
-  let generalization_set = List.filter (fun g -> if (List.length g) == 0 then false else true) (sets terms)
+  (* Added empty generalization for synthesizing from stuck state. *)
+  let generalization_set = (sets terms)
+    (* List.filter (fun g -> if (List.length g) == 0 then false else true) (sets terms) *)
   in let hypo_implies_conc =
     if with_hyp then LatticeUtils.construct_implications p_ctxt.goal p_ctxt.hypotheses
     else (string_of_sexpr conc_sexp)
