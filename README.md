@@ -8,9 +8,9 @@ Install the following software:
 - opam switch 4.07.1+flambda
 - Dune 2.7.1
 - Coq 8.11.2
-- coqofocaml 2.1.0
+- coq-of-ocaml 2.1.0
 - coq-serapi 8.11.0+0.11.0
-- coq-quickchick           1.3.2
+- coq-quickchick 1.3.2
 
 
 ## Additional Setup
@@ -75,4 +75,11 @@ Set Printing Implicit.
 
 In the proof where u are stuck, add `lfind.` tactic and run `make` again in the folder. 
 
-TODO: Add example
+### Example: 
+1. cd `benchmark/bench_rev_append` && make. 
+This should first make the existing coq file. 
+
+2. Uncomment `lfind` in line 47.
+
+3. Run `make`. If the setup is done correctly, this should run the lemma finder in ~30 min and at the end of the run you should see  `Error: LFIND Successful`. The output of this run is saved in `benchmark/_lfind_bench_rev_append`. 
+You can find the results of the run in `benchmark/_lfind_bench_rev_append/lfind_summary_log.txt`. You can find debug logs in `benchmark/_lfind_bench_rev_append/lfind_debug_log.txt`
