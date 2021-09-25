@@ -1,64 +1,88 @@
 Coq Lemma Synthesis Plugin
 ---------------------------
-These instructions were tested only in Mac.
+These instructions were tested only in macos.
 
 Install the following software:
 
-- opam 2.0.7
-- opam switch 4.07.1+flambda
-- Dune 2.7.1
-- Coq 8.11.2
-- coq-of-ocaml 2.1.0
-- coq-serapi 8.11.0+0.11.0
-- coq-quickchick 1.3.2
+- opam 2.0.7 
+    - Download https://github.com/ocaml/opam/releases/download/2.0.7/opam-2.0.7-x86_64-macos and run `sudo install <downloaded file> /usr/local/bin/opam`
+    - check installation using opam --version (it should say 2.0.7)
+- opam update
+- opam switch create 4.07.1+flambda
+- opam install core=v0.12.4
+- opam install menhir=20200624
+- opam install dune=2.7.1
+- opam install coq=8.11.2
+- opam install coq-of-ocaml=2.1.0
+- opam install coq-serapi=8.11.0+0.11.0
+- opam install coq-quickchick=1.3.2
 
 
 ## Additional Setup
-We need to setup the following packages before we can run lemmafinder. 
+We need to setup the following packages before we can run lemmafinder.
 
 ### Proverbot
-We use proverbot to check if the synthesized or generalized lemma is provable or can help prove the current stuck state. 
+We use proverbot to check if the synthesized or generalized lemma is provable or can help prove the current stuck state.
 
-1. git clone master branch from `https://github.com/UCSD-PL/proverbot9001.git`
+1. `git clone git@github.com:UCSD-PL/proverbot9001.git`
+    - git branch should point to master
 
-2. Within src folder git clone `https://github.com/HazardousPeach/coq_serapy`
+2. cd proverbot9001/src `git clone git@github.com:HazardousPeach/coq_serapy.git`
+    - ls coq_serapy
 
 3. In `Makefile` replace ` curl -o data/polyarg-weights.dat proverbot9001.ucsd.edu/downloads/weights-10-27-2020.dat` with `curl -o data/polyarg-weights.dat proverbot9001.ucsd.edu/downloads/weights-latest.dat`
 
 4. In `Makefile` replace `cp dataloader/target/release/libdataloader.so src/dataloader.so` with `cp dataloader/target/release/libdataloader.dylib src/dataloader.so` (This is for Mac users).
 
-5. In `src/search_file.py` replace `except CoqExn:                             axiom_name = coq_serapy.lemma_name_from_statement(` with `except serapi_instance.CoqExn:                                 axiom_name = serapi_instance.lemma_name_from_statement(` 
+5. In `src/search_file.py` replace `except CoqExn:` with `except serapi_instance.CoqExn:` 
 
-6. Install rust-nightly and follow instructions here https://pyo3.rs/v0.5.3/. Specifically, you need to create config file mentioned, in proverbot9001/dataloader/dataloader-core/.cargo/.
+6. mkdir proverbot9001/dataloader/.cargo
 
-7. Now follow instructions in `https://github.com/UCSD-PL/proverbot9001` to make the project.
+7. cd proverbot9001/dataloader/.cargo && vi config
+
+8. Paste the following: `[target.x86_64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup",
+]`
+
+
+See https://pyo3.rs/v0.5.3/ for why we need this.
+
+9. Comment lines 16-23 in `setup.sh`
+
+10. Ensure you have git, opam, rustup, graphviz, libgraphviz-dev, python3.7, python3.7-dev and python3.7-pip installed.  
+
+11. run `make setup`
+
 
 ### Myth
 Myth is a Type-and-example-driven program synthesis engine. We use myth to synthesize expressions which are used in constructing useful lemmas.
 
-1. git clone https://github.com/AishwaryaSivaraman/myth.git
+1. `git clone git@github.com:AishwaryaSivaraman/myth.git`
 
-2. Follow instructions in https://github.com/AishwaryaSivaraman/myth to install myth
+2. make
 
 
 ### AST-Rewriter
 Myth supports only a part of the ocaml syntax. We need a translator that takes in `.ml` file generated from Coq extraction to a format that is compatible/can parse with myth. 
 
-1. git clone `https://github.com/AishwaryaSivaraman/astrewriter.git`
+1. `git clone git@github.com:AishwaryaSivaraman/astrewriter.git`
 
 2. dune build && dune install
 
 ### Lemmafinder
-We are now ready to make this project. Run `dune build && dune install`
+We are now ready to make this project. 
+Run `cd lemmafinder && dune build && dune install`
 
 ## Environment Setup
 In the folder that you run make or coqc export the following environment variable
 
 ```
 export PROVERBOT=<path to proverbot folder>
-export MYTH=<path to myth folder>
-export COQOFOCAML=<path to coqofocaml folder>
-export REWRITE=<path to ast_rewriter>
+export MYTH=<path to myth folder>/synml.native
+export COQOFOCAML=/Users/<username>/.opam/4.07.1+flambda/bin/coq-of-ocaml
+export REWRITE=<path to ast_rewriter>/_build/default/bin/main.exe
 ```
 
 
