@@ -8,6 +8,7 @@ Install the following software:
     - Download https://github.com/ocaml/opam/releases/download/2.0.7/opam-2.0.7-x86_64-macos and run `sudo install <downloaded file> /usr/local/bin/opam`
     - check installation using opam --version (it should say 2.0.7)
 - opam update
+- opam repo add coq-released https://coq.inria.fr/opam/released
 - opam switch create 4.07.1+flambda
 - opam install core=v0.12.4
 - opam install menhir=20200624
