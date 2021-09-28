@@ -4,7 +4,7 @@ These instructions were tested only in macos.
 
 Install the following software:
 
-- opam 2.0.7 
+- opam 2.0.7
     - Download https://github.com/ocaml/opam/releases/download/2.0.7/opam-2.0.7-x86_64-macos and run `sudo install <downloaded file> /usr/local/bin/opam`
     - check installation using opam --version (it should say 2.0.7)
 - opam update
@@ -25,17 +25,10 @@ We need to setup the following packages before we can run lemmafinder.
 ### Proverbot
 We use proverbot to check if the synthesized or generalized lemma is provable or can help prove the current stuck state.
 
-1. `git clone git@github.com:UCSD-PL/proverbot9001.git`
+1. `git clone --recurse-submodules https://github.com/UCSD-PL/proverbot9001.git`
     - git branch should point to master
 
-2. cd proverbot9001/src `git clone git@github.com:HazardousPeach/coq_serapy.git`
-    - ls coq_serapy
-
-3. In `Makefile` replace ` curl -o data/polyarg-weights.dat proverbot9001.ucsd.edu/downloads/weights-10-27-2020.dat` with `curl -o data/polyarg-weights.dat proverbot9001.ucsd.edu/downloads/weights-latest.dat`
-
-4. In `Makefile` replace `cp dataloader/target/release/libdataloader.so src/dataloader.so` with `cp dataloader/target/release/libdataloader.dylib src/dataloader.so` (This is for Mac users).
-
-5. In `src/search_file.py` replace `except CoqExn:` with `except serapi_instance.CoqExn:` 
+2. For Mac users ONLY: In `Makefile` replace `cp dataloader/target/release/libdataloader.so src/dataloader.so` with `cp dataloader/target/release/libdataloader.dylib src/dataloader.so`.
 
 6. mkdir proverbot9001/dataloader/.cargo
 
@@ -52,7 +45,7 @@ See https://pyo3.rs/v0.5.3/ for why we need this.
 
 9. Comment lines 16-23 in `setup.sh`
 
-10. Ensure you have git, opam, rustup, graphviz, libgraphviz-dev, python3.7, python3.7-dev and python3.7-pip installed.  
+10. Ensure you have git, opam, rustup, graphviz, libgraphviz-dev, python3.7, python3.7-dev and python3.7-pip installed.
 
 11. run `make setup`
 
@@ -66,14 +59,14 @@ Myth is a Type-and-example-driven program synthesis engine. We use myth to synth
 
 
 ### AST-Rewriter
-Myth supports only a part of the ocaml syntax. We need a translator that takes in `.ml` file generated from Coq extraction to a format that is compatible/can parse with myth. 
+Myth supports only a part of the ocaml syntax. We need a translator that takes in `.ml` file generated from Coq extraction to a format that is compatible/can parse with myth.
 
 1. `git clone git@github.com:AishwaryaSivaraman/astrewriter.git`
 
 2. dune build && dune install
 
 ### Lemmafinder
-We are now ready to make this project. 
+We are now ready to make this project.
 Run `cd lemmafinder && dune build && dune install`
 
 ## Environment Setup
@@ -87,7 +80,7 @@ export REWRITE=<path to ast_rewriter>/_build/default/bin/main.exe
 ```
 
 
-## Running lemma finder on a particular proof 
+## Running lemma finder on a particular proof
 <em> Note, the tool requires that the original project folder has run `make`</em>
 
 To run ```lfind``` in a proof you need to add the following
@@ -98,13 +91,13 @@ Unset Printing Notations.
 Set Printing Implicit.
 ```
 
-In the proof where u are stuck, add `lfind.` tactic and run `make` again in the folder. 
+In the proof where u are stuck, add `lfind.` tactic and run `make` again in the folder.
 
-### Example: 
-1. cd `benchmark/bench_rev_append` && make. 
-This should first make the existing coq file. 
+### Example:
+1. cd `benchmark/bench_rev_append` && make.
+This should first make the existing coq file.
 
 2. Uncomment `lfind` in line 47.
 
-3. Run `make`. If the setup is done correctly, this should run the lemma finder in ~30 min and at the end of the run you should see  `Error: LFIND Successful`. The output of this run is saved in `benchmark/_lfind_bench_rev_append`. 
+3. Run `make`. If the setup is done correctly, this should run the lemma finder in ~30 min and at the end of the run you should see  `Error: LFIND Successful`. The output of this run is saved in `benchmark/_lfind_bench_rev_append`.
 You can find the results of the run in `benchmark/_lfind_bench_rev_append/lfind_summary_log.txt`. You can find debug logs in `benchmark/_lfind_bench_rev_append/lfind_debug_log.txt`
