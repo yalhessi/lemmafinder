@@ -30,11 +30,11 @@ We use proverbot to check if the synthesized or generalized lemma is provable or
 
 2. For Mac users ONLY: In `Makefile` replace `cp dataloader/target/release/libdataloader.so src/dataloader.so` with `cp dataloader/target/release/libdataloader.dylib src/dataloader.so`.
 
-6. mkdir proverbot9001/dataloader/.cargo
+5. mkdir proverbot9001/dataloader/.cargo
 
-7. cd proverbot9001/dataloader/.cargo && vi config
+6. cd proverbot9001/dataloader/.cargo && vi config
 
-8. Paste the following: `[target.x86_64-apple-darwin]
+7. Paste the following: `[target.x86_64-apple-darwin]
 rustflags = [
   "-C", "link-arg=-undefined",
   "-C", "link-arg=dynamic_lookup",
