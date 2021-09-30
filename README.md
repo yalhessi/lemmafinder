@@ -30,11 +30,11 @@ We use proverbot to check if the synthesized or generalized lemma is provable or
 
 2. For Mac users ONLY: In `Makefile` replace `cp dataloader/target/release/libdataloader.so src/dataloader.so` with `cp dataloader/target/release/libdataloader.dylib src/dataloader.so`.
 
-5. mkdir proverbot9001/dataloader/.cargo
+3. mkdir proverbot9001/dataloader/.cargo
 
-6. cd proverbot9001/dataloader/.cargo && vi config
+4. cd proverbot9001/dataloader/.cargo && vi config
 
-7. Paste the following: `[target.x86_64-apple-darwin]
+5. Paste the following: `[target.x86_64-apple-darwin]
 rustflags = [
   "-C", "link-arg=-undefined",
   "-C", "link-arg=dynamic_lookup",
@@ -43,11 +43,11 @@ rustflags = [
 
 See https://pyo3.rs/v0.5.3/ for why we need this.
 
-9. Comment lines 16-23 in `setup.sh`
+6. Comment lines 16-23 in `setup.sh`
 
-10. Ensure you have git, opam, rustup, graphviz, libgraphviz-dev, python3.7, python3.7-dev and python3.7-pip installed.
+7. Ensure you have git, opam, rustup, graphviz, libgraphviz-dev, python3.7, python3.7-dev and python3.7-pip installed.
 
-11. run `make setup`
+8. run `make setup`
 
 
 ### Myth
@@ -101,3 +101,12 @@ This should first make the existing coq file.
 
 3. Run `make`. If the setup is done correctly, this should run the lemma finder in ~30 min and at the end of the run you should see  `Error: LFIND Successful`. The output of this run is saved in `benchmark/_lfind_bench_rev_append`.
 You can find the results of the run in `benchmark/_lfind_bench_rev_append/lfind_summary_log.txt`. You can find debug logs in `benchmark/_lfind_bench_rev_append/lfind_debug_log.txt`
+
+
+## Evaluating Lemma Finder
+
+`cd benchmarks/logical_foundations && make cd ..`
+
+`python3 benchmark/run_folder.py --prelude=<full path to logical_foundations> --log_directory=<full path to log directory>`
+
+This should run on 31 theorems that require helper lemma and output how many of were able to identify helper lemmas. You should find the output files in the --log_directory. 
