@@ -7,8 +7,16 @@ let rec collect_terms_no_dup (acc: (Sexp.t list) list) (atoms : string list) (se
   match sexp with
   | (Atom a) :: tl -> collect_terms_no_dup acc (a :: atoms) tl
   | (Expr head) :: tl -> let new_acc = (add_term_remove_dup acc head)
-                          in let head_terms, head_atoms = collect_terms_no_dup new_acc atoms head
-                          in collect_terms_no_dup head_terms head_atoms tl
+                         in 
+                         (* We do not want to further collect atoms from a function
+                         unroll in the proof state. *)
+                         if contains (Sexp.string_of_sexpr [(List.hd head)]) "fix" then
+                         collect_terms_no_dup new_acc atoms tl
+                         else 
+                         (
+                           let head_terms, head_atoms = collect_terms_no_dup new_acc atoms head
+                           in collect_terms_no_dup head_terms head_atoms tl
+                         )
   | [] -> acc, atoms
 
 let get_type_table (terms: (Sexp.t list) list) c_ctx =
@@ -31,7 +39,9 @@ let get_generalizable_terms all_terms expr_type_table atom_type_table =
                                                   with _ ->
                                                      Hashtbl.find atom_type_table (string_of_sexpr term)
                                   in let return_type = try TypeUtils.get_return_type "" (of_string term_type) with _ -> term_type
-                                  in if String.equal return_type "Type"
+                                  (* If it is type like nat, we do not want to generalize it and if the type is 
+                                  ill-formed i.e. empty we do not want to generalize it.  *)
+                                  in if (String.equal return_type "Type") || (String.equal return_type "")
                                      then acc
                                      else (add_term_remove_dup acc term)
                  ) [] all_terms

@@ -33,8 +33,11 @@ let sort_by_size (terml : Sexp.t list list) =
 
 let update_type_table (atoms : string list) c_ctx type_tbl = 
     List.iter (fun a -> 
-                    let typ = TypeUtils.get_type_of_atom c_ctx.env c_ctx.sigma a
-                    in Hashtbl.replace type_tbl (a) typ
+                    (* We may want to skip atoms that do not have a proper type *)
+                    try 
+                    (let typ = TypeUtils.get_type_of_atom c_ctx.env c_ctx.sigma a
+                    in Hashtbl.replace type_tbl (a) typ)
+                    with _ -> ();
               ) atoms; type_tbl
 
 let add_variable (variables: string list ) (var: string): string list = 
