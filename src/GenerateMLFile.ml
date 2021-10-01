@@ -1,10 +1,10 @@
 open ProofContext
 open FileUtils
 
-let run dir fname=
+let run dir fname op_fname =
   let rewrite_path = Utils.get_env_var "REWRITE"
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
-  in let rewrite_command = Consts.fmt  "%s %s %s" rewrite_path dir fname
+  in let rewrite_command = Consts.fmt  "%s %s %s %s" rewrite_path dir fname op_fname
   in Feedback.msg_info (Pp.str rewrite_command);
   let run_rewrite = run_cmd (Consts.fmt "%s %s" timeout_cmd  rewrite_command)
   in run_rewrite
@@ -13,8 +13,7 @@ let generate_ml_file p_ctxt =
   let ml_extraction_file = Consts.fmt ("%s/%s") p_ctxt.dir "lfind_ml_generator.v"
   in
   let import_file = 
-  Consts.fmt "From %s Require Import %s."(p_ctxt.namespace) (p_ctxt.fname)  
-
+  Consts.fmt "From %s Require Import %s."(p_ctxt.namespace) (p_ctxt.fname)
   in let module_imports = List.fold_left (fun acc m -> acc ^ ("Import " ^ m ^"\n")) "" p_ctxt.modules  
   in let extract_functions = List.fold_left (fun acc f -> acc ^ " " ^ f) "" p_ctxt.funcs
   in let extraction = Consts.fmt "Extraction \"%s/%s_lfind_orig.ml\" %s." p_ctxt.dir p_ctxt.fname extract_functions

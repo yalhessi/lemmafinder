@@ -15,6 +15,19 @@ exception NotFound_MLFile
 exception Rewrite_Fail
 exception Myth_Fail
 
+
+let is_ml_generation_success ml_file p_ctxt: bool= 
+  if not (Sys.file_exists ml_file) then 
+  (
+    print_endline("Need to generate file");
+    print_endline(ml_file);
+    let op = GenerateMLFile.generate_ml_file p_ctxt
+    in print_endline (string_of_int (List.length op));
+    let is_succ = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
+    in is_succ
+  ) 
+  else true
+
 let construct_state_as_lemma gl =
   let goal = Proofview.Goal.concl gl in
   let hyps = Proofview.Goal.hyps gl in
@@ -69,31 +82,25 @@ let lfind_tac  : unit Proofview.tactic =
         (* Generate .ml file and check if it is parsable by myth *)        
         in let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
         in 
-        if not (Sys.file_exists ml_file) then 
+        ( 
+        let is_success = is_ml_generation_success ml_file p_ctxt
+        in
+        if not is_success then raise Invalid_MLFile else 
         (
-          print_endline("Need to generate file");
-          print_endline(ml_file);
-          let op = GenerateMLFile.generate_ml_file p_ctxt
-          in print_endline (string_of_int (List.length op));
-          let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
-          in
-          if not is_success then raise Invalid_MLFile else 
+          if not (Sys.file_exists ml_file) then raise NotFound_MLFile
+          else
+          (* Now call the library to rewrite the ast *)
+          let run_op = GenerateMLFile.run p_ctxt.dir (p_ctxt.fname^"_lfind_orig") p_ctxt.fname
+          in let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "rewrite_success") ) false run_op
+          in if not is_success then raise Rewrite_Fail else
           (
-            if not (Sys.file_exists ml_file) then raise NotFound_MLFile
-            else
-            (* Now call the library to rewrite the ast *)
-            let run_op = GenerateMLFile.run p_ctxt.dir (p_ctxt.fname^"_lfind_orig")
-            in let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "rewrite_success") ) false run_op
-            in if not is_success then raise Rewrite_Fail else
-            (
-              let run_op = Myth.run_parse p_ctxt (p_ctxt.fname^"_wsynth")
-              in let is_exception = List.fold_left (fun acc l -> acc || (Utils.contains l "exception") ) false run_op
-              in if is_exception then raise Myth_Fail else
-              Feedback.msg_info (Pp.str "lemmafinder_ml_generation_success");
-            )
-          )          
-        )
-        else ();
+            let run_op = Myth.run_parse p_ctxt (p_ctxt.fname^"_wsynth")
+            in let is_exception = List.fold_left (fun acc l -> acc || (Utils.contains l "exception") ) false run_op
+            in if is_exception then raise Myth_Fail else
+            Feedback.msg_info (Pp.str "lemmafinder_ml_generation_success");
+          )
+        )          
+        );
 
         (* if example file exists use it, else generate examples *)
         let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
@@ -116,7 +123,7 @@ let lfind_tac  : unit Proofview.tactic =
         in let op = FileUtils.run_cmd "export is_lfind=true"
         in let abstraction = Abstract_NoDup.abstract
         in let generalized_terms, conjectures = abstraction p_ctxt c_ctxt
-        in
+        in 
         (* create a lemma file to use with proverbot *)
         let curr_state_lemma_file = Consts.fmt "%s/%s.v" p_ctxt.dir Consts.lfind_lemma
         in let content = Consts.fmt "%s\nFrom %s Require Import %s.\n %s"
@@ -125,7 +132,6 @@ let lfind_tac  : unit Proofview.tactic =
                          p_ctxt.fname
                          curr_state_lemma
         in FileUtils.write_to_file curr_state_lemma_file content;
-
         (* get ml and coq version of the generalized examples *)
         let coq_examples, ml_examples = (ExampleUtils.evaluate_terms generalized_terms coq_examples ml_examples p_ctxt)
         in List.iter (fun c -> LogUtils.write_tbl_to_log c "COQE") coq_examples;
@@ -136,11 +142,9 @@ let lfind_tac  : unit Proofview.tactic =
         List.iter (  
           fun c -> 
           print_endline c.conjecture_name;
-          (* if (String.equal c.conjecture_name "conj9") then *)
           (Synthesize.synthesize p_ctxt ml_examples coq_examples c);
-          (* else () *)
-          ) 
-          invalid_conjectures ;
+        ) 
+        invalid_conjectures ;
         Log.debug ("Completed Synthesis");
         Stats.summarize !Stats.global_stat curr_state_lemma;
         Log.debug ("COMPLETED LFIND SYNTHESIZER");
