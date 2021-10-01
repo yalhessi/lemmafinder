@@ -57,23 +57,26 @@ let generalized_lemma_useful stats : string *int =
                    ) ("", 0) stats
 
 let summarize stats curr_state_lemma =
-    let no_valid_gen_lemmas = List.length (List.filter (fun g -> g.is_valid) stats)
-    in let gen_provable_lemmas, len_gen_provable_lemmas = generalized_lemma_useful stats
-    in let total_synthesized_valid_lemmas = get_synthesized_valid_lemmas stats
-    in let str_provable_lemmas, total_synthesized_provable_lemmas = get_synthesized_provable_lemmas stats
+    (* The last stat is the same as the stuck state, it does not provide any useful indicator *)
+    let useful_stats = (List.rev stats)
+    in 
+    let no_valid_gen_lemmas = List.length (List.filter (fun g -> g.is_valid) (List.tl useful_stats))
+    in let gen_provable_lemmas, len_gen_provable_lemmas = generalized_lemma_useful (List.tl useful_stats)
+    in let total_synthesized_valid_lemmas = get_synthesized_valid_lemmas (List.tl useful_stats)
+    in let str_provable_lemmas, total_synthesized_provable_lemmas = get_synthesized_provable_lemmas (List.tl useful_stats)
     in let summary =  (fmt "\n### SUMMARY ###\n"
     ^
     fmt "Stuck Proof State: %s\n"  (curr_state_lemma)
     ^
-    fmt "# Generalizations : %d\n" (List.length stats)
-    ^
-    fmt "#Generalizations not disprovable : %d\n" no_valid_gen_lemmas
+    fmt "# Generalizations : %d\n" (List.length (List.tl useful_stats))
     ^
     fmt "#Generalizations useful in proving original goal: %d\nLemmas\n%s\n" len_gen_provable_lemmas gen_provable_lemmas
     ^
-    fmt "#Synthesized Lemmas not disprovable : %d\n" total_synthesized_valid_lemmas
+    fmt "#Generalizations not disprovable : %d\n" no_valid_gen_lemmas
     ^
     fmt "#Synthesized Lemmas useful in proving original goal: %d\nLemmas\n%s" total_synthesized_provable_lemmas str_provable_lemmas)
+    ^
+    fmt "#Synthesized Lemmas not disprovable : %d\n" total_synthesized_valid_lemmas
 
     in Log.write_to_log summary !Log.stats_summary_file; ()
 
