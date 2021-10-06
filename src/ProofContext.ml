@@ -44,12 +44,12 @@ let get_declarations dir fname =
                      ) lines ""
 
 let get_dir paths =
-List.fold_left (fun (namespace, dir) path -> 
+List.fold_left (fun (namespace, dir) path ->
                   let path_str = (Utils.get_str_of_pp (Loadpath.pp (path)))
-                  in let is_contains = Utils.contains path_str "coq"
+                  in let is_contains = Utils.contains path_str "Coq."
                   in if is_contains || not (String.equal dir "") 
                   then (namespace, dir)
-                  else 
+                  else
                   (
                       let pathl = (String.split_on_char ' ' path_str)
                       in let namespace = List.hd pathl

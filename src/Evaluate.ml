@@ -87,14 +87,17 @@ let evaluate_coq_expr expr examples p_ctxt all_vars
   in let evalstr = get_evaluate_str expr all_vars examples lfind_sigma var_typs
   in let efile = generate_eval_file p_ctxt evalstr
   in let output = run_eval efile p_ctxt.namespace
-  in LogUtils.write_list_to_log output "evalresult";
-  let coq_output  = get_expr_vals output
+  in
+  (* TODO: Need to check here why the two outputs for COQ and ML 
+     have different order. Hacky solution now!
+  *)
+  let coq_output  = (List.rev (get_expr_vals output))
   in let names, defs = get_defs_evaluated_examples coq_output
   in let ext_coqfile = generate_ml_extraction_file p_ctxt names defs
   in let output = run_ml_extraction ext_coqfile p_ctxt.namespace
   in let ext_mlfile = Consts.fmt "%s/lfind_extraction.ml" p_ctxt.dir
   in let ext_output = List.rev (FileUtils.read_file ext_mlfile)
-  in let ml_output = get_ml_evaluated_examples ext_output
+  in let ml_output = List.rev (get_ml_evaluated_examples ext_output)
   in Log.debug (Consts.fmt "length of examples %d\n" (List.length examples));
   Log.debug (Consts.fmt "length of extracted examples %d\n" (List.length ml_output));
   (coq_output, ml_output)

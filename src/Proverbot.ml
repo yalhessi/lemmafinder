@@ -17,7 +17,7 @@ let search prelude proverbot fname axiom_opt=
   in Log.debug(List.fold_left (fun acc c -> acc ^ (Consts.fmt "Line from stdout: %s\n" c)) "" run_op)
 
 let output_code prelude conjecture_name : bool =
-  let cmd = "cat " ^ prelude ^"/search-report/*-proofs.txt | grep SUCCESS | grep " ^ Consts.lfind_lemma ^ " -c"
+  let cmd = "cat " ^ prelude ^"/search-report/*-proofs.txt | grep SUCCESS | grep " ^ conjecture_name ^ " -c"
   in let cmd_op = run_cmd cmd
   in if cmd_op = [] 
       then false 

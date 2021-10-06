@@ -120,7 +120,10 @@ let lfind_tac  : unit Proofview.tactic =
 
         let coq_examples = Examples.get_examples example_file
         in let ml_examples = Examples.get_ml_examples coq_examples p_ctxt
-        in let op = FileUtils.run_cmd "export is_lfind=true"
+        in LogUtils.write_tbl_list_to_log coq_examples "Coq Examples";
+        LogUtils.write_tbl_list_to_log ml_examples "ML Examples";
+        
+        let op = FileUtils.run_cmd "export is_lfind=true"
         in let abstraction = Abstract_NoDup.abstract
         in let generalized_terms, conjectures = abstraction p_ctxt c_ctxt
         in 

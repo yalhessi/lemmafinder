@@ -29,7 +29,7 @@ let get_ml_examples examples p_ctxt =
                       in let ext_mlfile = Consts.fmt "%s/lfind_extraction.ml" p_ctxt.dir
                       in let ext_output = List.rev (FileUtils.read_file ext_mlfile)
                       in let extracted_values = ExtractToML.get_ml_input_examples ext_output
-                      in Hashtbl.iter (fun k v -> Log.debug (Consts.fmt "Val: %s -> %s" k v)) extracted_values;
+                      in
                       List.append acc [extracted_values]
                  ) [] examples
 
@@ -44,17 +44,6 @@ let get_example_index examplestr index examples vars_for_synthesis lfind_sigma =
                                in (Hashtbl.find index_example_tbl (Sexp.string_of_sexpr generalized_term))
                              )
                     in examplestr ^ op ^ " => "
-                    (* let lvar_ops  = (try (Hashtbl.find lfind_var_outputs v) with _ -> [])
-                    in
-                    match lvar_ops with
-                    | [] -> (
-                             let op = Hashtbl.find (List.nth examples index) v
-                             in examplestr ^ op ^ " => "
-                            )
-                    | egs -> (
-                              let op = List.nth egs index
-                              in examplestr ^ op ^ " => "
-                             ) *)
                  ) "" vars_for_synthesis
 
 let gen_synthesis_examples (examples:(string, string) Hashtbl.t list) 

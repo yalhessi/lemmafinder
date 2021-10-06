@@ -121,7 +121,7 @@ let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture 
 
 
 let filter_provable_conjectures valid_conjectures p_ctxt original_conjecture =
-  List.filter (fun (_, conj) -> (Provable.check_lfind_theorem_add_axiom p_ctxt conj.conjecture_str)) valid_conjectures
+  List.filter (fun (_, conj) -> (Provable.check_lfind_theorem_add_axiom p_ctxt conj.conjecture_name conj.conjecture_str)) valid_conjectures
 
 let synthesize_lemmas conjecture ml_examples coq_examples p_ctxt curr_synth_term =
   Log.debug (Consts.fmt "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term));

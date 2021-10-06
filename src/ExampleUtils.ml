@@ -25,7 +25,9 @@ let evaluate_terms generalized_terms coq_examples ml_examples p_ctxt
   in let coq_term_examples, ml_term_example = List.fold_left (
                      fun (coq_acc, ml_acc) term -> 
                         let coq_term_output, ml_term_output = (Evaluate.evaluate_coq_expr term coq_examples p_ctxt p_ctxt.vars (Hashtbl.create 0) None)
-                        in let is_example_size_mismatch =  if (List.length ml_examples != List.length ml_term_output) then true else false
+                        in LogUtils.write_list_to_log coq_term_output ("Coq output of " ^ (Sexp.string_of_sexpr term));
+                        LogUtils.write_list_to_log ml_term_output ("ML output of " ^ (Sexp.string_of_sexpr term));
+                        let is_example_size_mismatch =  if (List.length ml_examples != List.length ml_term_output) then true else false
                         in if is_example_size_mismatch then raise @@ Mismatch_Examples "Mismatch between input examples and generalized variable output"
                         else
                         (

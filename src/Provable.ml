@@ -20,6 +20,8 @@ let generate_axiom_file p_ctxt conjecture : string =
 
 let check_provable conjecture p_ctxt : bool =
   generate_lfind_file p_ctxt conjecture.conjecture_str conjecture.conjecture_name;
+  Log.debug "Conjecture name is ";
+  Log.debug conjecture.conjecture_name;
   let fname = " lfind" ^ conjecture.conjecture_name ^".v "
   in Proverbot.run p_ctxt.dir conjecture.conjecture_name fname ""
 
@@ -32,7 +34,7 @@ let split_as_provable_non_provable conjectures p_ctxt : conjecture list * conjec
                                         else (true_conj, c::false_conj)
                     ) ([], []) conjectures
 
-let check_lfind_theorem_add_axiom p_ctxt additional_conj : bool =
+let check_lfind_theorem_add_axiom p_ctxt proof_name additional_conj : bool =
   let axiom_file = generate_axiom_file p_ctxt additional_conj
   in let fname = Consts.lfind_lemma ^ ".v"
-  in Proverbot.run p_ctxt.dir p_ctxt.proof_name fname axiom_file
+  in Proverbot.run p_ctxt.dir proof_name fname axiom_file
