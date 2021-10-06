@@ -33,20 +33,21 @@ let construct_state_as_lemma gl =
   let hyps = Proofview.Goal.hyps gl in
   let env = Proofview.Goal.env gl in
   let sigma = Proofview.Goal.sigma gl in
-  let hyps, vars, typs, var_typs = List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs) (v, hyp) -> 
+  let hyps, vars, typs, var_typs = 
+    List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs) (v, hyp) -> 
                               let var_str = (Names.Id.to_string v)
-                              in let hyp_str = [(Consts.fmt "(%s:%s)" var_str (Utils.get_exp_str env sigma hyp))]
+                              in let hyp_str = (Consts.fmt "(%s:%s)" var_str (Utils.get_exp_str env sigma hyp))
                               in if Utils.contains var_str "H" 
                                 then 
-                                  (List.append acc_H hyp_str), acc_V, acc_typs, []
+                                  ( hyp_str::acc_H), acc_V, acc_typs, []
                                 else 
                                   let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t (Utils.get_exp_str env sigma hyp))) false acc_typs
                                   in 
                                   let updated_typ = match typ_exists with
                                   | true -> acc_typs
-                                  | false -> (List.append acc_typs [(Utils.get_exp_str env sigma hyp)]) 
+                                  | false -> ((Utils.get_exp_str env sigma hyp)::acc_typs ) 
                                   in 
-                                  acc_H,(List.append acc_V [var_str]), updated_typ, (List.append acc_var_typs hyp_str)
+                                  (hyp_str::acc_H),(var_str::acc_V), updated_typ, (hyp_str::acc_var_typs)
                  ) ([],[],[],[]) (Utils.get_hyps hyps)
   in let conc = (Utils.get_exp_str env sigma goal)
   in if List.length hyps == 0 then
@@ -56,7 +57,8 @@ let construct_state_as_lemma gl =
      )
     else
     (
-      let vars_all = List.fold_left (fun acc v -> acc ^ " " ^ v)  "" vars
+      let vars_all = ""
+        (* List.fold_left (fun acc v -> acc ^ " " ^ v)  "" vars *)
       in (Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all (String.concat " " hyps) conc), typs, var_typs, vars
     )
 
