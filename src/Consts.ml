@@ -12,7 +12,7 @@ let summary_log_file = "/lfind_summary_log.txt"
 
 let error_log_file = "/error_lfind_log.txt"
 
-let myth_timeout = "80"
+let myth_timeout = "30"
 
 let coq_printing_depth = "Set Printing Depth 1000."
 
@@ -36,4 +36,4 @@ let vernac_success = "Success."
 
 let extraction_import = "Require Import Extraction."
 
-let def_qc_num_examples = "Extract Constant defNumTests => \"100\"."
+let def_qc_num_examples = "Extract Constant defNumTests => \"50\"."

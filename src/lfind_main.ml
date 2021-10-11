@@ -39,7 +39,7 @@ let construct_state_as_lemma gl =
                               in let hyp_str = (Consts.fmt "(%s:%s)" var_str (Utils.get_exp_str env sigma hyp))
                               in if Utils.contains var_str "H" 
                                 then 
-                                  ( hyp_str::acc_H), acc_V, acc_typs, []
+                                ( hyp_str::acc_H), acc_V, acc_typs, acc_var_typs
                                 else 
                                   let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t (Utils.get_exp_str env sigma hyp))) false acc_typs
                                   in 
@@ -47,8 +47,9 @@ let construct_state_as_lemma gl =
                                   | true -> acc_typs
                                   | false -> ((Utils.get_exp_str env sigma hyp)::acc_typs ) 
                                   in 
-                                  (hyp_str::acc_H),(var_str::acc_V), updated_typ, (hyp_str::acc_var_typs)
+                                  acc_H, (var_str::acc_V), updated_typ, (hyp_str::acc_var_typs)
                  ) ([],[],[],[]) (Utils.get_hyps hyps)
+  in let hyps = List.append var_typs hyps
   in let conc = (Utils.get_exp_str env sigma goal)
   in if List.length hyps == 0 then
      (

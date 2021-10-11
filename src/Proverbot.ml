@@ -12,7 +12,7 @@ let search prelude proverbot fname axiom_opt=
   let python = "python3 " 
   in let script = proverbot ^ "src/search_file.py "
   in let weights_file  = proverbot ^"data/polyarg-weights.dat "
-  in let cmd = Consts.fmt "timeout 50 %s %s --prelude=%s --weightsfile=%s %s %s -P -o %s/search-report" python script prelude weights_file fname axiom_opt prelude
+  in let cmd = Consts.fmt "timeout 20 %s %s --prelude=%s --weightsfile=%s %s %s -P -o %s/search-report" python script prelude weights_file fname axiom_opt prelude
   in let run_op = run_cmd cmd
   in Log.debug(List.fold_left (fun acc c -> acc ^ (Consts.fmt "Line from stdout: %s\n" c)) "" run_op)
 

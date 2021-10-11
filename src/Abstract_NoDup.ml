@@ -48,9 +48,9 @@ let get_generalizable_terms all_terms expr_type_table atom_type_table =
 
 let add_heuristic_atoms all_atoms current_terms =
   (* Get nil that are not polymorphic, if it is polymorphic we already capture them in the terms for generalization *)
-  List.fold_left (fun acc a -> if Utils.contains a "nil" && not (Utils.contains a "@")
+  List.fold_left (fun acc a -> if Utils.contains (String.lowercase a) "nil" && not (Utils.contains a "@")
                                then [Atom a]::acc 
-                               else acc 
+                               else acc
                  ) current_terms all_atoms
 
 let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
