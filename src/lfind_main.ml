@@ -144,12 +144,13 @@ let lfind_tac  : unit Proofview.tactic =
         List.iter (fun c -> LogUtils.write_tbl_to_log c "MLE") ml_examples;
         
         let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
-        in 
-        List.iter (  
+        in let cached_lemmas = ref (Hashtbl.create 1000) 
+        in List.iter (  
           fun c -> 
           print_endline c.conjecture_name;
-          (Synthesize.synthesize p_ctxt ml_examples coq_examples c);
-        ) 
+          Log.debug (Consts.fmt "Cache size is %d\n" (Hashtbl.length !cached_lemmas));
+          (Synthesize.synthesize cached_lemmas p_ctxt ml_examples coq_examples c);
+        )
         invalid_conjectures ;
         Log.debug ("Completed Synthesis");
         Stats.summarize !Stats.global_stat curr_state_lemma;
