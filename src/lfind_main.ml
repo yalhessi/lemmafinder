@@ -39,7 +39,9 @@ let construct_state_as_lemma gl =
                               in let hyp_str = (Consts.fmt "(%s:%s)" var_str (Utils.get_exp_str env sigma hyp))
                               in if Utils.contains var_str "H" 
                                 then 
-                                ( hyp_str::acc_H), acc_V, acc_typs, acc_var_typs
+                                ( if Utils.contains hyp_str "forall" then acc_H, acc_V, acc_typs, acc_var_typs
+                                  else ( hyp_str::acc_H), acc_V, acc_typs, acc_var_typs
+                                )
                                 else 
                                   let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t (Utils.get_exp_str env sigma hyp))) false acc_typs
                                   in 
