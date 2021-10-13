@@ -19,9 +19,7 @@ let generate_axiom_file p_ctxt conjecture : string =
   axiom_file
 
 let check_provable conjecture p_ctxt : bool =
-  generate_lfind_file p_ctxt conjecture.conjecture_str conjecture.conjecture_name;
-  Log.debug "Conjecture name is ";
-  Log.debug conjecture.conjecture_name;
+  generate_lfind_file p_ctxt conjecture.conjecture_str conjecture.conjecture_name; 
   let fname = " lfind" ^ conjecture.conjecture_name ^".v "
   in Proverbot.run p_ctxt.dir conjecture.conjecture_name fname ""
 
