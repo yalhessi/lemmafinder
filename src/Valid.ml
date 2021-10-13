@@ -29,7 +29,9 @@ let split_as_true_and_false conjectures p_ctxt : conjecture list * conjecture li
                                         then 
                                           (
                                             let is_provable = Provable.check_lfind_theorem_add_axiom p_ctxt c.conjecture_name c.conjecture_str
-                                            in let g_stat = {conjecture = c; is_valid =true; is_provable = is_provable; synthesis_stats=[]}
+                                            in let is_prover_provable = Provable.check_provable c p_ctxt
+                                            in let g_stat = {conjecture = c; is_valid =true; is_provable = is_provable; is_prover_provable = is_prover_provable;
+                                            synthesis_stats=[]}
                                             in Log.write_to_log (genstat_to_string g_stat) !Log.stats_log_file;
                                             global_stat := g_stat :: !global_stat;
                                             (c::true_conj, false_conj)

@@ -82,22 +82,32 @@ match conjecture with
                             in get_variables_except_expr tl expr head_vars vars lfind_vars)
 | [] -> conj_vars
 
+let get_normalized_var_name count =
+  "lv"^(string_of_int count)
+
 let get_quantified_var var_types =
-  Hashtbl.fold (fun k v acc -> if String.equal k synthesis_op
+  let normalized_vars = Hashtbl.create (Hashtbl.length var_types)
+  in let count = ref 0
+  in (Hashtbl.fold (fun k v acc ->
+                               let new_var = get_normalized_var_name !count
+                               in count := !count + 1;
+                               Hashtbl.add normalized_vars k new_var;
+                               if String.equal k synthesis_op
                                then acc
-                               else acc ^ " " ^ "(" ^ k ^ " : " ^ v ^ ")"
-               ) var_types ""
+                               else acc ^ " " ^ "(" ^ new_var ^ " : " ^ v ^ ")"
+                  ) var_types ""), normalized_vars
 
 let get_synthesis_conjecture curr_synth_term conjecture var_types counter synthesized_expr =
   Log.debug (Consts.fmt "synth term is %s" (Sexp.string_of_sexpr curr_synth_term));
   Log.debug (Consts.fmt "synthesized expression is %s" synthesized_expr);
-  let synthesized_expr = "(" ^ synthesized_expr ^ ")"
-  in let replaced_conj = Sexp.replace_sub_sexp conjecture.body_sexp curr_synth_term synthesized_expr
-  in Log.debug (Consts.fmt "replaced conjcture is %s" replaced_conj);
-  (* in  *)
+  let var_strs, normalized_vars = (get_quantified_var var_types)
+  in let synthesized_expr = "(" ^ synthesized_expr ^ ")"
+  in let replaced_conj = Sexp.normalize_sexp_vars (Sexp.of_string (Sexp.replace_sub_sexp conjecture.body_sexp curr_synth_term synthesized_expr)) normalized_vars
+  in
+  Log.debug (Consts.fmt "replaced conjcture is %s" replaced_conj);
   let conj_prefix = conjecture.conjecture_name ^ "synth"
   in let synth_conj_name = LatticeUtils.gen_conjecture_name conj_prefix counter
-  in let synth_conj = synth_conj_name ^ " " ^ ": forall " ^ (get_quantified_var var_types) ^ ", " ^ replaced_conj
+  in let synth_conj = synth_conj_name ^ " " ^ ": forall " ^ var_strs ^ ", " ^ replaced_conj
   in let synthesis_conjecture = {
                                   sigma = Hashtbl.create 0;
                                   conjecture_str = synth_conj;
@@ -161,11 +171,14 @@ let synthesize_lemmas conjecture ml_examples coq_examples p_ctxt cached_lemmas c
   in let synthesized_conjectures = List.map (get_synthesis_conjecture curr_synth_term conjecture var_types (Utils.next_val counter)) enumerated_exprs
   in let valid_conjectures = filter_valid_conjectures synthesized_conjectures p_ctxt conjecture !cached_lemmas
   in let provable_conjectures = filter_provable_conjectures valid_conjectures p_ctxt conjecture
+  in let p_conjectures = List.map (fun (s, c) -> c) provable_conjectures
+  in let prover_provable_conjectures, _ = Provable.split_as_provable_non_provable p_conjectures p_ctxt
   in let synth_stat = {
                         synthesis_term = (Sexp.string_of_sexpr curr_synth_term);
                         enumerated_exprs = enumerated_exprs;
                         valid_lemmas = valid_conjectures;
                         provable_lemmas = provable_conjectures;
+                        prover_provable_lemmas = prover_provable_conjectures;
                       }
   in synth_stat
 
@@ -186,6 +199,7 @@ let synthesize cached_lemmas p_ctxt ml_examples coq_examples conjecture=
                         conjecture = conjecture;
                         is_valid = false;
                         is_provable = false;
+                        is_prover_provable = false;
                         synthesis_stats = synth_stats;
                       }
     in Log.write_to_log (genstat_to_string gen_stat) !Log.stats_log_file;

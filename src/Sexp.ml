@@ -172,8 +172,25 @@ let string_of_sexpr_indent s =
   | [] -> (List.rev acc)
   in
   String.concat "\n" (aux 0 [] s)
- 
- 
+
+let normalize_sexp_vars s normalized_vars =
+  let rec aux i acc = function
+  | (Atom tag)::tl -> 
+      let t = (try
+                Hashtbl.find normalized_vars tag
+              with _ -> (protect tag))
+      in aux i (t::acc) tl
+  | (Expr e)::tl ->
+      let s =
+        "(" ^
+        (String.concat " " (aux (succ i) [] e))
+        ^ ")"
+      in
+      aux i (s::acc) tl
+  | [] -> (List.rev acc)
+  in
+  String.concat "\n" (aux 0 [] s)
+
 let print_sexpr_indent s =
   print_endline (string_of_sexpr_indent s)
 

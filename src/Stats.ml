@@ -6,12 +6,14 @@ type synthesis_stat = {
     enumerated_exprs : string list;
     valid_lemmas : (string * conjecture) list;
     provable_lemmas : (string * conjecture) list;
+    prover_provable_lemmas : conjecture list;
 }
 
 type generalization_stat = {
     conjecture : conjecture;
     is_valid : bool;
     is_provable : bool;
+    is_prover_provable: bool;
     synthesis_stats : synthesis_stat list;
 }
 
@@ -32,6 +34,28 @@ let probable_lemmas_to_string provable_lemmas =
                         ^
                         fmt "\t\t\t Lemma : %s\n" lemma.conjecture_str
                 ) "" provable_lemmas
+
+let lemmas_to_string lemmas =
+    List.fold_left (fun acc lemma -> 
+                        acc
+                        ^
+                        fmt "\t\t\t Lemma : %s\n" lemma.conjecture_str
+                ) "" lemmas
+
+let get_synthesized_prover_provable_lemmas stats=
+    List.fold_left (fun (acc,len) g_stat -> 
+                    let new_acc, l = 
+                    (List.fold_left
+                        (fun (acc_synth,len) s_stat -> 
+                            let l = len + (List.length s_stat.prover_provable_lemmas)
+                            in let c_str = lemmas_to_string s_stat.prover_provable_lemmas
+                            in if (List.length s_stat.prover_provable_lemmas) > 0
+                                then (acc_synth ^ "\n" ^ c_str, l)
+                                else acc_synth, l
+                        ) (acc, 0) g_stat.synthesis_stats
+                    )
+                    in new_acc, len + l
+                ) ("",0) stats
 
 let get_synthesized_provable_lemmas stats=
     List.fold_left (fun (acc,len) g_stat -> 
@@ -64,6 +88,8 @@ let summarize stats curr_state_lemma =
     in let gen_provable_lemmas, len_gen_provable_lemmas = generalized_lemma_useful (List.tl useful_stats)
     in let total_synthesized_valid_lemmas = get_synthesized_valid_lemmas (List.tl useful_stats)
     in let str_provable_lemmas, total_synthesized_provable_lemmas = get_synthesized_provable_lemmas (List.tl useful_stats)
+    in let str_prover_provable_lemmas, total_synth_prover_provable_lemmas =
+    get_synthesized_prover_provable_lemmas (List.tl useful_stats)
     in let summary =  (fmt "\n### SUMMARY ###\n"
     ^
     fmt "Stuck Proof State: %s\n"  (curr_state_lemma)
@@ -73,6 +99,8 @@ let summarize stats curr_state_lemma =
     fmt "#Generalizations useful in proving original goal: %d\nLemmas\n%s\n" len_gen_provable_lemmas gen_provable_lemmas
     ^
     fmt "#Generalizations not disprovable : %d\n" no_valid_gen_lemmas
+    ^
+    fmt "#Synthesized Lemmas useful in proving original goal and provable by proverbot: %d\nLemmas\n%s" total_synth_prover_provable_lemmas str_prover_provable_lemmas
     ^
     fmt "#Synthesized Lemmas useful in proving original goal: %d\nLemmas\n%s" total_synthesized_provable_lemmas str_provable_lemmas)
     ^
