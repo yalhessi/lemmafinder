@@ -14,6 +14,7 @@ exception Invalid_MLFile
 exception NotFound_MLFile
 exception Rewrite_Fail
 exception Myth_Fail
+module SS = Set.Make(String);;
 
 
 let is_ml_generation_success ml_file p_ctxt: bool= 
@@ -30,10 +31,15 @@ let is_ml_generation_success ml_file p_ctxt: bool=
 
 let construct_state_as_lemma gl =
   let goal = Proofview.Goal.concl gl in
-  let hyps = Proofview.Goal.hyps gl in
+  let goal_vars = Utils.get_vars_in_expr goal
+  in let hyps = (Utils.get_hyps (Proofview.Goal.hyps gl))
+  in let all_vars = List.fold_left (fun acc (_, expr)->
+  List.append acc (Utils.get_vars_in_expr expr)) goal_vars hyps
+  in let var_set = Hashtbl.create (List.length all_vars)
+  in List.iter (fun v -> Hashtbl.replace var_set v "") all_vars;
   let env = Proofview.Goal.env gl in
   let sigma = Proofview.Goal.sigma gl in
-  let hyps, vars, typs, var_typs = 
+  let hyps, vars, typs, var_typs =
     List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs) (v, hyp) -> 
                               let var_str = (Names.Id.to_string v)
                               in let hyp_str = (Consts.fmt "(%s:%s)" var_str (Utils.get_exp_str env sigma hyp))
@@ -42,15 +48,20 @@ let construct_state_as_lemma gl =
                                 ( if Utils.contains hyp_str "forall" then acc_H, acc_V, acc_typs, acc_var_typs
                                   else ( hyp_str::acc_H), acc_V, acc_typs, acc_var_typs
                                 )
-                                else 
-                                  let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t (Utils.get_exp_str env sigma hyp))) false acc_typs
+                                else
+                                  try 
+                                  let _ = Hashtbl.find var_set var_str
+                                  in (let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t (Utils.get_exp_str env sigma hyp))) false acc_typs
                                   in 
                                   let updated_typ = match typ_exists with
                                   | true -> acc_typs
                                   | false -> ((Utils.get_exp_str env sigma hyp)::acc_typs ) 
                                   in 
                                   acc_H, (var_str::acc_V), updated_typ, (hyp_str::acc_var_typs)
-                 ) ([],[],[],[]) (Utils.get_hyps hyps)
+                                  )
+                                  with _ ->
+                                  acc_H, acc_V, acc_typs, acc_var_typs
+                 ) ([],[],[],[]) hyps
   in let hyps = List.append var_typs hyps
   in let conc = (Utils.get_exp_str env sigma goal)
   in if List.length hyps == 0 then
@@ -79,12 +90,12 @@ let lfind_tac  : unit Proofview.tactic =
         in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
         Log.stats_summary_file := p_ctxt.dir ^ Consts.summary_log_file;
-        let module_names = []
-          (* Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v") *)
-        in 
+        let module_names = 
+          Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
+        in
         let p_ctxt = {p_ctxt with modules = module_names; types = typs}
 
-        (* Generate .ml file and check if it is parsable by myth *)        
+        (* Generate .ml file and check if it is parsable by myth *)
         in let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
         in 
         ( 

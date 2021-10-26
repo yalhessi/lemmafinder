@@ -31,17 +31,20 @@ let generate_example p_ctxt typs modules current_lemma var_typs vars =
   lfind_extract_examples p_ctxt;
   let example_file = Consts.fmt ("%s/%s") p_ctxt.dir "lfind_quickchick_generator.v"
   in
-  let import_file = 
+  let import_file =
   Consts.fmt "From %s Require Import %s."(p_ctxt.namespace) (p_ctxt.fname)  
 
-  in let module_imports = List.fold_left (fun acc m -> acc ^ ("Import " ^ m ^"\n")) "" modules
+  in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" modules
   in let quickchick_import = Consts.quickchick_import
   in let qc_include = Consts.fmt ("QCInclude \"%s/\".") p_ctxt.dir
   
   in let typ_derive = List.fold_left (fun acc t -> acc ^ (TypeUtils.derive_typ_quickchick t)) "" typs
 
   in let typs_parameter_print = List.fold_left (fun acc t -> match acc with | "" -> t | _ -> acc ^ " -> " ^ t)  "" typs
-  in let parameter_print = Consts.fmt ("Parameter print : %s -> string -> %s.\n") (List.hd typs) (List.hd typs)
+  in let start_index = ((String.index (List.hd (var_typs)) ':')+1)
+  in let end_index = (String.index (List.hd (var_typs)) ')')
+  in let hd_parameter = String.sub (List.hd (var_typs)) start_index (end_index - start_index)
+  in let parameter_print = Consts.fmt ("Parameter print : %s -> string -> %s.\n") hd_parameter hd_parameter
   
   in let typ_quickchick_content = Consts.fmt ("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n") Consts.lfind_declare_module import_file module_imports current_lemma quickchick_import 
   qc_include Consts.def_qc_num_examples typ_derive

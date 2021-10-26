@@ -4,7 +4,7 @@ open Stats
 
 let generate_lfind_file p_ctxt conjecture name : string =
   let lfind_file = p_ctxt.dir ^ "/lfind" ^ name ^ ".v"
-  in let module_imports = List.fold_left (fun acc m -> acc ^ ("Import " ^ m ^"\n")) "" p_ctxt.modules
+  in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules
   in let typ_derive = List.fold_left (fun acc t -> acc ^ (TypeUtils.derive_typ_quickchick t)) "" p_ctxt.types
   in let content = Consts.fmt "%s\n%s\nFrom %s Require Import %s.\n%s\n%s\nLemma %s.\nAdmitted.\nQuickChick %s.\n"
                    p_ctxt.declarations 

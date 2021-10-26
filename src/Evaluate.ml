@@ -4,7 +4,7 @@ open ExtractToML
 
 let generate_eval_file p_ctxt eval_str : string =
   let lfind_file = p_ctxt.dir ^ "/lfind_eval.v"
-  in let module_imports = List.fold_left (fun acc m -> acc ^ ("Import " ^ m ^"\n")) "" p_ctxt.modules
+  in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules
   in let content = Consts.fmt "%s\nFrom %s Require Import %s.\n%s\n%s\n%s"
                    p_ctxt.declarations
                    p_ctxt.namespace 
@@ -31,10 +31,6 @@ let get_eval_definition expr vars (var_typs:(string, string) Hashtbl.t)=
 
 let get_compute_string input : string =
   "\nCompute lfind_eval " ^ input ^ ".\n"
-
-let strip str = 
-  let str = Str.replace_first (Str.regexp "^ +") "" str in
-  Str.replace_first (Str.regexp " +$") "" str
 
 (* Either the variable is from the original statement or it is a generalized variable which can be found from the expr mapping *)
 let get_input_string vars example lfind_sigma =

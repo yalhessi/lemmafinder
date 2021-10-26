@@ -75,16 +75,23 @@ let get_synthesized_provable_lemmas stats=
 let generalized_lemma_useful stats : string *int =
     List.fold_left (fun (acc,l) g -> 
                             if g.is_provable then
-                            (print_endline ("here: " ^ g.conjecture.conjecture_str);
-                            ((acc ^ "\n" ^ g.conjecture.conjecture_str), l+1))
+                            ((acc ^ "\n" ^ g.conjecture.conjecture_str), l+1)
                             else (acc,l)
                    ) ("", 0) stats
+
+let generalized_lemma_useful_and_provable stats : string *int =
+List.fold_left (fun (acc,l) g -> 
+                        if g.is_prover_provable then
+                        ((acc ^ "\n" ^ g.conjecture.conjecture_str), l+1)
+                        else (acc,l)
+                ) ("", 0) stats
 
 let summarize stats curr_state_lemma =
     (* The last stat is the same as the stuck state, it does not provide any useful indicator *)
     let useful_stats = (List.rev stats)
     in 
     let no_valid_gen_lemmas = List.length (List.filter (fun g -> g.is_valid) (List.tl useful_stats))
+    in let gen_useful_provable_lemmas, len_gen_useful_provable_lemmas = generalized_lemma_useful_and_provable (List.tl useful_stats)
     in let gen_provable_lemmas, len_gen_provable_lemmas = generalized_lemma_useful (List.tl useful_stats)
     in let total_synthesized_valid_lemmas = get_synthesized_valid_lemmas (List.tl useful_stats)
     in let str_provable_lemmas, total_synthesized_provable_lemmas = get_synthesized_provable_lemmas (List.tl useful_stats)
@@ -95,6 +102,8 @@ let summarize stats curr_state_lemma =
     fmt "Stuck Proof State: %s\n"  (curr_state_lemma)
     ^
     fmt "# Generalizations : %d\n" (List.length (List.tl useful_stats))
+    ^
+    fmt "#Generalizations useful in proving original goal and provable by proverbot: %d\nLemmas\n%s\n" len_gen_useful_provable_lemmas gen_useful_provable_lemmas
     ^
     fmt "#Generalizations useful in proving original goal: %d\nLemmas\n%s\n" len_gen_provable_lemmas gen_provable_lemmas
     ^
@@ -144,6 +153,8 @@ let genstat_to_string gen_stat =
     fmt "Generalized Conjecture : %s\n" gen_stat.conjecture.conjecture_str
     ^
     fmt "is_valid : %b\n" (gen_stat.is_valid)
+    ^ 
+    fmt "is_prover_provable (be proven by proverbot): %b\n" (gen_stat.is_prover_provable)
     ^ 
     fmt "is_provable (can help prove original goal): %b\n" (gen_stat.is_provable)
     ^
