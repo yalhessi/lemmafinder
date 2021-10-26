@@ -31,6 +31,7 @@ def get_all_lemmas(folder):
     no_lemmas = 0
     lemma_name = ""
     lemma_content = ""
+    file_lemmas_dict = {}
     for directory, subdirectories, files in os.walk(folder):
         for file in files:
             if file.endswith(".v"):
@@ -38,11 +39,12 @@ def get_all_lemmas(folder):
                     with open(os.path.join(directory, file)) as f:
                         for line in f:
                             if isProofStatement(line):
+                                file_lemma_name = file.split(".")[0] + "_"+line.split()[1].replace(":","")
                                 lemma_name = line.split()[1].replace(":","")
                                 lemma_content = line
                             elif ("Proof" in line or "Admitted" in line) and (len(lemma_name) > 0):
                                 lemmas[lemma_name] = 1
-                                lemma_name_content[lemma_name] = lemma_content.replace("\n","")
+                                lemma_name_content[file_lemma_name] = lemma_content.replace("\n","")
                                 no_lemmas +=1
                                 lemma_name = ""
                                 lemma_content = ""
@@ -53,7 +55,7 @@ def get_all_lemmas(folder):
                     print (f"Error processing {directory}/{file}")
     return lemmas, no_lemmas, lemma_name_content
 
-def count_file(file, lemma_names, lemma_files_names):
+def count_file(file, lemma_names, lemma_files_names, lemmas_so_far):
     count_helper = 0
     lemma_name = ""
     line_number = -1
@@ -73,6 +75,14 @@ def count_file(file, lemma_names, lemma_files_names):
                                 helper_indices.append((index+1,content[index+1].replace('.','')))
                             elif len(content) > index + 2 and (content[index+2].replace('.','')) in lemma_names:
                                 helper_indices.append((index+2, content[index+2].replace('.','')))
+                            elif len(content) > index + 1 and (content[index+1].replace(';','')) in lemma_names:
+                                helper_indices.append((index+1,content[index+1].replace(';','')))
+                            elif len(content) > index + 2 and (content[index+2].replace(';','')) in lemma_names:
+                                helper_indices.append((index+2, content[index+2].replace(';','')))
+                            elif len(content) > index + 2 and (content[index+2].replace('(','')) in lemma_names:
+                                helper_indices.append((index+2,content[index+2].replace('(','')))
+                            elif len(content) > index + 1 and (content[index+1].replace('(','')) in lemma_names:
+                                helper_indices.append((index+1,content[index+1].replace('(','')))
                         index+=1
                     
                     helper_indices_len = 0
@@ -80,8 +90,8 @@ def count_file(file, lemma_names, lemma_files_names):
                         if file not in lemma_files_names:
                             lemma_files_names[file] = []
                         lemma_files_names[file].append((lemma_name,line_number,helper_indices[helper_indices_len][1]))
-                        helper_indices_len += 1
                         count_helper+=1
+                        helper_indices_len += 1                   
                         # start_proof = False
                 if isProofStatement(line):
                     lemma_name = line.split()[1].replace(":","")
@@ -100,11 +110,12 @@ def count(folder, output_folder):
     lemmas, no_lemmas, lemma_content = get_all_lemmas(folder)
     write_lemmas(lemma_content, output_folder)
     lemma_files_names = {}
+    lemmas_so_far = {}
     for directory, dirs, files in os.walk(folder):
         for file in files:
             if file.endswith(".v"):
                 no_coq_files += 1
-                no_with_helper += count_file(os.path.join(directory, file), lemmas, lemma_files_names)
+                no_with_helper += count_file(os.path.join(directory, file), lemmas, lemma_files_names, lemmas_so_far)
     return no_coq_files,no_with_helper,no_lemmas, lemma_files_names
 
 def write_lemmas(content, output_dir):
@@ -120,7 +131,7 @@ def main() -> None:
     args, parser = parse_arguments()
     no_coq_files, no_with_helper, total_lemmas, lemma_file_names = count(args.prelude, args.output)
     write_op(lemma_file_names,args.output)
-    print(f"#Lemmas w atleast one helper/#Lemmas: {no_with_helper}/{total_lemmas} in {no_coq_files} coq files in 78 projects")
+    print(f"#Lemmas w atleast one helper/#Lemmas: {no_with_helper}/{total_lemmas} in {no_coq_files} coq files")
 
 
 if __name__ == "__main__":

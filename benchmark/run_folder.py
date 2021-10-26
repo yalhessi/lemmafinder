@@ -72,12 +72,11 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
         file_name = os.path.basename(file)
         print(file_name)
         helper_lemma_locations = helper_lemma_dict[file]
-        if "Lists" in file or "Induction" in file:
+        if ".v" in file :
             with open(file) as f:
                 content = f.readlines()
             for location in helper_lemma_locations:
-                print(location)
-                is_run_make = False        
+                print(location)      
                 lemma_line = location[1]
                 lemma_name = location[2].replace("'","")
                 lfind_content = [lfind_decl]
@@ -86,9 +85,16 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                 current_line = content[lemma_line]
                 c_line_content = current_line.split(".")
                 c_modified_content = []
-                destination_folder = os.path.join(os.path.dirname(source_folder),str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+ "_"+lemma_name)       
-                if os.path.isdir(destination_folder):
-                    is_run_make = True     
+                destination_folder = os.path.join(os.path.dirname(source_folder),str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+ "_"+lemma_name)
+
+                stuck_folder = os.path.join(os.path.dirname(source_folder),"_lfind_" + str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+"_" + lemma_name)
+                lfind_summary_log = os.path.join(stuck_folder, "lfind_summary_log.txt")
+                # is_run_make = True
+                if os.path.isdir(stuck_folder) and os.path.isfile(lfind_summary_log):
+                    print("found lfind summary");
+                    is_run_make = False
+                else:
+                    is_run_make = True
                 lemma_finder_copy(source_folder, destination_folder)
                 for i in range(0,len(c_line_content)):
                     if lemma_name in c_line_content[i]:
@@ -111,11 +117,10 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                 make_log_file = f"{log_directory}/lfind_benchmark_log"
                 make_cmd = f"cd {destination_folder} && make > {make_log_file}"
                 print(make_cmd)
-                if is_run_make:
+                if not is_run_make:
                     result = ""
-                else: 
+                else:
                     result=subprocess.getoutput(make_cmd)
-                # result = ""
                 contents = ""
                 try:
                     print(log_file)
@@ -125,7 +130,6 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                 all_lemmas+=1
                 if "error" in result or "exception" in result:
                     try:
-                        stuck_folder = os.path.join(os.path.dirname(source_folder),"_lfind_" + str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+"_" + lemma_name)
                         stuck_state_file = os.path.join(stuck_folder, "lfind_state.v")
                         stuck_state = get_stuck_state(stuck_state_file)
                         error_content = [all_lemmas_from_file[location[0]],all_lemmas_from_file[location[2]],make_cmd,stuck_state]
@@ -152,8 +156,10 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                         lfind_log = os.path.join(log_folder, "lfind_log.txt")
                         with open(lfind_summary_log, 'r') as j:
                             lfind_log_content = j.read()
-                        content_to_append = f"Theorem statement:\n{all_lemmas_from_file[location[0]]}\n\nRequired Helper Statement:\n{all_lemmas_from_file[location[2]]}\n"
-                        lfind_log_w = os.path.join(log_directory, f"{location[0]}_{location[1]}_{location[2]}")
+                        theorem_name = os.path.splitext(file_name)[0] + "_" + location[0]
+                        helper_name = os.path.splitext(file_name)[0] + "_" + location[2]
+                        content_to_append = f"Theorem statement:\n{all_lemmas_from_file[theorem_name]}\n\nRequired Helper Statement:\n{all_lemmas_from_file[helper_name]}\n"
+                        lfind_log_w = os.path.join(log_directory, f"{os.path.splitext(file_name)[0]}_{location[0]}_{location[1]}_{location[2]}")
                         with open(lfind_log_w, "w") as w:
                             w.write(content_to_append)
                             w.write(lfind_log_content)
@@ -167,6 +173,8 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                             filtered_helper_lemma_dict[file] = [location]
                     except Exception as e:
                         print(f"error processing this {e}")
+                else:
+                    print("no success")
             write_lemmafinder_content(os.path.join(destination_folder, file_name),content)
     
     # Write errors to csv file
