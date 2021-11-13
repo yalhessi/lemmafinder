@@ -39,6 +39,14 @@ let construct_state_as_lemma gl =
   in List.iter (fun v -> Hashtbl.replace var_set v "") all_vars;
   let env = Proofview.Goal.env gl in
   let sigma = Proofview.Goal.sigma gl in
+  let conc = (Utils.get_exp_str env sigma goal)
+  in let goal = Proofview.Goal.concl gl
+  in let conc_sexp = Sexp.of_string (Utils.get_sexp_compatible_expr_str env sigma goal)
+  in let _, conc_atoms = (Abstract_NoDup.collect_terms_no_dup [] [] conc_sexp)
+  in let c_ctxt = {env = env; sigma = sigma}
+  in let atom_type_table = (update_type_table conc_atoms c_ctxt (Hashtbl.create 100))
+  in let typs_from_conc = Hashtbl.fold (fun k v acc ->  if (Utils.contains v "Set") then k::acc else acc) atom_type_table []
+  in List.iter print_endline typs_from_conc;
   let hyps, vars, typs, var_typs =
     List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs) (v, hyp) -> 
                               let var_str = (Names.Id.to_string v)
@@ -51,11 +59,14 @@ let construct_state_as_lemma gl =
                                 else
                                   try 
                                   let _ = Hashtbl.find var_set var_str
-                                  in (let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t (Utils.get_exp_str env sigma hyp))) false acc_typs
+                                  in (
+                                  let typ_name = (Utils.get_exp_str env sigma hyp)
+                                  (* in let typ_name = if String.equal typ_name "bool," then "bool" else typ_name *)
+                                  in let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t typ_name)) false acc_typs
                                   in 
                                   let updated_typ = match typ_exists with
                                   | true -> acc_typs
-                                  | false -> ((Utils.get_exp_str env sigma hyp)::acc_typs ) 
+                                  | false -> (typ_name::acc_typs ) 
                                   in 
                                   acc_H, (var_str::acc_V), updated_typ, (hyp_str::acc_var_typs)
                                   )
@@ -63,11 +74,17 @@ let construct_state_as_lemma gl =
                                   acc_H, acc_V, acc_typs, acc_var_typs
                  ) ([],[],[],[]) hyps
   in let hyps = List.append var_typs hyps
-  in let conc = (Utils.get_exp_str env sigma goal)
+  in let typs = List.fold_left (fun acc v -> 
+  let typ_name = v
+    (* if String.equal v "bool," then "bool" else v  *)
+  in if (List.exists (String.equal typ_name) acc) then acc else typ_name::acc) typs typs_from_conc
   in if List.length hyps == 0 then
      (
        let var_forall = List.fold_left (fun acc v -> acc ^ " " ^ v) "forall" vars
-       in (Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall conc), typs, var_typs, vars
+       in if List.length vars > 0 then
+       (Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall conc), typs, var_typs, vars
+       else
+       (Consts.fmt "Lemma %s: %s.\nAdmitted." Consts.lfind_lemma conc), typs, var_typs, vars
      )
     else
     (
@@ -121,7 +138,7 @@ let lfind_tac  : unit Proofview.tactic =
         (* if example file exists use it, else generate examples *)
         let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
         in 
-        if not (Sys.file_exists example_file) then 
+        if not (Sys.file_exists example_file) && (List.length vars) > 0 then 
         (
           print_endline "Example file not found, generating";
           let op = GenerateExamples.generate_example p_ctxt typs module_names curr_state_lemma var_typs vars
@@ -157,12 +174,20 @@ let lfind_tac  : unit Proofview.tactic =
         List.iter (fun c -> LogUtils.write_tbl_to_log c "MLE") ml_examples;
         
         let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
-        in let cached_lemmas = ref (Hashtbl.create 1000) 
-        in List.iter (  
-          fun c -> 
-          print_endline c.conjecture_name;
+        in let start_time = Unix.time ()
+        in print_endline "here start time";
+        print_endline (string_of_float start_time);
+        let cached_lemmas = ref (Hashtbl.create 1000)
+        in List.iter (
+          fun c ->
+          let curr_time = int_of_float(Unix.time ())
+          in let elapsed_time = curr_time - int_of_float(start_time)
+          in print_endline (string_of_int elapsed_time);
+          if elapsed_time < 5100 then
+          (print_endline c.conjecture_name;
           Log.debug (Consts.fmt "Cache size is %d\n" (Hashtbl.length !cached_lemmas));
-          (Synthesize.synthesize cached_lemmas p_ctxt ml_examples coq_examples c);
+          (Synthesize.synthesize cached_lemmas p_ctxt ml_examples coq_examples c);)
+          else ()
         )
         invalid_conjectures ;
         Log.debug ("Completed Synthesis");
