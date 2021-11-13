@@ -19,8 +19,15 @@ let generate_lfind_file p_ctxt conjecture name : string =
   lfind_file
 
 let check_validity conjecture p_ctxt : bool =
-  let lfind_file = generate_lfind_file p_ctxt conjecture.conjecture_str conjecture.conjecture_name
-  in Quickcheck.run lfind_file p_ctxt.namespace
+  let name = conjecture.conjecture_name in
+  let lfind_file = generate_lfind_file p_ctxt conjecture.conjecture_str name
+  in let is_valid = Quickcheck.run lfind_file p_ctxt.namespace
+  in FileUtils.remove_file lfind_file;
+  FileUtils.remove_file (p_ctxt.dir ^ "/lfind" ^ name ^ ".glob");
+  FileUtils.remove_file (p_ctxt.dir ^ "/lfind" ^ name ^ ".vo");
+  FileUtils.remove_file (p_ctxt.dir ^ "/lfind" ^ name ^ ".vok");
+  FileUtils.remove_file (p_ctxt.dir ^ "/lfind" ^ name ^ ".vos");
+  is_valid
 
 let split_as_true_and_false conjectures p_ctxt : conjecture list * conjecture list =
   List.fold_left (fun (true_conj, false_conj) c ->

@@ -129,7 +129,8 @@ let get_env_var env_var : string =
                      "" env
 
 let get_modules file_name : string list =
-  let cmd = "grep \"Require Import\" " ^ file_name
+  (* let cmd = "grep \"Require Import\" " ^ file_name
   in let modules = FileUtils.run_cmd cmd
-  in modules
+  in modules *)
+  []
    (* List.fold_left (fun acc m-> (List.nth (String.split_on_char ' ' m) 1)::acc) [] modules *)

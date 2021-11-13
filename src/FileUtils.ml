@@ -19,9 +19,14 @@ let rec input_lines l ic : string list =
 let run_cmd cmd =
   print_endline(cmd);
   Log.debug(Consts.fmt "%s\n" cmd);
-  let inp = Unix.open_process_in cmd
+  try 
+  let inp =  Unix.open_process_in cmd
   in let r = input_lines [] inp in
-  close_in inp; r
+  close_in inp; 
+  r
+  with 
+  | _ -> []
+  
 
 let rm_dir dir =
   let cmd = "rm -rf " ^ dir
@@ -36,14 +41,16 @@ let cp_dir src dst =
 
 let read_file filename =
   let lines = ref [] in
-  let chan = open_in filename in
   try
-    while true; do
-      lines := input_line chan :: !lines
-    done; !lines
-  with End_of_file ->
-    close_in chan;
-    !lines
+    let chan = open_in filename in
+    try
+      while true; do
+        lines := input_line chan :: !lines
+      done; !lines
+    with End_of_file ->
+      close_in chan;
+      !lines
+  with _ -> !lines
   
 let write_to_file fname content =
   remove_file fname;

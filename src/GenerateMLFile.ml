@@ -14,7 +14,8 @@ let generate_ml_file p_ctxt =
   in
   let import_file = 
   Consts.fmt "From %s Require Import %s."(p_ctxt.namespace) (p_ctxt.fname)
-  in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules  
+  in let module_imports = p_ctxt.declarations
+  (* List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules   *)
   in let extract_functions = List.fold_left (fun acc f -> acc ^ " " ^ f) "" p_ctxt.funcs
   in let extraction = Consts.fmt "Extraction \"%s/%s_lfind_orig.ml\" %s." p_ctxt.dir p_ctxt.fname extract_functions
   

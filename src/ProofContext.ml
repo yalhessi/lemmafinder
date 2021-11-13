@@ -38,7 +38,8 @@ let get_declarations dir fname =
   let lines = FileUtils.read_file (dir ^ "/" ^ fname ^ ".v")
   in List.fold_right (fun line acc -> 
                             let is_comment = Utils.contains line "*"
-                            in if (not is_comment) && (Utils.contains line "Import")
+                            in let is_quickchick = Utils.contains line "QuickChick"
+                            in if (not is_comment) && (not is_quickchick) && (Utils.contains line "Import")
                                then acc ^ "\n" ^ line
                                else acc
                      ) lines ""

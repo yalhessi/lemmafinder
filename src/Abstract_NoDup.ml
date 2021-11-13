@@ -22,7 +22,11 @@ let rec collect_terms_no_dup (acc: (Sexp.t list) list) (atoms : string list) (se
 let get_type_table (terms: (Sexp.t list) list) c_ctx =
   let type_tbl = Hashtbl.create (List.length terms)
   in List.iter (fun term -> let typ = 
-                                    try TypeUtils.get_type_of_exp c_ctx.env c_ctx.sigma term with _ -> ""
+                                    try TypeUtils.get_type_of_exp c_ctx.env c_ctx.sigma term 
+                                    with _ -> 
+                                    (if Utils.contains (Sexp.string_of_sexpr term) "else"then "bool"
+                                    else
+                                    "")
                             in Hashtbl.replace type_tbl (string_of_sexpr term) typ
                )
                terms; type_tbl
@@ -46,9 +50,18 @@ let get_generalizable_terms all_terms expr_type_table atom_type_table =
                                      else (add_term_remove_dup acc term)
                  ) [] all_terms
 
-let add_heuristic_atoms all_atoms current_terms =
+let add_heuristic_atoms all_atoms current_terms atom_type_table vars=
   (* Get nil that are not polymorphic, if it is polymorphic we already capture them in the terms for generalization *)
-  List.fold_left (fun acc a -> if Utils.contains (String.lowercase a) "nil" && not (Utils.contains a "@")
+  List.fold_left (fun acc a -> 
+  let is_var = List.exists (String.equal a) vars
+  in let atom_type = try Hashtbl.find atom_type_table a with _ -> ""
+  in print_endline atom_type;
+  let is_atom_type_set = try
+                            let atom_type_type = Hashtbl.find atom_type_table atom_type 
+                            in print_endline atom_type_type;
+                            Utils.contains atom_type_type "Set"
+                         with _ -> false
+  in if is_atom_type_set && (not is_var) && not (Utils.contains a "@")
                                then [Atom a]::acc 
                                else acc
                  ) current_terms all_atoms
@@ -73,7 +86,7 @@ let abstract (p_ctxt : proof_context) (c_ctxt : coq_context) =
   let all_terms = if with_hyp 
                         then List.tl (List.append conc_terms (List.tl hypo_terms)) 
                         else List.tl (conc_terms)
-  in let all_terms = add_heuristic_atoms atoms all_terms
+  in let all_terms = add_heuristic_atoms atoms all_terms atom_type_table p_ctxt.vars
   in let terms = get_generalizable_terms all_terms expr_type_table atom_type_table
   in Log.debug (Consts.fmt "Size of terms list %d\n and Terms from the goal [%s]\n" (List.length terms) (List.fold_left (fun acc e -> acc ^ ";" ^ ((string_of_sexpr e))) "" terms));
   (* Added empty generalization for synthesizing from stuck state. *)

@@ -9,7 +9,8 @@ let generate_eval_file p_ctxt eval_str : string =
                    p_ctxt.declarations
                    p_ctxt.namespace 
                    p_ctxt.fname
-                   module_imports
+                   ""
+                   (* module_imports *)
                    Consts.coq_printing_depth
                    eval_str
   in FileUtils.write_to_file lfind_file content;

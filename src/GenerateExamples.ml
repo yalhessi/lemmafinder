@@ -34,7 +34,8 @@ let generate_example p_ctxt typs modules current_lemma var_typs vars =
   let import_file =
   Consts.fmt "From %s Require Import %s."(p_ctxt.namespace) (p_ctxt.fname)  
 
-  in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" modules
+  in let module_imports = p_ctxt.declarations
+  (* List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" modules *)
   in let quickchick_import = Consts.quickchick_import
   in let qc_include = Consts.fmt ("QCInclude \"%s/\".") p_ctxt.dir
   

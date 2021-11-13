@@ -12,7 +12,7 @@ let summary_log_file = "/lfind_summary_log.txt"
 
 let error_log_file = "/error_lfind_log.txt"
 
-let myth_timeout = "30"
+let myth_timeout = "12"
 
 let coq_printing_depth = "Set Printing Depth 1000."
 
