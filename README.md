@@ -8,14 +8,15 @@ Install the following software:
     - Download https://github.com/ocaml/opam/releases/download/2.0.7/opam-2.0.7-x86_64-macos and run `sudo install <downloaded file> /usr/local/bin/opam`
     - check installation using opam --version (it should say 2.0.7)
 - opam update
-- opam repo add coq-released https://coq.inria.fr/opam/released
 - opam switch create 4.07.1+flambda
+- opam repo add coq-released https://coq.inria.fr/opam/released
+- opam install dune=2.7.1
 - opam install core=v0.12.4
 - opam install menhir=20200624
-- opam install dune=2.7.1
 - opam install coq=8.11.2
 - opam install coq-of-ocaml=2.1.0
 - opam install coq-serapi=8.11.0+0.11.0
+- opam install coq-mathcomp-ssreflect=1.11.0
 - opam install coq-quickchick=1.3.2
 
 

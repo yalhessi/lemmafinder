@@ -52,7 +52,7 @@ let get_generalizable_terms all_terms expr_type_table atom_type_table =
 
 let add_heuristic_atoms all_atoms current_terms atom_type_table vars=
   (* Get nil that are not polymorphic, if it is polymorphic we already capture them in the terms for generalization *)
-  List.fold_left (fun acc a -> 
+  List.fold_left (fun acc a ->
   let is_var = List.exists (String.equal a) vars
   in let atom_type = try Hashtbl.find atom_type_table a with _ -> ""
   in print_endline atom_type;
@@ -60,8 +60,9 @@ let add_heuristic_atoms all_atoms current_terms atom_type_table vars=
                             let atom_type_type = Hashtbl.find atom_type_table atom_type 
                             in print_endline atom_type_type;
                             Utils.contains atom_type_type "Set"
-                         with _ -> false
-  in if is_atom_type_set && (not is_var) && not (Utils.contains a "@")
+                         with _ ->
+                         false
+  in if (is_atom_type_set && (not is_var) && not (Utils.contains a "@")) || (String.equal "Nil" a)
                                then [Atom a]::acc 
                                else acc
                  ) current_terms all_atoms
