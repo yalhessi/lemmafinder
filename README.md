@@ -1,6 +1,6 @@
 Coq Lemma Synthesis Plugin
 ---------------------------
-These instructions were tested only in macos.
+These instructions were tested in macos and ubuntu.
 
 Install the following software:
 
@@ -50,6 +50,8 @@ See https://pyo3.rs/v0.5.3/ for why we need this.
 
 8. run `make setup`
 
+9. run `make download-weights`
+
 
 ### Myth
 Myth is a Type-and-example-driven program synthesis engine. We use myth to synthesize expressions which are used in constructing useful lemmas.
@@ -74,7 +76,7 @@ Run `cd lemmafinder && dune build && dune install`
 In the folder that you run make or coqc export the following environment variable
 
 ```
-export PROVERBOT=<path to proverbot folder>
+export PROVERBOT=<path to proverbot folder> (ensure proverbot path you set has a trailing slash)
 export MYTH=<path to myth folder>/synml.native
 export COQOFOCAML=/Users/<username>/.opam/4.07.1+flambda/bin/coq-of-ocaml
 export REWRITE=<path to ast_rewriter>/_build/default/bin/main.exe
@@ -93,6 +95,7 @@ Set Printing Implicit.
 ```
 
 In the proof where u are stuck, add `lfind.` tactic and run `make` again in the folder.
+If you want to obtain detailed debug logs for your run, use `lfind_debug` tactic instead. 
 
 ### Example:
 1. cd `benchmark/bench_rev_append` && make.
