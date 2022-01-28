@@ -93,7 +93,8 @@ let construct_state_as_lemma gl =
       in (Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all (String.concat " " hyps) conc), typs, var_typs, vars
     )
 
-let lfind_tac  : unit Proofview.tactic =
+let lfind_tac debug : unit Proofview.tactic =
+  Log.is_debug := debug;
   Proofview.Goal.enter
   begin fun gl ->
     let is_running = Utils.get_env_var "is_lfind"

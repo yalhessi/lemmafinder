@@ -3,6 +3,7 @@ let error_log_file : string ref = ref ""
 let stats_summary_file : string ref = ref ""
 let log_chan = ref stderr
 let debug_file : string ref = ref ""
+let is_debug : bool ref = ref true
 
 type level = Debug | Error | Info
   let level_str = function Debug -> "( debug )"
@@ -11,15 +12,17 @@ type level = Debug | Error | Info
 
 let do_log level lstr =
   begin
-    try 
-      let oc = open_out_gen [Open_append; Open_creat] 0o666 !debug_file
-      in Printf.fprintf oc
-        "%s  %s\n"
-        (level_str level)
-        (lstr);
-        close_out oc;
-    with
-    _ -> ()
+    if !is_debug then
+      try
+        let oc = open_out_gen [Open_append; Open_creat] 0o666 !debug_file
+        in Printf.fprintf oc
+          "%s  %s\n"
+          (level_str level)
+          (lstr);
+          close_out oc;
+      with
+      _ -> ()
+    else ()
   end
 
 let info lstr = do_log Info lstr
