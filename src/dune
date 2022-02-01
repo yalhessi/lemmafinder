@@ -1,30 +1,10 @@
 (library
- (name lfind_plugin)              ; This is the name we will use in
-                                    ; Coq's `Declare ML Module`, and
-                                    ; the name of the main OCaml
-                                    ; module of the plugin.
-
- (public_name lfind.plugin)     ; This makes the plugin
-                                    ; installable; recommended, must
-                                    ; match opam package name
-
- (synopsis "Coq Find Plugin")   
-
- (flags :standard -rectypes -w -27) 
-
+ (name lfindalgo)
+ (public_name lfind)
+ (flags :standard -rectypes -w -27 -w -26 -w -3 -w -8 -w -33) 
  (libraries 
-   
+   bigarray                         ;
+   parmap                           ;
    coq.vernac                       ; needed for vernac extend
-   coq.plugins.ltac                 ; needed for tactic extend
  )
 )
-
-
-
-; This will let Dune know about Coq's .mlg grammar files.
-(coq.pp (modules g_lfind))
-(env
-  (dev
-    (flags (:standard -w -a)
-    )))
-    

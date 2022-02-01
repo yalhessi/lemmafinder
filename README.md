@@ -18,6 +18,9 @@ Install the following software:
 - opam install coq-serapi=8.11.0+0.11.0
 - opam install coq-mathcomp-ssreflect=1.11.0
 - opam install coq-quickchick=1.3.2
+- opam install parmap=1.2.3
+- opam install base-bigarray
+- opam install alcotest=1.4.0
 
 
 ## Additional Setup
@@ -114,3 +117,8 @@ You can find the results of the run in `benchmark/_lfind_bench_rev_append/lfind_
 `python3 benchmark/run_folder.py --prelude=<full path to logical_foundations> --log_directory=<full path to log directory>`
 
 This should run on 31 theorems that require helper lemma and output how many of were able to identify helper lemmas. You should find the output files in the --log_directory. 
+
+### Note on External Dependencies ###
+External dependencies are not fully supported via dune for Coq-plugins. See https://github.com/coq/coq/issues/7698. To workaround this, we need to add external library dependencies (transitively) to src/dune and theories/dune and add the corresponding module to `Lfind.v`. See https://github.com/ejgallego/coq-plugin-template.
+
+After this workaround, make sure that library.cmxs is visible in the current loadpath.

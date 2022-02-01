@@ -1,6 +1,7 @@
 open Constr
 open Context
 open Proofview.Notations
+open Lfindalgo
 open Sexp
 open ProofContext
 open Loadpath
