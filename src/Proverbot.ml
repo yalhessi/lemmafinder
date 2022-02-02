@@ -34,9 +34,14 @@ let remove_current_search prelude =
 
 let run prelude proof_name fname axiom_fname : bool =
   remove_current_search prelude;
-  let prover_bot_path = Utils.get_env_var "PROVERBOT"  
+  let prover_bot_path = Utils.get_env_var "PROVERBOT"
+  in
+  let prover_bot_path = if prover_bot_path.[(String.length prover_bot_path) -1] = '/' 
+                           then prover_bot_path
+                           else prover_bot_path ^ "/"
   (* in scrape_data prelude prover_bot_path fname; *)
-  in let axiom_opt = if String.equal axiom_fname "" then "" else "--add-axioms=" ^ axiom_fname
+  in
+  let axiom_opt = if String.equal axiom_fname "" then "" else "--add-axioms=" ^ axiom_fname
   in search prelude prover_bot_path fname axiom_opt;
   let code = (output_code prelude proof_name)
   in Log.debug(Consts.fmt "Code for conjecture %s is %b\n" proof_name code);

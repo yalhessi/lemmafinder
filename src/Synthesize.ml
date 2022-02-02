@@ -190,7 +190,7 @@ let synthesize_lemmas synth_count conjecture ml_examples coq_examples p_ctxt cac
                                 ExprUtils.get_variables_in_expr conjecture.body_sexp [] all_vars
                               else vars_for_synthesis
   in let var_types = ExprUtils.get_type_vars conjecture vars_for_synthesis
-  in Hashtbl.iter (fun k _ ->( print_endline k;())) conjecture.sigma;
+  in
   let subst_synthesis_term = ExprUtils.subst_lfind_vars_in_expr curr_synth_term conjecture.sigma
   in 
   (* Sometimes the subst_synthesis_term can have () or not around the expression, so when lookup fails we are going to take the expr within () TODO: This is a hack, need to check why all_expr_type_table table didnt include ()*)
@@ -229,7 +229,6 @@ let synthesize cached_lemmas p_ctxt ml_examples coq_examples conjecture=
                          then get_terms_to_synthesize [] conjecture.body_sexp conjecture.lfind_vars conjecture.all_expr_type_table conjecture.body_sexp true 
                          else first_synth_terms
     in Log.debug (Consts.fmt "Size of synth terms is %d" (List.length synth_terms));
-    List.iter (fun s -> print_endline (Sexp.string_of_sexpr s)) synth_terms;
     let sorted_synth_terms = LatticeUtils.sort_by_size synth_terms
     in let synth_count = ref (0) 
     in let synth_stats = List.map (synthesize_lemmas synth_count conjecture ml_examples coq_examples p_ctxt cached_lemmas ) sorted_synth_terms

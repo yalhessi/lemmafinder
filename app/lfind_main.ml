@@ -21,14 +21,19 @@ module SS = Set.Make(String);;
 let is_ml_generation_success ml_file p_ctxt: bool= 
   if not (Sys.file_exists ml_file) then 
   (
-    print_endline("Need to generate file");
+    print_endline("Generating ML version of the .v file");
     print_endline(ml_file);
     let op = GenerateMLFile.generate_ml_file p_ctxt
     in print_endline (string_of_int (List.length op));
     let is_succ = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
     in is_succ
-  ) 
-  else true
+  )
+  else
+  (
+    print_endline("ML version of the .v file exits!");
+    print_endline(ml_file);
+    true
+  )
 
 let construct_state_as_lemma gl =
   let goal = Proofview.Goal.concl gl in
@@ -177,8 +182,7 @@ let lfind_tac debug : unit Proofview.tactic =
         
         let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
         in let start_time = Unix.time ()
-        in print_endline "here start time";
-        print_endline (string_of_float start_time);
+        in
         let cached_lemmas = ref (Hashtbl.create 1000)
         in List.iter (
           fun c ->

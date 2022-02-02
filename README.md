@@ -79,7 +79,7 @@ Run `cd lemmafinder && dune build && dune install`
 In the folder that you run make or coqc export the following environment variable
 
 ```
-export PROVERBOT=<path to proverbot folder> (ensure proverbot path you set has a trailing slash)
+export PROVERBOT=<path to proverbot folder>
 export MYTH=<path to myth folder>/synml.native
 export COQOFOCAML=/Users/<username>/.opam/4.07.1+flambda/bin/coq-of-ocaml
 export REWRITE=<path to ast_rewriter>/_build/default/bin/main.exe

@@ -55,10 +55,10 @@ let add_heuristic_atoms all_atoms current_terms atom_type_table vars=
   List.fold_left (fun acc a ->
   let is_var = List.exists (String.equal a) vars
   in let atom_type = try Hashtbl.find atom_type_table a with _ -> ""
-  in print_endline atom_type;
+  in
   let is_atom_type_set = try
                             let atom_type_type = Hashtbl.find atom_type_table atom_type 
-                            in print_endline atom_type_type;
+                            in
                             Utils.contains atom_type_type "Set"
                          with _ ->
                          false

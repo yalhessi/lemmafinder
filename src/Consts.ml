@@ -1,4 +1,4 @@
-let lfind_declare_module = "Declare ML Module \"lfind_plugin\"."
+let lfind_declare_module = ""
 
 let synthesis_op = "lfind_output"
 

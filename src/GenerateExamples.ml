@@ -37,7 +37,7 @@ let generate_example p_ctxt typs modules current_lemma var_typs vars =
   in let module_imports = p_ctxt.declarations
   (* List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" modules *)
   in let quickchick_import = Consts.quickchick_import
-  in let qc_include = Consts.fmt ("QCInclude \"%s/\".") p_ctxt.dir
+  in let qc_include = Consts.fmt ("QCInclude \"%s/\".\nQCInclude \".\".") p_ctxt.dir
   
   in let typ_derive = List.fold_left (fun acc t -> acc ^ (TypeUtils.derive_typ_quickchick t)) "" typs
 
@@ -53,6 +53,6 @@ let generate_example p_ctxt typs modules current_lemma var_typs vars =
   in let collect_content = construct_data_collection vars typs var_typs
   in let content = typ_quickchick_content ^ example_print_content ^ collect_content ^ "QuickChick collect_data.\n" ^ Consts.vernac_success
   in FileUtils.write_to_file example_file content;
-  let cmd = Consts.fmt "coqc -R %s/ %s %s" p_ctxt.dir p_ctxt.namespace example_file
+  let cmd = Consts.fmt "cd %s/ && coqc -R . %s %s" p_ctxt.dir p_ctxt.namespace example_file
   in FileUtils.run_cmd cmd
   
