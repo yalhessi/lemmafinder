@@ -1,6 +1,8 @@
 open ProofContext
 
-let generate_ml_extraction_file p_ctxt names defs : string =
+let generate_ml_extraction_file (p_ctxt: ProofContext.proof_context)
+                                (extraction_names : string)
+                                (extracted_defs : string) : string =
   let lfind_file = Consts.fmt "%s/lfind_extraction.v" p_ctxt.dir
   in let extraction_filename = Consts.fmt "\"%s/lfind_extraction.ml\"" p_ctxt.dir
   in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules
@@ -14,14 +16,14 @@ let generate_ml_extraction_file p_ctxt names defs : string =
                     Consts.extraction_import
                     Consts.extract_nat
                     Consts.extract_list
-                    defs
+                    extracted_defs
                     extraction_filename
-                    names
+                    extraction_names
   in FileUtils.write_to_file lfind_file content;
   lfind_file
 
-let run_ml_extraction fname namespace =
-  let cmd = "coqc -R . " ^ namespace  ^ " " ^ fname
+let run_ml_extraction (dir: string) (fname: string) (namespace: string) =
+  let cmd = "coqc -R " ^ dir ^ " " ^ namespace  ^ " " ^ fname
   in try FileUtils.run_cmd cmd with _ -> []
   
 let build_def example def_name =
@@ -73,12 +75,16 @@ let get_ml_evaluated_examples output =
                 [] output
   in if !start_accm then ("(" ^ !val_accm ^ ")")::acc else acc
 
-let get_defs_input_examples examples =
+let get_defs_input_examples (example: (string, string) Hashtbl.t) =
+  (* 
+    Input: An example table in coq format
+    Output: Tuple<extraction names, extraction defintions>
+  *)
   Hashtbl.fold ( fun k v (names, defs) -> 
                   let name = Consts.fmt "lfind_example_%s " k
                   in let def = build_def v name
                   in ((names ^ name) ,(defs ^ def))
-               ) examples ("","")
+               ) example ("","")
 
 let get_def_name def =
   let split_def_name = (String.split_on_char ' ' def)
@@ -91,7 +97,11 @@ let get_def_name def =
                         acc
                    ) "" split_def_name
   
-let get_ml_input_examples output =
+let get_ml_input_examples (output: string list) : (string, string) Hashtbl.t=
+  (* 
+    Input: Extracted ml content as list string
+    Output: Example in ML format as a table
+  *)
   let example_tbl = Hashtbl.create 1
   in let val_accm = ref ""
   in let start_accm = ref false

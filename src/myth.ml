@@ -46,7 +46,7 @@ let get_myth_exprs myth_output =
                  ) [] myth_output
 
 let run synth_fname p_ctxt conjecture_name enumerate=
-  let myth_path = Utils.get_env_var "MYTH"
+  let myth_path = !Consts.synthesizer_path
   in let myth_output_path = p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ conjecture_name ^ "synthesis.txt"
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
   in let myth_cmd = Consts.fmt  "%s %s %s > %s" myth_path enumerate synth_fname myth_output_path
@@ -54,7 +54,7 @@ let run synth_fname p_ctxt conjecture_name enumerate=
   in get_myth_exprs (List.rev (read_file myth_output_path))
 
 let run_parse p_ctxt fname=
-  let myth_path = Utils.get_env_var "MYTH"
+  let myth_path = !Consts.synthesizer_path
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
   in let parse_file = Consts.fmt "%s/%s.ml" p_ctxt.dir fname
   in let myth_cmd = Consts.fmt  "%s -parse %s" myth_path parse_file

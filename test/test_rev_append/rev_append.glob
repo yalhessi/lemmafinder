@@ -1,0 +1,55 @@
+DIGEST 541a4c933cee3c5be2bd053e14feb159
+Ftest.rev_append
+ind 60:66 <> listnat
+constr 82:87 <> Natnil
+constr 103:109 <> Natcons
+R91:97 test.rev_append <> listnat ind
+R116:119 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R127:130 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R131:137 test.rev_append <> listnat ind
+R120:126 test.rev_append <> listnat ind
+R113:115 Coq.Init.Datatypes <> nat ind
+def 150:152 <> app
+R159:165 test.rev_append <> listnat ind
+R172:178 test.rev_append <> listnat ind
+R182:188 test.rev_append <> listnat ind
+R199:199 test.rev_append <> l var
+R210:215 test.rev_append <> Natnil constr
+R220:220 test.rev_append <> m var
+R226:232 test.rev_append <> Natcons constr
+R242:248 test.rev_append <> Natcons constr
+R253:255 test.rev_append <> app def
+R260:260 test.rev_append <> m var
+def 278:280 <> rev
+R285:291 test.rev_append <> listnat ind
+R295:301 test.rev_append <> listnat ind
+R314:314 test.rev_append <> l var
+R325:330 test.rev_append <> Natnil constr
+R335:340 test.rev_append <> Natnil constr
+R346:352 test.rev_append <> Natcons constr
+R362:364 test.rev_append <> app def
+R376:382 test.rev_append <> Natcons constr
+R386:391 test.rev_append <> Natnil constr
+R367:369 test.rev_append <> rev def
+prf 411:419 <> app_nil_r
+R424:430 test.rev_append <> listnat ind
+R447:449 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R435:437 test.rev_append <> app def
+R441:446 test.rev_append <> Natnil constr
+R439:439 test.rev_append <> l var
+R450:450 test.rev_append <> l var
+prf 558:567 <> rev_append
+R582:588 test.rev_append <> listnat ind
+R592:593 Coq.Init.Logic <> eq ind
+R612:614 test.rev_append <> app def
+R625:627 test.rev_append <> rev def
+R629:629 test.rev_append <> x var
+R617:619 test.rev_append <> rev def
+R621:621 test.rev_append <> y var
+R596:598 test.rev_append <> rev def
+R601:603 test.rev_append <> app def
+R607:607 test.rev_append <> y var
+R605:605 test.rev_append <> x var
+R690:698 test.rev_append <> app_nil_r thm
+R690:698 test.rev_append <> app_nil_r thm
+R690:698 test.rev_append <> app_nil_r thm

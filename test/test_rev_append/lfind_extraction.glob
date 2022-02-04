@@ -1,0 +1,11 @@
+DIGEST c3ab05b9950a69413376124052c47a33
+Ftest.lfind_extraction
+R27:36 test.rev_append <> <> lib
+R57:66 Coq.extraction.Extraction <> <> lib
+R88:90 Coq.Init.Datatypes <> nat ind
+R133:136 Coq.Init.Datatypes <> list ind
+def 175:189 <> lfind_example_y
+R196:202 test.rev_append <> Natcons constr
+R206:211 test.rev_append <> Natnil constr
+def 226:240 <> lfind_example_x
+R247:252 test.rev_append <> Natnil constr

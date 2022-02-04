@@ -1,3 +1,4 @@
 let () =
-  Alcotest.run "LoopInvGen"
-    (["Test_Setup", Test_Setup.all])
+  Alcotest.run "LFind"
+    (["Test Setup", Test_Setup.all;
+      "Test Examples", Test_Examples.all])

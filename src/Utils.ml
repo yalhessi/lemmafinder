@@ -1,3 +1,4 @@
+exception Invalid_Env of string
 
 let parse_constr = Pcoq.parse_string Pcoq.Constr.constr;;
 
@@ -134,3 +135,23 @@ let get_modules file_name : string list =
   in modules *)
   []
    (* List.fold_left (fun acc m-> (List.nth (String.split_on_char ' ' m) 1)::acc) [] modules *)
+
+let env_setup : unit =
+  let prover_path = get_env_var Consts.prover
+  in
+  if String.equal prover_path "" then raise (Invalid_Env "Prover path not set!")
+  else Consts.prover_path := if prover_path.[(String.length prover_path) -1] = '/' 
+                           then prover_path
+                           else prover_path ^ "/";
+
+  let synthesizer_path = get_env_var Consts.synthesizer
+  in if String.equal synthesizer_path "" then raise (Invalid_Env "Synthesizer path not set!")
+  else Consts.synthesizer_path := synthesizer_path;
+
+  let rewriter_path = get_env_var Consts.rewriter
+  in if String.equal rewriter_path "" then raise (Invalid_Env "AST rewriter path not set!")
+  else Consts.rewriter_path := rewriter_path;
+
+  let coqofocaml_path = get_env_var "COQOFOCAML"
+  in if String.equal coqofocaml_path "" then raise (Invalid_Env "COQOFOCAML path not set!")
+  else Consts.coq_of_ocaml_path := coqofocaml_path;

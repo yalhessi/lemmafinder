@@ -10,11 +10,11 @@ open Names
 open LatticeUtils
 
 
-exception Invalid_Examples
-exception Invalid_MLFile
-exception NotFound_MLFile
-exception Rewrite_Fail
-exception Myth_Fail
+exception Invalid_Examples of string
+exception Invalid_MLFile of string
+exception NotFound_MLFile of string
+exception Rewrite_Fail of string
+exception Myth_Fail of string
 module SS = Set.Make(String);;
 
 
@@ -28,12 +28,7 @@ let is_ml_generation_success ml_file p_ctxt: bool=
     let is_succ = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
     in is_succ
   )
-  else
-  (
-    print_endline("ML version of the .v file exits!");
-    print_endline(ml_file);
-    true
-  )
+  else true
 
 let construct_state_as_lemma gl =
   let goal = Proofview.Goal.concl gl in
@@ -105,9 +100,10 @@ let lfind_tac debug : unit Proofview.tactic =
   begin fun gl ->
     let is_running = Utils.get_env_var "is_lfind"
     in 
-    if String.equal is_running "true" then Tacticals.New.tclZEROMSG (Pp.str ("Recursive Lfind..Aborting"))
+    if String.equal is_running "true" then Tacticals.New.tclZEROMSG (Pp.str ("LFind is already running! Aborting"))
     else
       begin
+        Utils.env_setup;
         let curr_state_lemma, typs, var_typs, vars = construct_state_as_lemma gl
         in print_endline curr_state_lemma;
         let p_ctxt, c_ctxt = construct_proof_context gl
@@ -125,21 +121,21 @@ let lfind_tac debug : unit Proofview.tactic =
         ( 
         let is_success = is_ml_generation_success ml_file p_ctxt
         in
-        if not is_success then raise Invalid_MLFile else 
+        if not is_success then raise (Invalid_MLFile "Failed Generating .ml of the .v file") else 
         (
-          if not (Sys.file_exists ml_file) then raise NotFound_MLFile
+          if not (Sys.file_exists ml_file) then raise (NotFound_MLFile ".ml file of .v not found")
           else
           (* Now call the library to rewrite the ast *)
           let run_op = GenerateMLFile.run p_ctxt.dir (p_ctxt.fname^"_lfind_orig") p_ctxt.fname
           in let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "rewrite_success") ) false run_op
-          in if not is_success then raise Rewrite_Fail else
+          in if not is_success then raise (Rewrite_Fail "AST rewriting of .ml file failed!") else
           (
             let run_op = Myth.run_parse p_ctxt (p_ctxt.fname^"_wsynth")
             in let is_exception = List.fold_left (fun acc l -> acc || (Utils.contains l "exception") ) false run_op
-            in if is_exception then raise Myth_Fail else
+            in if is_exception then raise (Myth_Fail "Myth failed to parse .ml file!") else
             Feedback.msg_info (Pp.str "lemmafinder_ml_generation_success");
           )
-        )          
+        )        
         );
 
         (* if example file exists use it, else generate examples *)
@@ -152,13 +148,13 @@ let lfind_tac debug : unit Proofview.tactic =
           in print_endline (string_of_int (List.length op));
           let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
           in
-          if not is_success then raise Invalid_Examples else 
+          if not is_success then raise (Invalid_Examples "Quickchick failed to generate examples!") else 
           Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
         )
         else 
         ();
 
-        let coq_examples = Examples.get_examples example_file
+        let coq_examples = Examples.dedup_examples (FileUtils.read_file example_file)
         in let ml_examples = Examples.get_ml_examples coq_examples p_ctxt
         in LogUtils.write_tbl_list_to_log coq_examples "Coq Examples";
         LogUtils.write_tbl_list_to_log ml_examples "ML Examples";

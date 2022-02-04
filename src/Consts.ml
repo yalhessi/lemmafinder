@@ -37,3 +37,17 @@ let vernac_success = "Success."
 let extraction_import = "Require Import Extraction."
 
 let def_qc_num_examples = "Extract Constant defNumTests => \"50\"."
+
+let prover = "PROVERBOT"
+
+let synthesizer = "MYTH"
+
+let rewriter = "REWRITE"
+
+let prover_path = ref ""
+
+let synthesizer_path = ref ""
+
+let rewriter_path = ref ""
+
+let coq_of_ocaml_path = ref ""

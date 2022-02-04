@@ -40,6 +40,10 @@ let cp_dir src dst =
   in ()
 
 let read_file filename =
+  (* 
+    Input: string - file name
+    Ouput: list string - file content in reverse order
+  *)
   let lines = ref [] in
   try
     let chan = open_in filename in

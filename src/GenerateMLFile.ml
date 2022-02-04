@@ -2,7 +2,7 @@ open ProofContext
 open FileUtils
 
 let run dir fname op_fname =
-  let rewrite_path = Utils.get_env_var "REWRITE"
+  let rewrite_path = !Consts.rewriter_path
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.myth_timeout
   in let rewrite_command = Consts.fmt  "%s %s %s %s" rewrite_path dir fname op_fname
   in Feedback.msg_info (Pp.str rewrite_command);

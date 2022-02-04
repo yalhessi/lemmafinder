@@ -10,7 +10,7 @@ let generate_ml_file p_ctxt conjecture_name expr: string =
   lfind_file
 
 let run ml_fname p_ctxt conjecture_name =
-  let coqofocaml_path = Utils.get_env_var "COQOFOCAML"
+  let coqofocaml_path = !Consts.coq_of_ocaml_path
   in let coqofocaml_output_path = Consts.fmt "%s/%s%s_coqofml.v" p_ctxt.dir p_ctxt.fname  conjecture_name
   in let coqofocaml_cmd = Consts.fmt  "%s %s -output %s" coqofocaml_path ml_fname coqofocaml_output_path
   in let run_coqofocaml = run_cmd (Consts.fmt "%s"  coqofocaml_cmd)

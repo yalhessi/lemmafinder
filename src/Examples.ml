@@ -7,11 +7,16 @@ let parse_example example =
                ) split_example;
   example_tbl
 
-let get_examples fname =
-  let lines = FileUtils.read_file fname
-  in let unique_tbl = Hashtbl.create (List.length lines)
+let dedup_examples (examples: string list) : (string, string) Hashtbl.t list =
+  (* 
+     Input: All Examples in Coq format from file.
+     Output: Dedupes Examples in Coq format (reversed order)
+  *)
+  let unique_tbl = Hashtbl.create (List.length examples)
   in List.fold_left (fun acc line ->
-                          let tbl_line = try Hashtbl.find unique_tbl line with _ -> -1
+                          let tbl_line = 
+                              try Hashtbl.find unique_tbl line
+                              with _ -> -1
                           in if tbl_line < 0 then
                               (
                                 Hashtbl.add unique_tbl line 1;
@@ -19,18 +24,25 @@ let get_examples fname =
                               )
                              else
                               acc
-                     ) [] lines
+                     ) [] examples
 
-let get_ml_examples examples p_ctxt =
+let get_ml_examples (examples: (string, string) Hashtbl.t list) 
+                    (p_ctxt: ProofContext.proof_context) 
+                    : (string, string) Hashtbl.t list=
+  (* 
+     Input: Examples in Coq format and a proof context.
+     Output: Examples in ML format (preserves order) 
+  *)
   List.fold_left (fun acc e ->
                       let names, defs = ExtractToML.get_defs_input_examples e
-                      in let ext_coqfile = ExtractToML.generate_ml_extraction_file p_ctxt names defs
-                      in let output = ExtractToML.run_ml_extraction ext_coqfile p_ctxt.namespace
+                      in
+                      let ext_coqfile = ExtractToML.generate_ml_extraction_file p_ctxt names defs
+                      in let output = ExtractToML.run_ml_extraction p_ctxt.dir ext_coqfile p_ctxt.namespace
                       in let ext_mlfile = Consts.fmt "%s/lfind_extraction.ml" p_ctxt.dir
                       in let ext_output = List.rev (FileUtils.read_file ext_mlfile)
-                      in let extracted_values = ExtractToML.get_ml_input_examples ext_output
+                      in let extracted_example = ExtractToML.get_ml_input_examples ext_output
                       in
-                      List.append acc [extracted_values]
+                      List.append acc [extracted_example]
                  ) [] examples
 
 let get_example_index examplestr index examples vars_for_synthesis lfind_sigma =
