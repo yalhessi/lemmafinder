@@ -16,8 +16,8 @@ let generate_eval_file p_ctxt eval_str : string =
   in FileUtils.write_to_file lfind_file content;
   lfind_file
 
-let run_eval fname namespace =
-  let cmd = "coqc -R . " ^ namespace  ^ " " ^ fname
+let run_eval dir fname namespace =
+  let cmd = "coqc -R " ^ dir ^ " " ^ namespace  ^ " " ^ fname
   in try FileUtils.run_cmd cmd with _ -> []
 
 let get_eval_definition expr vars (var_typs:(string, string) Hashtbl.t)=
@@ -83,7 +83,7 @@ let evaluate_coq_expr expr examples p_ctxt all_vars
                   | Some c -> ExprUtils.get_type_vars c all_vars
   in let evalstr = get_evaluate_str expr all_vars examples lfind_sigma var_typs
   in let efile = generate_eval_file p_ctxt evalstr
-  in let output = run_eval efile p_ctxt.namespace
+  in let output = run_eval p_ctxt.dir efile p_ctxt.namespace
   in
   (* TODO: Need to check here why the two outputs for COQ and ML 
      have different order. Hacky solution now!
@@ -91,8 +91,10 @@ let evaluate_coq_expr expr examples p_ctxt all_vars
   let coq_output  = (List.rev (get_expr_vals output))
   in let names, defs = get_defs_evaluated_examples coq_output
   in let ext_coqfile = generate_ml_extraction_file p_ctxt names defs
-  in let output = run_ml_extraction ext_coqfile p_ctxt.namespace
-  in let ext_mlfile = Consts.fmt "%s/lfind_extraction.ml" p_ctxt.dir
+  in
+  let output = run_ml_extraction p_ctxt.dir ext_coqfile p_ctxt.namespace
+  in
+  let ext_mlfile = Consts.fmt "%s/lfind_extraction.ml" p_ctxt.dir
   in let ext_output = List.rev (FileUtils.read_file ext_mlfile)
   in let ml_output = List.rev (get_ml_evaluated_examples ext_output)
   in Log.debug (Consts.fmt "length of examples %d\n" (List.length examples));
