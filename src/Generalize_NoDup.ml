@@ -7,7 +7,7 @@ open ExprUtils
 let gen_var next_val = 
   "lf" ^ (string_of_int (next_val()))
 
-let generalize_expr s expr next_val =
+let generalize_expr (s: Sexp.t list) (expr: Sexp.t list) (next_val: unit -> int) =
   let var_name = ref ""
   in let rec aux (acc: string list) = function 
   | (Atom tag)::tl -> 
@@ -22,7 +22,8 @@ let generalize_expr s expr next_val =
                         (aux ((protect tag)::acc) tl)
   | (Expr e)::tl ->
     let str_to_concat= (aux [] e)
-    in let to_app = if (equal e expr) then
+    in
+    let to_app = if (equal e expr) then
         (  
           if String.equal !var_name ""
           then 
@@ -40,9 +41,11 @@ let generalize_expr s expr next_val =
   let str_expr = (aux [] s)
   in String.concat " " str_expr, !var_name
   
-let generalize_exprL exprL type_table goal =
+let generalize_exprL (exprL: Sexp.t list list)
+                     (type_table: (string, string) Hashtbl.t)
+                     (goal: Sexp.t list) =
   let sigma = Hashtbl.create 100
-  in let counter = ref 0 
+  in let counter = ref 0
   in List.fold_left 
              (fun (acc, sigma, vars) e ->
                 let gen, var_name = (generalize_expr acc e (Utils.next_val counter))
@@ -110,8 +113,15 @@ let get_all_conjectures generalizations atom_type_table expr_type_table (p_ctxt 
                         in (conj::acc)
                     ) [] conjectures
          
-let construct_all_generalizations generalization_set type_table goal =
-  List.map 
+let construct_all_generalizations (generalization_set: Sexp.t list list list) 
+                                  (type_table: (string, string) Hashtbl.t)
+                                  (goal: Sexp.t list)
+                                   =
+  (* 
+    Input: Powerset of all terms, types, and goal
+    Output: Tuple<generalized goal, generalization sigma, generalization variables> list
+  *)
+  List.map
         (
           fun g -> let sorted_g = LatticeUtils.sort_by_size g
           in generalize_exprL sorted_g type_table goal

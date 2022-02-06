@@ -28,7 +28,11 @@ let remove_conjecture_dups conjectures =
                                  in if is_present then acc else List.append acc [s]
                    ) [] conjectures
 
-let sort_by_size (terml : Sexp.t list list) = 
+let sort_by_size (terml : Sexp.t list list) :Sexp.t list list =
+    (* 
+        Input: List of terms
+        Output: Sorted list of terms in descending order
+    *)
     List.sort (fun a b -> (Sexp.size b) - (Sexp.size a)) terml
 
 let update_type_table (atoms : string list) c_ctx type_tbl = 
@@ -55,10 +59,10 @@ let rec sets = function
   | x::xs -> let ls = sets xs in
                List.map (fun l -> x::l) ls @ ls
 
-let conjs_to_string conjectures =
+let conjs_to_string (conjectures: conjecture list) : string =
     List.fold_left (fun acc conj -> acc ^ conj.conjecture_str ^ "\n") "" conjectures
 
-let construct_implications conc hyps =
+let construct_implications (conc: string) (hyps: string list) : string =
     List.fold_left (fun acc hyp -> "(" ^ hyp ^  "->" ^ acc ^ ")") conc hyps
 
 let gen_conjecture_name prefix inc = 

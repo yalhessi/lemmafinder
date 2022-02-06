@@ -31,7 +31,9 @@ let add_term (acc : (Sexp.t list * int) list) (term: Sexp.t list): (Sexp.t list 
     let count = (get_term_count acc term) + 1
     in List.append acc [(term, count)], count
 
-let add_term_remove_dup (acc : Sexp.t list list) (term: Sexp.t list): (Sexp.t list) list =
+let add_term_remove_dup (acc : Sexp.t list list)
+                        (term: Sexp.t list): 
+                        (Sexp.t list) list =
   let exists = List.exists (fun e -> Sexp.equal e term) acc
   in if exists then acc else List.append acc [term]
 
