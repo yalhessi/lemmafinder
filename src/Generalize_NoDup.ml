@@ -69,18 +69,34 @@ let get_var_type t =
       then return_type
       else ":" ^ return_type
 
-let get_conjecture gen sigma var_str counter: string =
+let get_conjecture (gen: string) sigma var_str counter: string =
   let conjecture_str = ": forall " ^ var_str
   in let quantified_var_str = Hashtbl.fold (fun k (e, t) acc 
                                             -> acc ^ "("^ k ^ (get_var_type t) ^")"
                                            )  sigma conjecture_str
   in quantified_var_str ^ " , " ^ gen
 
-let get_all_conjectures generalizations atom_type_table expr_type_table (p_ctxt : proof_context)= 
+let get_all_conjectures generalizations
+                        (atom_type_table : (string, string) Hashtbl.t)
+                        (expr_type_table : (string, string) Hashtbl.t)
+                        (p_ctxt : proof_context)
+                        : conjecture list =
+  (* 
+    Input: Set of generalizations, type tables and proof context
+    Output: De-duped set of generalizations as conjecture objects
+  *)
   let counter = ref 0
   in let generalized_conjecture_strings = List.map (fun (g, sigma, vars) ->
                   let gvars = (get_variables_in_expr g [] p_ctxt.vars)
-                  in let var_str = (List.fold_left (fun acc v -> acc ^ (" (" ^ v ^":"^ (Hashtbl.find atom_type_table v) ^ ")")) "" gvars)
+                  in let var_str = (List.fold_left (fun acc v -> 
+                                                    acc ^ 
+                                                    (" (" 
+                                                      ^ v 
+                                                      ^":"
+                                                      ^ (Hashtbl.find atom_type_table v) 
+                                                      ^ ")"
+                                                    )
+                                                   ) "" gvars)
                   in
                   let conjecture_body = (get_conjecture (string_of_sexpr g) sigma var_str counter)
                   in
