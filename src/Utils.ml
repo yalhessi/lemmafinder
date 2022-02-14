@@ -138,6 +138,27 @@ let get_modules file_name : string list =
   []
    (* List.fold_left (fun acc m-> (List.nth (String.split_on_char ' ' m) 1)::acc) [] modules *)
 
+let gen_rand_str length =
+let gen() = match Random.int(26+26+10) with
+    n when n < 26 -> int_of_char 'a' + n
+  | n when n < 26 + 26 -> int_of_char 'A' + n - 26
+  | n -> int_of_char '0' + n - 26 - 26 in
+let gen _ = String.make 1 (char_of_int(gen())) in
+String.concat "" (Array.to_list (Array.init length gen))
+
+let cpu_count () = 
+  try 
+    (match Sys.os_type with 
+    | "Win32" -> int_of_string (Sys.getenv "NUMBER_OF_PROCESSORS") 
+    | _ ->
+        (
+          let i = Unix.open_process_in "getconf _NPROCESSORS_ONLN" in
+          let close () = ignore (Unix.close_process_in i) in
+          try Scanf.fscanf i "%d" (fun n -> close (); n) with e -> close (); raise e
+        )
+    )
+  with  _ -> 1
+  
 let env_setup : unit =
   let prover_path = get_env_var Consts.prover
   in

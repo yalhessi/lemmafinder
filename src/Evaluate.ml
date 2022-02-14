@@ -5,7 +5,8 @@ open ExtractToML
 let generate_eval_file p_ctxt eval_str : string =
   let lfind_file = p_ctxt.dir ^ "/lfind_eval.v"
   in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules
-  in let content = Consts.fmt "%s\nFrom %s Require Import %s.\n%s\n%s\n%s"
+  in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n%s\n%s\n%s"
+                   Consts.lfind_declare_module
                    p_ctxt.declarations
                    p_ctxt.namespace 
                    p_ctxt.fname

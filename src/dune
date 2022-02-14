@@ -4,5 +4,7 @@
  (flags :standard -rectypes -w -27 -w -26 -w -3 -w -8 -w -33) 
  (libraries
    coq.vernac                       ; needed for vernac extend
+   bigarray                         ;
+   parmap                           ;
  )
 )

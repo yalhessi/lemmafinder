@@ -4,7 +4,8 @@ open ProofContext
 let generate_lfind_file p_ctxt conjecture c_name =
   let lfind_file = p_ctxt.dir ^ "/lfind" ^ c_name ^ ".v"
   in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules
-  in let content = Consts.fmt "%s\nFrom %s Require Import %s.\n%s\nLemma %s.\nAdmitted.\n"
+  in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n%s\nLemma %s.\nAdmitted.\n"
+                   Consts.lfind_declare_module
                    p_ctxt.declarations
                    p_ctxt.namespace
                    p_ctxt.fname
@@ -12,8 +13,8 @@ let generate_lfind_file p_ctxt conjecture c_name =
                    conjecture
   in FileUtils.write_to_file lfind_file content; ()
 
-let generate_axiom_file p_ctxt conjecture : string =
-  let axiom_file = p_ctxt.dir ^ "/lfind_axiom.txt"
+let generate_axiom_file p_ctxt conjecture name : string =
+  let axiom_file = p_ctxt.dir ^ "/lfind_axiom_"^ name ^".txt"
   in let content = "Lemma " ^ conjecture ^ ".\n"
   in FileUtils.write_to_file axiom_file content;
   axiom_file
@@ -32,7 +33,12 @@ let split_as_provable_non_provable conjectures p_ctxt : conjecture list * conjec
                                         else (true_conj, c::false_conj)
                     ) ([], []) conjectures
 
+let remove_axioms prelude =
+  let cmd = "rm -rf " ^ prelude ^ "/lfind_axiom*"
+  in let cmd_op = FileUtils.run_cmd cmd
+  in ()
+
 let check_lfind_theorem_add_axiom p_ctxt proof_name additional_conj : bool =
-  let axiom_file = generate_axiom_file p_ctxt additional_conj
+  let axiom_file = generate_axiom_file p_ctxt additional_conj proof_name
   in let fname = Consts.lfind_lemma ^ ".v"
   in Proverbot.run p_ctxt.dir proof_name fname axiom_file

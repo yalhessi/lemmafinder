@@ -1,4 +1,4 @@
-let lfind_declare_module = ""
+let lfind_declare_module = "Load LFindLoad."
 
 let synthesis_op = "lfind_output"
 

@@ -12,5 +12,5 @@ depends: [
   "coq-serapi"     { =  "8.11.0+0.11."      }
   "coq-quickchick" { =  "1.3.2"             }
 ]
-
+substs: [ "theories/LFindLoad.v"]
 build: [ "dune" "build" "-p" name "-j" jobs ]

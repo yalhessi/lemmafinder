@@ -73,7 +73,7 @@ Myth supports only a part of the ocaml syntax. We need a translator that takes i
 
 ### Lemmafinder
 We are now ready to make this project.
-Run `cd lemmafinder && dune build && dune install`
+Run `cd lemmafinder && opam config subst theories/LFindLoad.v && dune build && dune build && dune install`
 
 ## Environment Setup
 In the folder that you run make or coqc export the following environment variable

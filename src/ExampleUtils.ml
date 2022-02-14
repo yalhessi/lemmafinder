@@ -16,11 +16,19 @@ let combine_examples (input_examples: ((string, string) Hashtbl.t) list)
                              ) [] input_examples
   in combined_examples
 
-let evaluate_terms generalized_terms coq_examples ml_examples p_ctxt 
+let evaluate_terms (generalized_terms : Sexp.t list list)
+                   (coq_examples: (string, string) Hashtbl.t list)
+                   (ml_examples: (string, string) Hashtbl.t list)
+                   (p_ctxt: ProofContext.proof_context)
                   : ((string, string) Hashtbl.t list  * (string, string) Hashtbl.t list)=
+  (* 
+    Input: Set of generalized terms, coq and ml versions of input examples
+    Output: Set of examples in coq and ml, including evaluations generalized of terms
+  *)
   Log.debug (Consts.fmt "#Coq Input Examples %d\n" (List.length coq_examples));
   Log.debug (Consts.fmt "#ML Input Examples %d\n" (List.length ml_examples));
   Log.debug (Consts.fmt "#Generalzed terms %d\n" (List.length generalized_terms));
+  
   let no_terms = List.length generalized_terms
   in let coq_term_examples, ml_term_example = List.fold_left (
                      fun (coq_acc, ml_acc) term -> 
