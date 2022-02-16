@@ -8,7 +8,7 @@ let add_expr_vars expr_vars vars var =
      then var :: expr_vars
      else expr_vars
 
-let rec get_variables_in_expr expr expr_vars vars =
+let rec get_variables_in_expr expr expr_vars vars : string list=
   match expr with
   | (Atom v) :: tl -> 
                       get_variables_in_expr tl (add_expr_vars expr_vars vars v) vars

@@ -51,3 +51,5 @@ let synthesizer_path = ref ""
 let rewriter_path = ref ""
 
 let coq_of_ocaml_path = ref ""
+
+let myth_batch_size = 15

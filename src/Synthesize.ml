@@ -36,8 +36,12 @@ let add_synthesis_term acc gen_vars term type_tbl topconj =
    We pick terms based on the size. 
    Add the largest expression that can be replaced for synthesis. 
 *)
-let rec get_terms_to_synthesize (acc : Sexp.t list list) (conjecture: Sexp.t list)
-                                (gen_vars: string list) type_tbl topconj add_atoms
+let rec get_terms_to_synthesize (acc : Sexp.t list list)
+                                (conjecture: Sexp.t list)
+                                (gen_vars: string list)
+                                (type_tbl: (string, string) Hashtbl.t)
+                                (topconj: Sexp.t list)
+                                (add_atoms: bool)
                                 : Sexp.t list list =
   match conjecture with
   | (Atom a) :: tl -> if add_atoms then
@@ -122,6 +126,7 @@ let get_synthesis_conjecture curr_synth_term conjecture var_types counter synthe
                                   atom_type_table = var_types
                                 }
   in synthesized_expr, synthesis_conjecture
+
 let filter_valid_expression enumerated_exprs conjecture_name p_ctxt original_conjecture cached_lemmas curr_synth_term var_types =
    let valid_count = ref 0 in 
    let expr_count = ref 0 in
@@ -131,8 +136,8 @@ let filter_valid_expression enumerated_exprs conjecture_name p_ctxt original_con
                       else
                      (
                       expr_count := !expr_count + 1;
-                       let coq_expr = (CoqofOcaml.get_coq_of_expr p_ctxt conjecture_name expr)
-                      in 
+                       let coq_expr = (CoqofOcaml.get_coq_of_expr p_ctxt conjecture_name (!Consts.coq_of_ocaml_path) expr)
+                      in
                       let s, conj = get_synthesis_conjecture curr_synth_term original_conjecture var_types (Utils.next_val counter) coq_expr
                       in 
                         (
@@ -155,31 +160,39 @@ let filter_valid_expression enumerated_exprs conjecture_name p_ctxt original_con
                      )
                     ) enumerated_exprs []
 
-let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture cached_lemmas =
-  List.fold_right (fun (s, conj) acc ->
+let filter_cached_lemmas conjectures cached_lemmas = 
+  List.filter (fun (s, conj) -> try
+                        let _ = (Hashtbl.find cached_lemmas conj.body)
+                        in false
+                        with _ -> true
+              ) conjectures
+
+let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture =
+  let n_cores = (Utils.cpu_count () / 2)
+  in Parmap.parmap ~ncores:n_cores (fun (s, conj) ->
                       (
-                        let cached_output = try
-                                            Some (Hashtbl.find cached_lemmas conj.body)
-                                            with _ -> None
-                        in match cached_output with
-                        | None -> (
-                                    let is_valid = Valid.check_validity conj p_ctxt
-                                    in Hashtbl.add cached_lemmas conj.body is_valid;
-                                    if is_valid
-                                        then (s,conj)::acc
-                                        else acc
-                                  )
-                        | Some (validity) -> Log.debug ("Here in cached validity check, so we do not send this back as new computation");
-                                        acc
-                        
+                        (
+                          let is_valid = Valid.check_validity conj p_ctxt
+                          in (s, conj, is_valid)
+                         )
                       )
-                  ) synthesized_conjectures []
+                  ) (Parmap.L synthesized_conjectures)
 
 
 let filter_provable_conjectures valid_conjectures p_ctxt original_conjecture =
-  List.filter (fun (_, conj) -> (Provable.check_lfind_theorem_add_axiom p_ctxt conj.conjecture_name conj.conjecture_str)) valid_conjectures
+  let n_cores = (Utils.cpu_count () / 2)
+  in Parmap.parmap ~ncores:n_cores
+  (fun (s, conj) -> let is_provable = (Provable.check_lfind_theorem_add_axiom p_ctxt conj.conjecture_name conj.conjecture_str)
+  in s, conj, is_provable) (Parmap.L valid_conjectures)
 
-let synthesize_lemmas synth_count conjecture ml_examples coq_examples p_ctxt cached_lemmas curr_synth_term  =
+let synthesize_lemmas (synth_count: int ref)
+                      (conjecture: conjecture)
+                      (ml_examples: (string, string) Hashtbl.t list)
+                      (coq_examples: (string, string) Hashtbl.t list)
+                      (p_ctxt: proof_context)
+                      (cached_lemmas: (string, bool) Hashtbl.t ref)
+                      (curr_synth_term: Sexp.t list)  : synthesis_stat =
+  
   Log.debug (Consts.fmt "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term));
   let all_vars = List.append p_ctxt.vars conjecture.lfind_vars
   in let _, output_examples = (Evaluate.evaluate_coq_expr curr_synth_term coq_examples p_ctxt all_vars conjecture.sigma (Some conjecture))
@@ -200,15 +213,34 @@ let synthesize_lemmas synth_count conjecture ml_examples coq_examples p_ctxt cac
   Hashtbl.add var_types synthesis_op ( try TypeUtils.get_return_type "" (Sexp.of_string output_type) with _ -> output_type);
   let myth_examples = Examples.gen_synthesis_examples ml_examples output_examples vars_for_synthesis conjecture.sigma
   in LogUtils.write_list_to_log myth_examples "myth examples";
+  
   let vars_for_synthesis = List.append vars_for_synthesis [synthesis_op]
   in let conjecture_name = (conjecture.conjecture_name ^ string_of_int(Utils.next_val synth_count ())) in
-  let enumerated_exprs = Myth.enumerate_expressions p_ctxt conjecture_name  myth_examples var_types vars_for_synthesis true
-  (* in let valid_conjectures = filter_valid_expression enumerated_exprs conjecture_name p_ctxt conjecture !cached_lemmas curr_synth_term var_types *)
+  let enumerated_myth_exprs = Myth.enumerate_expressions p_ctxt conjecture_name  myth_examples var_types vars_for_synthesis true
+  in
+  let start_i = 0 
+  in let end_i = start_i + Consts.myth_batch_size
+  in let top_k = Utils.slice_list start_i end_i enumerated_myth_exprs
+  in let enumerated_exprs = CoqofOcaml.get_coq_exprs top_k p_ctxt conjecture_name
   in let counter = ref 0
-  in let synthesized_conjectures = List.map (get_synthesis_conjecture curr_synth_term conjecture var_types (Utils.next_val counter)) enumerated_exprs
-  in let valid_conjectures = filter_valid_conjectures synthesized_conjectures p_ctxt conjecture !cached_lemmas
+  in let synthesized_conjectures = List.map (get_synthesis_conjecture curr_synth_term conjecture var_types (Utils.next_val counter))enumerated_exprs
+  in let filtered_conjectures = filter_cached_lemmas synthesized_conjectures !cached_lemmas
+  in let filtered_conjectures = filter_valid_conjectures filtered_conjectures p_ctxt conjecture
+  in let valid_conjectures = List.fold_right (
+                                              fun (s, conj, is_valid) acc ->
+                                                if is_valid then
+                                                (
+                                                  Hashtbl.add !cached_lemmas conj.body is_valid;
+                                                  (s,conj)::acc
+                                                )
+                                                else acc
+                                             ) filtered_conjectures []
   in let provable_conjectures = filter_provable_conjectures valid_conjectures p_ctxt conjecture
-  in let p_conjectures = List.map (fun (s, c) -> c) provable_conjectures
+  in let p_conjectures,  provable_conjectures = List.fold_right (fun (s, c, is_provable) (p_acc, pro_acc) -> 
+      if is_provable
+      then (c::p_acc, (s, c)::pro_acc)
+      else (p_acc, pro_acc)
+  ) provable_conjectures ([],[])
   in let prover_provable_conjectures, _ = Provable.split_as_provable_non_provable p_conjectures p_ctxt
   in let synth_stat = {
                         synthesis_term = (Sexp.string_of_sexpr curr_synth_term);
@@ -225,13 +257,14 @@ let synthesize cached_lemmas p_ctxt ml_examples coq_examples conjecture=
   Log.debug(Consts.fmt "#ML Input Examples %d\n" (List.length ml_examples));
   (
     let first_synth_terms = get_terms_to_synthesize [] conjecture.body_sexp conjecture.lfind_vars conjecture.all_expr_type_table conjecture.body_sexp false
+    (* If there are zero synthesis expressions, we add generalized variables to synthesis *)
     in let synth_terms = if List.length first_synth_terms == 0 
                          then get_terms_to_synthesize [] conjecture.body_sexp conjecture.lfind_vars conjecture.all_expr_type_table conjecture.body_sexp true 
                          else first_synth_terms
     in Log.debug (Consts.fmt "Size of synth terms is %d" (List.length synth_terms));
     let sorted_synth_terms = LatticeUtils.sort_by_size synth_terms
     in let synth_count = ref (0) 
-    in let synth_stats = List.map (synthesize_lemmas synth_count conjecture ml_examples coq_examples p_ctxt cached_lemmas ) sorted_synth_terms
+    in let synth_stats = List.map (synthesize_lemmas synth_count conjecture ml_examples coq_examples p_ctxt cached_lemmas) sorted_synth_terms
     in let gen_stat = {
                         conjecture = conjecture;
                         is_valid = false;

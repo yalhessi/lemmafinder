@@ -55,8 +55,8 @@ let get_hyps_strl hyps env sigma =
                               in let regex_ih  = Str.regexp "IH*"
                               in let regex_H = Str.regexp "H*"
                               in let is_match = 
-                                          Str.string_match regex_ih var_str 0
-                              in (if is_match 
+                                    Str.string_match regex_ih var_str 0
+                              in (if is_match
                                   then (get_sexp_compatible_expr_str env sigma hyp)::acc
                                   else acc)
                  ) [] (get_hyps hyps)
@@ -145,6 +145,15 @@ let gen() = match Random.int(26+26+10) with
   | n -> int_of_char '0' + n - 26 - 26 in
 let gen _ = String.make 1 (char_of_int(gen())) in
 String.concat "" (Array.to_list (Array.init length gen))
+
+let slice_list (start_i: int) (end_i: int) (lst: 'a list) = 
+  let _, slice = List.fold_right (fun e (index, acc) -> 
+                                  let n_acc = if index >= start_i && index <= end_i
+                                              then e :: acc
+                                              else acc
+                                  in index + 1, n_acc
+                                 ) lst (0,[])
+  in slice
 
 let cpu_count () = 
   try 

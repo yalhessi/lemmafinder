@@ -32,7 +32,6 @@ let check_validity (conjecture: conjecture)
 let validity_stats conjectures p_ctxt =
     let n_cores = (Utils.cpu_count () / 2)
     in Parmap.parmap ~ncores:n_cores
-    (* List.map *)
                        (
                           fun c -> let is_valid = check_validity c p_ctxt 
                           in let g_stat = {
