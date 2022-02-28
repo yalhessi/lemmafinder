@@ -235,13 +235,17 @@ let synthesize_lemmas (synth_count: int ref)
                                                 )
                                                 else acc
                                              ) filtered_conjectures []
-  in let provable_conjectures = filter_provable_conjectures valid_conjectures p_ctxt conjecture
-  in let p_conjectures,  provable_conjectures = List.fold_right (fun (s, c, is_provable) (p_acc, pro_acc) -> 
+  in
+  (* Identify synthesized lemmas that can help prove the stuck state *)
+  let provable_conjectures = filter_provable_conjectures valid_conjectures p_ctxt conjecture
+  in let p_conjectures, provable_conjectures = List.fold_right (fun (s, c, is_provable) (p_acc, pro_acc) -> 
       if is_provable
       then (c::p_acc, (s, c)::pro_acc)
       else (p_acc, pro_acc)
   ) provable_conjectures ([],[])
-  in let prover_provable_conjectures, _ = Provable.split_as_provable_non_provable p_conjectures p_ctxt
+  in
+  (* Identify synthesized lemmas that can prover the stuck goal, can be proven by the prover *)
+  let prover_provable_conjectures, _ = Provable.split_as_provable_non_provable p_conjectures p_ctxt
   in let synth_stat = {
                         synthesis_term = (Sexp.string_of_sexpr curr_synth_term);
                         enumerated_exprs = enumerated_exprs;

@@ -99,6 +99,10 @@ let summarize stats curr_state_lemma =
     get_synthesized_prover_provable_lemmas (List.tl useful_stats)
     in let summary =  (fmt "\n### SUMMARY ###\n"
     ^
+    fmt "Time to first category 1 (s): %d \n" (!Consts.time_to_category_1)
+    ^
+    fmt "Total Time: %d \n" (int_of_float(Unix.time ()) - !Consts.start_time)
+    ^
     fmt "Stuck Proof State: %s\n"  (curr_state_lemma)
     ^
     fmt "# Generalizations : %d\n" (List.length (List.tl useful_stats))

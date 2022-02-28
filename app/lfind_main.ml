@@ -52,7 +52,7 @@ let construct_state_as_lemma gl =
     List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs) (v, hyp) -> 
                               let var_str = (Names.Id.to_string v)
                               in let hyp_str = (Consts.fmt "(%s:%s)" var_str (Utils.get_exp_str env sigma hyp))
-                              in if Utils.contains var_str "H" 
+                              in if Utils.contains var_str "H"
                                 then 
                                 ( if Utils.contains hyp_str "forall" then acc_H, acc_V, acc_typs, acc_var_typs
                                   else ( hyp_str::acc_H), acc_V, acc_typs, acc_var_typs
@@ -95,6 +95,7 @@ let construct_state_as_lemma gl =
     )
 
 let lfind_tac debug : unit Proofview.tactic =
+  Consts.start_time := int_of_float(Unix.time ());
   Log.is_debug := debug;
   Proofview.Goal.enter
   begin fun gl ->
@@ -180,13 +181,13 @@ let lfind_tac debug : unit Proofview.tactic =
         
         let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
         in
-        let start_time = Unix.time ()
+        let start_time_synth = Unix.time ()
         in
         let cached_lemmas = ref (Hashtbl.create 1000)
         in List.iter (
           fun c ->
           let curr_time = int_of_float(Unix.time ())
-          in let elapsed_time = curr_time - int_of_float(start_time)
+          in let elapsed_time = curr_time - int_of_float(start_time_synth)
           in print_endline (string_of_int elapsed_time);
           if elapsed_time < 5100 then
           (print_endline c.conjecture_name;

@@ -1,7 +1,7 @@
 (library
  (name lfindalgo)
  (public_name lfind)
- (flags :standard -rectypes -w -27 -w -26 -w -3 -w -8 -w -33) 
+ (flags :standard -rectypes -w -27 -w -26 -w -3 -w -8 -w -33 -w -21) 
  (libraries
    coq.vernac                       ; needed for vernac extend
    bigarray                         ;
