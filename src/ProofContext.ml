@@ -60,8 +60,8 @@ List.fold_left (fun (namespace, dir) path ->
                 ) ("", "") paths
 
 let construct_proof_context gl =
-    let pstate = match Vernacstate.Proof_global.get_pstate () with Some ps -> ps | _ -> (raise (Invalid_argument "proof state"))
-    in let pdata = Proof.data (Proof_global.get_proof pstate)
+    let pstate = match Vernacstate.Declare.get_pstate () with Some ps -> ps | _ -> (raise (Invalid_argument "proof state"))
+    in let pdata = Proof.data (Declare.Proof.get pstate)
     in let proof_name = (Names.Id.to_string (pdata.name))
     in let env = Proofview.Goal.env gl in
     let sigma = Proofview.Goal.sigma gl in

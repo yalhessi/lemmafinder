@@ -19,7 +19,7 @@ let get_str_of_pp pp_expr : string=
     Pp.string_of_ppcmds pp_expr
 
 let get_exp_str env sigma expr : string =
-  (get_str_of_pp (Printer.pr_goal_concl_style_env env sigma expr))
+  (get_str_of_pp (Printer.pr_letype_env ~goal_concl_style:true env sigma expr))
 
 let get_sexp_compatible_expr_str env sigma expr : string = 
   "(" ^ (get_exp_str env sigma expr) ^ ")"
@@ -90,7 +90,7 @@ let get_vars_in_expr expr =
                               in List.fold_left 
                                   (fun acc v -> add_var acc v) f_vars args_vars
       | Proj (p,c)        ->  aux c vars
-      | Case (ci,p,c,bl)  ->  aux c vars
+      | Case (ci,p,_,c,bl)  ->  aux c vars
       | _ -> vars
 and vars_of_constrarray a : string list =
     List.fold_left (fun acc elem -> List.append acc (aux elem acc)) [] (Array.to_list a)
@@ -116,7 +116,7 @@ let get_funcs_in_expr expr funcs=
                               in List.fold_left 
                                   (fun acc v -> add_var acc v) f_vars args_vars
       | Proj (p,c)        ->  aux c funcs
-      | Case (ci,p,c,bl)  ->  aux c funcs
+      | Case (ci,p,_,c,bl)  ->  aux c funcs
       | _ -> funcs
 and vars_of_constrarray a : string list =
     List.fold_left (fun acc elem -> List.append acc (aux elem acc)) [] (Array.to_list a)
