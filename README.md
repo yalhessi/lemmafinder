@@ -83,6 +83,7 @@ export PROVERBOT=<path to proverbot folder>
 export MYTH=<path to myth folder>/synml.native
 export COQOFOCAML=/Users/<username>/.opam/4.07.1+flambda/bin/coq-of-ocaml
 export REWRITE=<path to ast_rewriter>/_build/default/bin/main.exe
+export LFIND=<path to lemma finder source>
 ```
 
 

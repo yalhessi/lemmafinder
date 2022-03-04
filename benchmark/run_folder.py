@@ -8,7 +8,7 @@ import csv
 
 from typing import Tuple
 
-lfind_decl = "From lfind Require Import LFind.\nUnset Printing Notations.\nSet Printing Implicit.\n"
+lfind_decl = "Load LFindLoad.\nFrom lfind Require Import LFind.\nUnset Printing Notations.\nSet Printing Implicit.\n"
 
 def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser = argparse.ArgumentParser(

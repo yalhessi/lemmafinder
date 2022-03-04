@@ -5,6 +5,7 @@ type synthesis_stat = {
     synthesis_term : string;
     enumerated_exprs : string list;
     valid_lemmas : (string * conjecture) list;
+    original_valid_lemmas : (string * conjecture) list;
     provable_lemmas : (string * conjecture) list;
     prover_provable_lemmas : conjecture list;
 }
@@ -102,6 +103,16 @@ let summarize stats curr_state_lemma =
     fmt "Time to first category 1 (s): %d \n" (!Consts.time_to_category_1)
     ^
     fmt "Total Time: %d \n" (int_of_float(Unix.time ()) - !Consts.start_time)
+    ^
+    fmt "Total Lemmas: %d \n" !Consts.total_synth
+    ^
+    fmt "Filter Quickchick: %d \n" !Consts.is_false
+    ^
+    fmt "Filter duplicate: %d \n" !Consts.is_dup
+    ^
+    fmt "Filter trivial: %d \n" !Consts.trivial_count
+    ^
+    fmt "Filter is_version: %d \n" !Consts.is_version_count
     ^
     fmt "Stuck Proof State: %s\n"  (curr_state_lemma)
     ^

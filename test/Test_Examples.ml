@@ -31,6 +31,7 @@ let extract_ml_examples () =
                            then dir
                            else dir ^ "/";
   in let p_ctxt = {
+    theorem = "";
     hypotheses = []; 
     goal = "";
     functions = []; 
