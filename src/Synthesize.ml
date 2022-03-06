@@ -246,9 +246,9 @@ let synthesize_lemmas (synth_count: int ref)
   in
   Consts.is_false := !Consts.is_false + (List.length(filtered_conjectures) - List.length(valid_conjectures));
   
-  let imports = Consts.fmt "\"%s\" \"%s\" \"From %s Require Import %s.\""
+  let imports = Consts.fmt "\"%s\" %s \"From %s Require Import %s.\""
                 Consts.lfind_declare_module
-                p_ctxt.declarations
+                (List.fold_left (fun acc d -> if (String.length d > 0) then acc ^ Consts.fmt " \"%s\"" d else acc) "" (String.split_on_char '\n' p_ctxt.declarations))
                 p_ctxt.namespace
                 p_ctxt.fname
   in let filter_trivial_simplify,trivial_count,is_version_count = Filter.filter_lemmas valid_conjectures imports p_ctxt.dir p_ctxt.proof_name p_ctxt.theorem
