@@ -17,14 +17,13 @@ let rec input_lines l ic : string list =
   | exception End_of_file -> List.rev l
 
 let run_cmd cmd =
-  Log.debug(cmd);
   Log.debug(Consts.fmt "%s\n" cmd);
   try 
   let inp =  Unix.open_process_in cmd
   in let r = input_lines [] inp in
   close_in inp; 
   r
-  with 
+  with
   | _ -> []
   
 

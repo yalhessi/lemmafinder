@@ -1,3 +1,4 @@
+Load LFindLoad.
 From lfind Require Import LFind.
 Unset Printing Notations.
 Set Printing Implicit.
@@ -43,7 +44,8 @@ Proof.
   intros.
     induction x.
     - simpl. rewrite app_nil_r. reflexivity.
-    - simpl. rewrite IHx. lfind.
+    - simpl. rewrite IHx. 
+    lfind_debug.
     (* lfind. *)
 Admitted.
 (* Proof.

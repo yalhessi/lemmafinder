@@ -7,8 +7,10 @@ let generate_ml_extraction_file (p_ctxt: ProofContext.proof_context)
   in let extraction_filename = Consts.fmt "\"%s/lfind_extraction.ml\"" p_ctxt.dir
   in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules
   in let content = Consts.fmt 
-                    "%s\n From %s Require Import %s.\n %s\n %s\n %s\n %s\n%s\n 
+                    "%s%s\n 
+                    From %s Require Import %s.\n %s\n %s\n %s\n %s\n%s\n 
                     Extraction %s %s."
+                    Consts.lfind_declare_module
                     p_ctxt.declarations
                     p_ctxt.namespace
                     p_ctxt.fname

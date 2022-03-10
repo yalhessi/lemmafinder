@@ -1,4 +1,4 @@
-let lfind_declare_module = ""
+let lfind_declare_module = "Load LFindLoad."
 
 let synthesis_op = "lfind_output"
 
@@ -51,3 +51,23 @@ let synthesizer_path = ref ""
 let rewriter_path = ref ""
 
 let coq_of_ocaml_path = ref ""
+
+let lfind_path = ref ""
+
+let myth_batch_size = 15
+
+let time_to_category_1 = ref 0
+
+let start_time = ref 0
+
+let logged_time_to_cat_1 = ref false
+
+let trivial_count = ref 0
+
+let is_version_count = ref 0
+
+let total_synth = ref 0
+
+let is_false = ref 0
+
+let is_dup = ref 0

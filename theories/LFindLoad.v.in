@@ -1,0 +1,2 @@
+Add ML Path "%{lib}%/parmap".
+Add ML Path "%{lib}%/ocaml".

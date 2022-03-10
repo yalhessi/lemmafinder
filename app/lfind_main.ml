@@ -52,7 +52,7 @@ let construct_state_as_lemma gl =
     List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs) (v, hyp) -> 
                               let var_str = (Names.Id.to_string v)
                               in let hyp_str = (Consts.fmt "(%s:%s)" var_str (Utils.get_exp_str env sigma hyp))
-                              in if Utils.contains var_str "H" 
+                              in if Utils.contains var_str "H"
                                 then 
                                 ( if Utils.contains hyp_str "forall" then acc_H, acc_V, acc_typs, acc_var_typs
                                   else ( hyp_str::acc_H), acc_V, acc_typs, acc_var_typs
@@ -95,6 +95,7 @@ let construct_state_as_lemma gl =
     )
 
 let lfind_tac debug : unit Proofview.tactic =
+  Consts.start_time := int_of_float(Unix.time ());
   Log.is_debug := debug;
   Proofview.Goal.enter
   begin fun gl ->
@@ -110,11 +111,10 @@ let lfind_tac debug : unit Proofview.tactic =
         in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
         Log.stats_summary_file := p_ctxt.dir ^ Consts.summary_log_file;
-        let module_names = 
+        let module_names =
           Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
         in
         let p_ctxt = {p_ctxt with modules = module_names; types = typs}
-
         (* Generate .ml file and check if it is parsable by myth *)
         in let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
         in 
@@ -151,7 +151,7 @@ let lfind_tac debug : unit Proofview.tactic =
           if not is_success then raise (Invalid_Examples "Quickchick failed to generate examples!") else 
           Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
         )
-        else 
+        else
         ();
 
         let coq_examples = Examples.dedup_examples (FileUtils.read_file example_file)
@@ -163,27 +163,30 @@ let lfind_tac debug : unit Proofview.tactic =
         in let abstraction = Abstract_NoDup.abstract
         in let generalized_terms, conjectures = abstraction p_ctxt c_ctxt
         in 
-        (* create a lemma file to use with proverbot *)
+        (* create a coq file that has the current stuck state a prover can use *)
         let curr_state_lemma_file = Consts.fmt "%s/%s.v" p_ctxt.dir Consts.lfind_lemma
-        in let content = Consts.fmt "%s\nFrom %s Require Import %s.\n %s"
+        in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n %s"
+                         Consts.lfind_declare_module
                          p_ctxt.declarations
                          p_ctxt.namespace
                          p_ctxt.fname
                          curr_state_lemma
         in FileUtils.write_to_file curr_state_lemma_file content;
-        (* get ml and coq version of the generalized examples *)
+
+        (* get ml and coq version of the output of generalized terms *)
         let coq_examples, ml_examples = (ExampleUtils.evaluate_terms generalized_terms coq_examples ml_examples p_ctxt)
         in List.iter (fun c -> LogUtils.write_tbl_to_log c "COQE") coq_examples;
         List.iter (fun c -> LogUtils.write_tbl_to_log c "MLE") ml_examples;
         
         let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
-        in let start_time = Unix.time ()
+        in
+        let start_time_synth = Unix.time ()
         in
         let cached_lemmas = ref (Hashtbl.create 1000)
         in List.iter (
           fun c ->
           let curr_time = int_of_float(Unix.time ())
-          in let elapsed_time = curr_time - int_of_float(start_time)
+          in let elapsed_time = curr_time - int_of_float(start_time_synth)
           in print_endline (string_of_int elapsed_time);
           if elapsed_time < 5100 then
           (print_endline c.conjecture_name;

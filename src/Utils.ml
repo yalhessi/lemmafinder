@@ -31,7 +31,9 @@ let add_term (acc : (Sexp.t list * int) list) (term: Sexp.t list): (Sexp.t list 
     let count = (get_term_count acc term) + 1
     in List.append acc [(term, count)], count
 
-let add_term_remove_dup (acc : Sexp.t list list) (term: Sexp.t list): (Sexp.t list) list =
+let add_term_remove_dup (acc : Sexp.t list list)
+                        (term: Sexp.t list): 
+                        (Sexp.t list) list =
   let exists = List.exists (fun e -> Sexp.equal e term) acc
   in if exists then acc else List.append acc [term]
 
@@ -53,8 +55,8 @@ let get_hyps_strl hyps env sigma =
                               in let regex_ih  = Str.regexp "IH*"
                               in let regex_H = Str.regexp "H*"
                               in let is_match = 
-                                          Str.string_match regex_ih var_str 0
-                              in (if is_match 
+                                    Str.string_match regex_ih var_str 0
+                              in (if is_match
                                   then (get_sexp_compatible_expr_str env sigma hyp)::acc
                                   else acc)
                  ) [] (get_hyps hyps)
@@ -136,6 +138,36 @@ let get_modules file_name : string list =
   []
    (* List.fold_left (fun acc m-> (List.nth (String.split_on_char ' ' m) 1)::acc) [] modules *)
 
+let gen_rand_str length =
+let gen() = match Random.int(26+26+10) with
+    n when n < 26 -> int_of_char 'a' + n
+  | n when n < 26 + 26 -> int_of_char 'A' + n - 26
+  | n -> int_of_char '0' + n - 26 - 26 in
+let gen _ = String.make 1 (char_of_int(gen())) in
+String.concat "" (Array.to_list (Array.init length gen))
+
+let slice_list (start_i: int) (end_i: int) (lst: 'a list) = 
+  let _, slice = List.fold_right (fun e (index, acc) -> 
+                                  let n_acc = if index >= start_i && index <= end_i
+                                              then e :: acc
+                                              else acc
+                                  in index + 1, n_acc
+                                 ) lst (0,[])
+  in slice
+
+let cpu_count () = 
+  try 
+    (match Sys.os_type with 
+    | "Win32" -> int_of_string (Sys.getenv "NUMBER_OF_PROCESSORS") 
+    | _ ->
+        (
+          let i = Unix.open_process_in "getconf _NPROCESSORS_ONLN" in
+          let close () = ignore (Unix.close_process_in i) in
+          try Scanf.fscanf i "%d" (fun n -> close (); n) with e -> close (); raise e
+        )
+    )
+  with  _ -> 1
+  
 let env_setup : unit =
   let prover_path = get_env_var Consts.prover
   in
@@ -155,3 +187,9 @@ let env_setup : unit =
   let coqofocaml_path = get_env_var "COQOFOCAML"
   in if String.equal coqofocaml_path "" then raise (Invalid_Env "COQOFOCAML path not set!")
   else Consts.coq_of_ocaml_path := coqofocaml_path;
+
+  let lfind_path = get_env_var "LFIND"
+  in if String.equal lfind_path "" then raise (Invalid_Env "LFIND SRC path not set!")
+  else Consts.lfind_path := if lfind_path.[(String.length lfind_path) -1] = '/' 
+                            then lfind_path
+                            else lfind_path ^ "/";

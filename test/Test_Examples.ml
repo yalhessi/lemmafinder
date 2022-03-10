@@ -27,7 +27,11 @@ let extract_ml_examples () =
   Hashtbl.add example_2 "y" "(Natcons 1 Natnil)";
   let coq_examples = [example_1; example_2]
   in let dir = (List.hd (String.split_on_char '_' (Sys.getcwd ())))
+  in let dir = if dir.[(String.length dir) -1] = '/' 
+                           then dir
+                           else dir ^ "/";
   in let p_ctxt = {
+    theorem = "";
     hypotheses = []; 
     goal = "";
     functions = []; 

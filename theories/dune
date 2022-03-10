@@ -6,6 +6,6 @@
 
  (package lfind)            
 
- (libraries lfindalgo lfind.plugin))  ; Here you should declare the
+ (libraries bigarray parmap lfindalgo lfind.plugin ))  ; Here you should declare the
                                  ; dependencies on the ML plugins your
                                  ; Coq files depend.

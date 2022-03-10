@@ -32,7 +32,7 @@ let generate_example p_ctxt typs modules current_lemma var_typs vars =
   let example_file = Consts.fmt ("%s/%s") p_ctxt.dir "lfind_quickchick_generator.v"
   in
   let import_file =
-  Consts.fmt "From %s Require Import %s."(p_ctxt.namespace) (p_ctxt.fname)  
+  Consts.fmt "%s\nFrom %s Require Import %s." (Consts.lfind_declare_module) (p_ctxt.namespace) (p_ctxt.fname)  
 
   in let module_imports = p_ctxt.declarations
   (* List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" modules *)

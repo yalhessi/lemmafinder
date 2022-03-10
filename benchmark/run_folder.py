@@ -8,7 +8,7 @@ import csv
 
 from typing import Tuple
 
-lfind_decl = "From lfind Require Import LFind.\nUnset Printing Notations.\nSet Printing Implicit.\n"
+lfind_decl = "Load LFindLoad.\nFrom lfind Require Import LFind.\nUnset Printing Notations.\nSet Printing Implicit.\n"
 
 def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser = argparse.ArgumentParser(
@@ -63,6 +63,7 @@ def get_stuck_state(fname):
 def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
     counter = 0
     all_lemmas = 0
+    category_1_count = 0
     filtered_helper_lemma_dict = {}
     rewriter_failures = []
     invalid_ml_faulires =[]
@@ -156,6 +157,11 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                         lfind_log = os.path.join(log_folder, "lfind_log.txt")
                         with open(lfind_summary_log, 'r') as j:
                             lfind_log_content = j.read()
+                        with open(lfind_summary_log, 'r') as j:
+                            summary_content = j.readlines()
+                            for l in summary_content:
+                                if "Yes Cat 1: true" in l:
+                                    category_1_count += 1
                         theorem_name = os.path.splitext(file_name)[0] + "_" + location[0]
                         helper_name = os.path.splitext(file_name)[0] + "_" + location[2]
                         content_to_append = f"Theorem statement:\n{all_lemmas_from_file[theorem_name]}\n\nRequired Helper Statement:\n{all_lemmas_from_file[helper_name]}\n"
@@ -187,15 +193,16 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
     print(f"#myth parse errors: {len(myth_parse_errors)}\n")
     write_errors_to_csv(os.path.join(log_directory, "myth_parse_failures.csv"), myth_parse_errors)
     
-    return filtered_helper_lemma_dict, counter, all_lemmas
+    return filtered_helper_lemma_dict, counter, all_lemmas, category_1_count
 
 def main() -> None:
     args, parser = parse_arguments()
     helper_lemma_dict = get_locations(args.prelude)
     all_lemmas_from_file = get_all_lemmas(args.prelude)
-    filtered_helper_lemmas, total_lemmas, all_lemmas = run(args.prelude, helper_lemma_dict, args.log_directory, all_lemmas_from_file)
+    filtered_helper_lemmas, total_lemmas, all_lemmas, cat_1_count = run(args.prelude, helper_lemma_dict, args.log_directory, all_lemmas_from_file)
     print(filtered_helper_lemmas)
     print(f"#Lemmas that pass lemmafinder/#Lemmas: {total_lemmas}/{all_lemmas} in {len(filtered_helper_lemmas)} coq files")
+    print(f"#Lemmas that contain category 1 results amongst the successful lemmas: {cat_1_count}/{total_lemmas} ")
 
 
 if __name__ == "__main__":

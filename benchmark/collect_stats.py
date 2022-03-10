@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from ast import arg
 import os
 import json
 import re
@@ -12,7 +13,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
         description=
         "Count the number of proofs that uses helper lemma")
     parser.add_argument('--prelude', default=".")
-    parser.add_argument('--output', default=".")
+    parser.add_argument('--output', default=None)
     return parser.parse_args(), parser
 
 def isProofStatement(line):
@@ -129,6 +130,8 @@ def write_op(lemma_file_name, output_dir):
 
 def main() -> None:
     args, parser = parse_arguments()
+    if args.output is None:
+        args.output = args.prelude
     no_coq_files, no_with_helper, total_lemmas, lemma_file_names = count(args.prelude, args.output)
     write_op(lemma_file_names,args.output)
     print(f"#Lemmas w atleast one helper/#Lemmas: {no_with_helper}/{total_lemmas} in {no_coq_files} coq files")

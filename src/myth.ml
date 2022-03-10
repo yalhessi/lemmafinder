@@ -62,11 +62,14 @@ let run_parse p_ctxt fname=
   let run_myth = run_cmd (Consts.fmt "%s %s" timeout_cmd  myth_cmd)
   in run_myth
   
-let enumerate_expressions p_cxt conjecture_name examples var_types vars is_enum =
+let enumerate_expressions (p_cxt: proof_context)
+                          (conjecture_name: string)
+                          (examples: string list) 
+                          (var_types: (string, string) Hashtbl.t)
+                          (vars: string list)
+                          (is_enum: bool) : string list =
   let synth_file = generate_synthesis_file p_cxt conjecture_name examples var_types vars
   in Log.debug (Consts.fmt "Written to synth file %s\n"  synth_file);
   let enumerate = if is_enum then "-enum" else ""
   in let myth_op = run synth_file p_cxt conjecture_name enumerate
-  in let coq_myth_expr = CoqofOcaml.get_coq_exprs myth_op p_cxt conjecture_name
-  in coq_myth_expr
-  
+  in myth_op
