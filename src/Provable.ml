@@ -43,7 +43,7 @@ let split_as_provable_non_provable (conjectures: conjecture list)
                             if not !Consts.logged_time_to_cat_1
                             then 
                             (
-                              Consts.time_to_category_1 := int_of_float(Unix.time ()) - !Consts.start_time;
+                              Consts.time_to_category_1 := time_to_p;
                               Consts.logged_time_to_cat_1:= true;
                             );
                             (c::true_conj, false_conj)
