@@ -199,6 +199,7 @@ def main() -> None:
     args, parser = parse_arguments()
     helper_lemma_dict = get_locations(args.prelude)
     all_lemmas_from_file = get_all_lemmas(args.prelude)
+    os.makedirs(args.log_directory, exist_ok=True)
     filtered_helper_lemmas, total_lemmas, all_lemmas, cat_1_count = run(args.prelude, helper_lemma_dict, args.log_directory, all_lemmas_from_file)
     print(filtered_helper_lemmas)
     print(f"#Lemmas that pass lemmafinder/#Lemmas: {total_lemmas}/{all_lemmas} in {len(filtered_helper_lemmas)} coq files")
