@@ -14,9 +14,9 @@ def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser = argparse.ArgumentParser(
         description=
         "Run benchmark files")
-    parser.add_argument('--prelude', default=".")
+    parser.add_argument('--prelude', default="./")
     parser.add_argument('--logical_directory', default="test")
-    parser.add_argument('--log_directory', default=".")
+    parser.add_argument('--log_directory', default="./")
     return parser.parse_args(), parser
 
 def get_locations(folder):
