@@ -113,16 +113,38 @@ You can find the results of the run in `benchmark/_lfind_bench_rev_append/lfind_
 
 ## Evaluating Lemma Finder on a project
 
-Make the project.
+A. Make the project
+  1. If your project already has a Makefile, just run `make`.
+  2. Otherwise, collect your source files into a project with the test prefix:
+  ```
+  cd <projectdir>
+  echo "-R . test" > _CoqProject
+  find . -name "*.v" >> _CoqProject
+  ```
+  3. Create a makefile from that project:
+  ```
+  coq_makefile -f _CoqProject -o Makefile
+  ```
+  4. Run the makefile:
+  ```
+  make
+  ```
+
+B. Collect the lemma usages
 
 `python3 benchmark/collect_stats.py --prelude=<full path to project>`
 
 This script collects all locations in `lemmafinder_bench.txt` where an apply or rewrite tactic has been used. It also collects all theorems/lemmas in `lemmafinder_all_lemmas.txt`.
 
-After that run the following:
+C. Run lemmafinder
+
+Run the following:
 `python3 benchmark/run_folder.py --prelude=<full path to project> --log_directory=<full path to log directory>`
 
 This should run on the theorems that require helper lemma (logged in `lemmafinder_bench.txt` ) and output how many of were able to identify helper lemmas and amongst those how many were category 1 lemmas. You should find the output files in the --log_directory. 
+
+Make the project.
+
 
 ### Note on External Dependencies ###
 External dependencies are not fully supported via dune for Coq-plugins. See https://github.com/coq/coq/issues/7698. To workaround this, we need to add external library dependencies (transitively) to src/dune and theories/dune and add the corresponding module to `Lfind.v`. See https://github.com/ejgallego/coq-plugin-template.
