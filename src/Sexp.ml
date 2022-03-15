@@ -202,6 +202,19 @@ let equal e1 e2 =
 let size sexp = 
   String.length (string_of_sexpr sexp)
 
+
+let sexp_size sexp =
+  let rec aux acc = function
+  | (Atom tag)::tl -> aux (acc+1) tl
+  | (Expr e)::tl ->
+      let s =
+        (aux 0 e)
+      in
+      aux (s+acc) tl
+  | [] -> acc
+  in
+  (aux 0 sexp)
+
 let replace_sub_sexp sexp sub_expr repl_expr =
   let rec aux (acc: string list) = function 
   | (Atom tag)::tl -> 

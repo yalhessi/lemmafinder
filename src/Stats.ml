@@ -86,7 +86,7 @@ let generalized_lemma_useful_and_provable stats : conjecture list *int =
 
 let combine_gen_synth_sort gen_conj synth_conj cache =
     let all_lemmas = List.append gen_conj synth_conj
-    in let sorted_all_lemmas = List.sort (fun a b -> (String.length (a.body)) - (String.length (b.body))) all_lemmas
+    in let sorted_all_lemmas = List.sort (fun a b -> (Sexp.sexp_size (a.body_sexp)) - (Sexp.sexp_size (b.body_sexp))) all_lemmas
     in List.fold_left (
                         fun (acc1, acc2) c ->
                         if (List.exists (fun s -> String.equal c.body s ) cache) 
