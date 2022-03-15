@@ -61,5 +61,8 @@ let remove_axioms prelude =
 
 let check_lfind_theorem_add_axiom p_ctxt proof_name additional_conj : bool =
   let axiom_file = generate_axiom_file p_ctxt additional_conj proof_name
-  in let fname = Consts.lfind_lemma ^ ".v"
+  in let curr_state_lemma_file = Consts.fmt "%s/%s%s.v" p_ctxt.dir Consts.lfind_lemma proof_name
+  in
+  FileUtils.write_to_file curr_state_lemma_file !Consts.lfind_lemma_content;
+  let fname = Consts.lfind_lemma ^proof_name ^ ".v"
   in Proverbot.run p_ctxt.dir proof_name fname axiom_file

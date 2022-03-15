@@ -172,6 +172,7 @@ let lfind_tac debug : unit Proofview.tactic =
                          p_ctxt.fname
                          curr_state_lemma
         in FileUtils.write_to_file curr_state_lemma_file content;
+        Consts.lfind_lemma_content := content;
 
         (* get ml and coq version of the output of generalized terms *)
         let coq_examples, ml_examples = (ExampleUtils.evaluate_terms generalized_terms coq_examples ml_examples p_ctxt)

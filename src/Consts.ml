@@ -71,3 +71,5 @@ let total_synth = ref 0
 let is_false = ref 0
 
 let is_dup = ref 0
+
+let lfind_lemma_content = ref ""
