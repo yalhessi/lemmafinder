@@ -1,3 +1,3 @@
 [submodule "benchmark/coq_serapy"]
 	path = benchmark/coq_serapy
-	url = git@github.com:HazardousPeach/coq_serapy.git
+	url = https://github.com/HazardousPeach/coq_serapy.git
