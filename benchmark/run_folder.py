@@ -18,6 +18,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser.add_argument('--logical_directory', default="test")
     parser.add_argument('--log_directory', default="./")
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--example_dir', default=None)
     return parser.parse_args(), parser
 
 def get_locations(folder):
@@ -61,7 +62,7 @@ def get_stuck_state(fname):
         print(e)
     return ""
 
-def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, debug=False):
+def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, example_dir, debug=False):
     counter = 0
     all_lemmas = 0
     category_1_count = 0
@@ -87,6 +88,8 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, d
                 current_line = content[lemma_line]
                 c_line_content = current_line.split(".")
                 c_modified_content = []
+                destination_name = str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+ "_"+lemma_name
+
                 destination_folder = os.path.join(os.path.dirname(source_folder),str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+ "_"+lemma_name)
 
                 stuck_folder = os.path.join(os.path.dirname(source_folder),"_lfind_" + str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+"_" + lemma_name)
@@ -98,6 +101,12 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, d
                 else:
                     is_run_make = True
                 lemma_finder_copy(source_folder, destination_folder)
+                if example_dir:
+                    src = os.path.join(example_dir, destination_name)
+                    files=os.listdir(src)
+                    for file in files:
+                        print(file)
+                        shutil.copy2(os.path.join(src,file), destination_folder)
                 for i in range(0,len(c_line_content)):
                     if lemma_name in c_line_content[i]:
                         if debug:
@@ -204,7 +213,7 @@ def main() -> None:
     helper_lemma_dict = get_locations(args.prelude)
     all_lemmas_from_file = get_all_lemmas(args.prelude)
     os.makedirs(args.log_directory, exist_ok=True)
-    filtered_helper_lemmas, total_lemmas, all_lemmas, cat_1_count = run(args.prelude, helper_lemma_dict, args.log_directory, all_lemmas_from_file, args.debug)
+    filtered_helper_lemmas, total_lemmas, all_lemmas, cat_1_count = run(args.prelude, helper_lemma_dict, args.log_directory, all_lemmas_from_file, args.example_dir, args.debug)
     print(filtered_helper_lemmas)
     print(f"#Lemmas that pass lemmafinder/#Lemmas: {total_lemmas}/{all_lemmas} in {len(filtered_helper_lemmas)} coq files")
     print(f"#Lemmas that contain category 1 results amongst the successful lemmas: {cat_1_count}/{total_lemmas} ")
