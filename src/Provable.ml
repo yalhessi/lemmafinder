@@ -29,7 +29,7 @@ let split_as_provable_non_provable (conjectures: conjecture list)
                                    : conjecture list * conjecture list =
   Proverbot.remove_current_search p_ctxt.dir;
   let n_cores = (Utils.cpu_count () / 2)
-  in let res = Parmap.parmap ~ncores:n_cores 
+  in let res = Parmap.parmap ~ncores:1 
                      (fun c -> 
                           let is_provable = check_provable c p_ctxt
                           in let time_to_p = int_of_float(Unix.time ()) - !Consts.start_time;

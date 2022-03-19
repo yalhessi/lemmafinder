@@ -181,7 +181,7 @@ let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture 
 
 let filter_provable_conjectures valid_conjectures p_ctxt original_conjecture =
   let n_cores = (Utils.cpu_count () / 2)
-  in Parmap.parmap ~ncores:n_cores
+  in Parmap.parmap ~ncores:1
   (fun (s, conj) -> let is_provable = (Provable.check_lfind_theorem_add_axiom p_ctxt conj.conjecture_name conj.conjecture_str)
   in s, conj, is_provable) (Parmap.L valid_conjectures)
 

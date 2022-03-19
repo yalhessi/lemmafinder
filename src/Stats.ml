@@ -86,13 +86,18 @@ let generalized_lemma_useful_and_provable stats : conjecture list *int =
 
 let combine_gen_synth_sort gen_conj synth_conj cache =
     let all_lemmas = List.append gen_conj synth_conj
-    in let sorted_all_lemmas = List.sort (fun a b -> (Sexp.sexp_size (a.body_sexp)) - (Sexp.sexp_size (b.body_sexp))) all_lemmas
+    in let de_dup_lemmas = List.fold_left (
+        fun (acc2) c ->
+        if (List.exists (fun s -> String.equal c.body s ) cache) 
+        then 
+        acc2
+        else (c::acc2)
+      ) ([]) all_lemmas
+    in 
+    let sorted_all_lemmas = List.sort (fun a b -> (Sexp.sexp_size (a.body_sexp)) - (Sexp.sexp_size (b.body_sexp))) de_dup_lemmas
     in List.fold_left (
-                        fun (acc1, acc2) c ->
-                        if (List.exists (fun s -> String.equal c.body s ) cache) 
-                        then 
-                        acc1, acc2
-                        else (acc1 ^ "\n" ^ c.conjecture_str), (c.body::acc2)
+                        fun (acc1,acc2) c ->
+                        (acc1 ^ "\n" ^ c.conjecture_str), c.body::acc2
                       ) ("",[]) sorted_all_lemmas
                                 
 
