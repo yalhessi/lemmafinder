@@ -1,15 +1,19 @@
 import argparse
+from cmath import log
 import os
 import csv
 from posixpath import dirname, split
 from re import S, search, sub
 import sys
+
+from torch import log_
 import coq_serapy
 import subprocess
 import shutil
 import operator, functools
 from sexpdata import loads, dumps
-
+import multiprocessing
+from functools import partial
 
 class LogDetails(object):
     def __init__(self) -> None:
@@ -41,7 +45,11 @@ class LogDetails(object):
 
     def row(self):
         return [self.log_dir,self.is_stuck_provable,self.no_gen_provable,self.no_synth_provable, self.no_gen_useful_stuck_provable,self.no_syn_useful_stuck_provable,len(self.valid_lemmas), self.matches_human, self.matched_lemma,self.matched_lemma_loc,self.stronger_lemma,self.stronger_lemma_loc,self.weaker_lemma, self.weaker_lemma_loc, self.helper_name, self.helper_lemma, self.is_auto_provable, self.top_answer, self.total_synth, self.total_gen]
-
+    
+    def sort_lemmas(self):
+        sorted(self.provable_lemmas, key=compare_lemmas)
+        sorted(self.useful_stuck_provable_lemmas, key=compare_lemmas)
+        sorted(self.valid_lemmas, key=compare_lemmas)
 
 def get_lemmas(benchmark_file):
     import json
@@ -249,16 +257,26 @@ def  sort_and_print_lemmas(log_dir, log_obj):
     l_file = os.path.join(log_dir, f_name)
     f = open(l_file, "w")
     f.write("Provable and Useful in Completing Stuck Goal\n")
-    s = sorted(log_obj.provable_lemmas, key=compare_lemmas)
+    s = log_obj.provable_lemmas
+    # sorted(log_obj.provable_lemmas, key=compare_lemmas)
     f.writelines('\n'.join(s))
     f.write("\nUseful in Completing Stuck Goal\n")
-    s = sorted(log_obj.useful_stuck_provable_lemmas, key=compare_lemmas)
+    s = log_obj.useful_stuck_provable_lemmas
+    # sorted(log_obj.useful_stuck_provable_lemmas, key=compare_lemmas)
     f.writelines('\n'.join(s))
     f.write("\nValid Lemmas\n")
-    s = sorted(log_obj.valid_lemmas, key=compare_lemmas) 
+    s = log_obj.valid_lemmas
+    # sorted(log_obj.valid_lemmas, key=compare_lemmas) 
     f.writelines('\n'.join(s))
-    f.close()    
+    f.close()
     
+def process_lemma(helper_lemma_name,helper_lemma,f_name,imports,l):
+    try:
+        isweaker = is_weaker_than_human(helper_lemma_name, l, f_name, imports)
+        isstronger = is_stronger_than_human(helper_lemma_name, helper_lemma, l, f_name, imports)
+        return isweaker, isstronger
+    except:
+        return False, False
 
 def run(lfind_op, log_dir):
     op_csv = os.path.join(log_dir, "lfind_benchmark_summary.csv")
@@ -276,16 +294,21 @@ def run(lfind_op, log_dir):
     for root, dirs, files in os.walk(lfind_op):
         for name in dirs:
             f_name = os.path.join(root, name)
-            print(f_name)
+            
             if os.path.isdir(f_name) and "_lfind_" in f_name:
                 benchmark_file = os.path.join(os.path.dirname(f_name),f_name.split("_lfind_")[1].split("_lf_")[0], "lemmafinder_all_lemmas.txt")
                 all_lemmas = get_lemmas(benchmark_file)
                 lf_name = os.path.basename(f_name).replace("_lfind_","")
                 # l_file = os.path.join(log_dir, lf_name)
                 l_file = os.path.join(f_name, "lfind_summary_log.txt")
-                print(l_file)
                 count_total_lfind_logs +=1
                 log_obj = None
+                f_name_log = os.path.basename(f_name).replace("_lfind_","")
+                l_log_file = os.path.join(log_dir, f_name_log)
+                if os.path.isfile(l_log_file):
+                    print(l_log_file)
+                    continue
+
                 if os.path.isfile(l_file) :
                     # we need to remove trivial ones
                     lfind_state = os.path.join(f_name, "lfind_state.v")
@@ -305,22 +328,30 @@ def run(lfind_op, log_dir):
                             # sys.exit(0) 
                     imports = get_imports(lfind_state)
                     log_obj = get_ranked_lemmmas(l_file)
+                    log_obj.sort_lemmas()
                     lemma_synth = []
                     lemma_synth.extend(log_obj.provable_lemmas)
                     lemma_synth.extend(log_obj.useful_stuck_provable_lemmas)
                     lemma_synth.extend(log_obj.valid_lemmas)
-                    print(len(lemma_synth))
-                                           
+
+                    print(len(lemma_synth))             
                     log_obj.helper_name = helper_lemma_name 
                     log_obj.helper_lemma = helper_lemma
-                    for i in range(0, len(lemma_synth)):
+                    pool_obj = multiprocessing.Pool(multiprocessing.cpu_count()-1)
+                    func_process = partial(process_lemma, helper_lemma_name,helper_lemma,f_name,imports)
+                    processed_lemmas = pool_obj.map(func_process, lemma_synth)
+                    for i in range(0, len(processed_lemmas)):
+                        isweaker = processed_lemmas[i][0]
+                        isstronger = processed_lemmas[i][1]
                         l = lemma_synth[i]
-                        print(f"helper lemma is {helper_lemma}")
-                        print(f"helper lemma is {helper_lemma_name}")
-                        if helper_lemma == "":
-                            break
-                        isweaker = is_weaker_than_human(helper_lemma_name, l, f_name, imports)
-                        isstronger = is_stronger_than_human(helper_lemma_name, helper_lemma, l, f_name, imports)
+                    # for i in range(0, len(lemma_synth)):
+                        # l = lemma_synth[i]
+                        # print(f"helper lemma is {helper_lemma}")
+                        # print(f"helper lemma is {helper_lemma_name}")
+                        # if helper_lemma == "":
+                        #     break
+                        # isweaker = is_weaker_than_human(helper_lemma_name, l, f_name, imports)
+                        # isstronger = is_stronger_than_human(helper_lemma_name, helper_lemma, l, f_name, imports)
                         if isweaker and isstronger and (not log_obj.matches_human):
                             print(f"similar to user provided lemma {helper_lemma} : {l}")
                             log_obj.matches_human = True
@@ -366,7 +397,7 @@ def run(lfind_op, log_dir):
                 log_name = f"_lfind_{name}"
                 if not os.path.isdir(os.path.join(root, log_name)):
                     missing_lemmas_profile[f_name] = "_lfind_ was not generated"
-        break   
+        break
     write_missing_lemmasto_csv(missing_lemmas_profile, log_dir)
     write_log_objs(os.path.join(log_dir,"summary.csv"), log_objs)
     matches_human = 0
