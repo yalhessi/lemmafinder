@@ -14,6 +14,7 @@ type proof_context =
     funcs: string list;
     modules: string list;
     types: string list;
+    theorem : string
   }
 
 type coq_context = 
@@ -59,6 +60,15 @@ List.fold_left (fun (namespace, dir) path ->
                   )
                 ) ("", "") paths
 
+let get_theorem proof_name dir fname = 
+  let content = List.rev (FileUtils.read_file (Consts.fmt "%s/%s.v" dir fname))
+  in List.fold_left (
+                      fun acc l ->
+                      if (Utils.contains l ("Lemma " ^ proof_name)) || (Utils.contains l ("Theorem " ^ proof_name))
+                      then l
+                      else acc
+                    ) "" content
+
 let construct_proof_context gl =
     let pstate = match Vernacstate.Declare.get_pstate () with Some ps -> ps | _ -> (raise (Invalid_argument "proof state"))
     in let pdata = Proof.data (Declare.Proof.get pstate)
@@ -83,7 +93,9 @@ let construct_proof_context gl =
     let full_context = Utils.get_str_of_pp (Prettyp.print_full_context env sigma)
     in let f_name = get_fname full_context
     in let declarations = get_declarations lfind_dir f_name
+    in let theorem = get_theorem proof_name lfind_dir f_name 
     in let p_ctxt = {
+        theorem = theorem;
         hypotheses = hyps_strl; 
         goal = (Utils.get_sexp_compatible_expr_str env sigma goal); 
         functions = []; 

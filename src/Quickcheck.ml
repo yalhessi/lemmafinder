@@ -7,7 +7,8 @@ let quickcheck fname namespace dir =
 let output_code op =
   let last_line = try List.hd (List.rev op)
                   with _ -> Log.write_to_log (String.concat "\n" op) !Log.error_log_file; ""
-  in let is_contains = Utils.contains last_line "Passed"
+  in Log.debug (Consts.fmt "last line is : %s" last_line);
+  let is_contains = Utils.contains last_line "Passed"
   in is_contains
 
 let run fname namespace dir =

@@ -181,7 +181,7 @@ let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture 
 
 let filter_provable_conjectures valid_conjectures p_ctxt original_conjecture =
   let n_cores = (Utils.cpu_count () / 2)
-  in Parmap.parmap ~ncores:n_cores
+  in Parmap.parmap ~ncores:1
   (fun (s, conj) -> let is_provable = (Provable.check_lfind_theorem_add_axiom p_ctxt conj.conjecture_name conj.conjecture_str)
   in s, conj, is_provable) (Parmap.L valid_conjectures)
 
@@ -223,21 +223,44 @@ let synthesize_lemmas (synth_count: int ref)
   in let top_k = Utils.slice_list start_i end_i enumerated_myth_exprs
   in let enumerated_exprs = CoqofOcaml.get_coq_exprs top_k p_ctxt conjecture_name
   in let counter = ref 0
+  
   in let synthesized_conjectures = List.map (get_synthesis_conjecture curr_synth_term conjecture var_types (Utils.next_val counter))enumerated_exprs
-  in let filtered_conjectures = filter_cached_lemmas synthesized_conjectures !cached_lemmas
-  in let filtered_conjectures = filter_valid_conjectures filtered_conjectures p_ctxt conjecture
+  in Consts.total_synth := !Consts.total_synth + List.length(synthesized_conjectures);
+  let filtered_conjectures = filter_cached_lemmas synthesized_conjectures !cached_lemmas
+  in Consts.is_dup := !Consts.is_dup + (List.length(synthesized_conjectures) - List.length(filtered_conjectures));
+  
+  let filtered_valid_conjectures = filter_valid_conjectures filtered_conjectures p_ctxt conjecture
   in let valid_conjectures = List.fold_right (
                                               fun (s, conj, is_valid) acc ->
                                                 if is_valid then
                                                 (
-                                                  Hashtbl.add !cached_lemmas conj.body is_valid;
+                                                  (* Hashtbl.replace !cached_lemmas conj.body is_valid; *)
                                                   (s,conj)::acc
                                                 )
-                                                else acc
-                                             ) filtered_conjectures []
+                                                else 
+                                                (
+                                                  Hashtbl.replace !cached_lemmas conj.body is_valid;
+                                                  acc
+                                                )
+                                             ) filtered_valid_conjectures []
   in
+  Consts.is_false := !Consts.is_false + (List.length(filtered_conjectures) - List.length(valid_conjectures));
+  
+  let imports = Consts.fmt "\"%s\" %s \"From %s Require Import %s.\""
+                Consts.lfind_declare_module
+                (List.fold_left (fun acc d -> if (String.length d > 0) then acc ^ Consts.fmt " \"%s\"" d else acc) "" (String.split_on_char '\n' p_ctxt.declarations))
+                p_ctxt.namespace
+                p_ctxt.fname
+  in let filter_trivial_simplify,trivial_count,is_version_count = Filter.filter_lemmas valid_conjectures imports p_ctxt.dir p_ctxt.proof_name p_ctxt.theorem
+  in Consts.is_version_count := !Consts.is_version_count + int_of_string(is_version_count);
+  Consts.trivial_count := !Consts.trivial_count + int_of_string(trivial_count);
+  let filtered_conjectures = filter_cached_lemmas filter_trivial_simplify !cached_lemmas
+  in
+  Consts.is_dup := !Consts.is_dup + (List.length(filter_trivial_simplify) - List.length(filtered_conjectures));
+  List.iter (fun (_,c) -> Hashtbl.replace !cached_lemmas c.body true;) filtered_conjectures;
+
   (* Identify synthesized lemmas that can help prove the stuck state *)
-  let provable_conjectures = filter_provable_conjectures valid_conjectures p_ctxt conjecture
+  let provable_conjectures = filter_provable_conjectures filtered_conjectures p_ctxt conjecture
   in let p_conjectures, provable_conjectures = List.fold_right (fun (s, c, is_provable) (p_acc, pro_acc) -> 
       if is_provable
       then (c::p_acc, (s, c)::pro_acc)
@@ -249,7 +272,8 @@ let synthesize_lemmas (synth_count: int ref)
   in let synth_stat = {
                         synthesis_term = (Sexp.string_of_sexpr curr_synth_term);
                         enumerated_exprs = enumerated_exprs;
-                        valid_lemmas = valid_conjectures;
+                        valid_lemmas = filtered_conjectures;
+                        original_valid_lemmas = valid_conjectures;
                         provable_lemmas = provable_conjectures;
                         prover_provable_lemmas = prover_provable_conjectures;
                       }

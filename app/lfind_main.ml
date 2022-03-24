@@ -111,11 +111,10 @@ let lfind_tac debug : unit Proofview.tactic =
         in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
         Log.stats_summary_file := p_ctxt.dir ^ Consts.summary_log_file;
-        let module_names = 
+        let module_names =
           Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
         in
         let p_ctxt = {p_ctxt with modules = module_names; types = typs}
-
         (* Generate .ml file and check if it is parsable by myth *)
         in let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
         in 
@@ -152,7 +151,7 @@ let lfind_tac debug : unit Proofview.tactic =
           if not is_success then raise (Invalid_Examples "Quickchick failed to generate examples!") else 
           Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
         )
-        else 
+        else
         ();
 
         let coq_examples = Examples.dedup_examples (FileUtils.read_file example_file)
@@ -173,6 +172,7 @@ let lfind_tac debug : unit Proofview.tactic =
                          p_ctxt.fname
                          curr_state_lemma
         in FileUtils.write_to_file curr_state_lemma_file content;
+        Consts.lfind_lemma_content := content;
 
         (* get ml and coq version of the output of generalized terms *)
         let coq_examples, ml_examples = (ExampleUtils.evaluate_terms generalized_terms coq_examples ml_examples p_ctxt)

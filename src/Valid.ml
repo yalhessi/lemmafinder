@@ -67,11 +67,13 @@ let lemma_provable_stats stats p_ctxt =
             if (s.is_valid) then 
             (
               let is_prover_provable = Provable.check_provable s.conjecture p_ctxt
+              in 
+              let time_to_p = int_of_float(Unix.time ()) - !Consts.start_time
               in let s = {s with is_prover_provable = is_prover_provable}
-              in s
+              in s, time_to_p
             )
             else
-            s
+            s,0
           ) (Parmap.L stats)
 
 let split_as_true_and_false conjectures p_ctxt : conjecture list * conjecture list =
@@ -80,9 +82,9 @@ let split_as_true_and_false conjectures p_ctxt : conjecture list * conjecture li
     and then return true/false conjectures using fold(thats inexpensive)
   *)
   let stats = validity_stats conjectures p_ctxt
-  in 
+  in
   let can_prove_state_stats = helpful_lemma_stats stats p_ctxt
-  in 
+  in
   let can_prove_conj_stats = lemma_provable_stats can_prove_state_stats p_ctxt
   in
   Proverbot.remove_current_search p_ctxt.dir;
@@ -90,10 +92,19 @@ let split_as_true_and_false conjectures p_ctxt : conjecture list * conjecture li
   Quickcheck.remove_files p_ctxt.dir;
   let valid_conjectures, invalid_conjectures =
       List.fold_left (
-                      fun (true_conj, false_conj) s ->
+                      fun (true_conj, false_conj) (s, time_to_p) ->
                         if s.is_valid then
                         (
                           Log.write_to_log (genstat_to_string s) !Log.stats_log_file;
+                          if s.is_prover_provable then
+                          (
+                            if not !Consts.logged_time_to_cat_1
+                            then 
+                            (
+                              Consts.time_to_category_1 := time_to_p;
+                              Consts.logged_time_to_cat_1:= true;
+                            );
+                          );
                           global_stat := s :: !global_stat;
                           (s.conjecture::true_conj, false_conj)
                         )

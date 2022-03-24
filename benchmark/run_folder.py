@@ -8,15 +8,17 @@ import csv
 
 from typing import Tuple
 
-lfind_decl = "From lfind Require Import LFind.\nUnset Printing Notations.\nSet Printing Implicit.\n"
+lfind_decl = "Load LFindLoad.\nFrom lfind Require Import LFind.\nUnset Printing Notations.\nSet Printing Implicit.\n"
 
 def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser = argparse.ArgumentParser(
         description=
         "Run benchmark files")
-    parser.add_argument('--prelude', default=".")
+    parser.add_argument('--prelude', default="./")
     parser.add_argument('--logical_directory', default="test")
-    parser.add_argument('--log_directory', default=".")
+    parser.add_argument('--log_directory', default="./")
+    parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--example_dir', default=None)
     return parser.parse_args(), parser
 
 def get_locations(folder):
@@ -60,9 +62,10 @@ def get_stuck_state(fname):
         print(e)
     return ""
 
-def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
+def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, example_dir, debug=False):
     counter = 0
     all_lemmas = 0
+    category_1_count = 0
     filtered_helper_lemma_dict = {}
     rewriter_failures = []
     invalid_ml_faulires =[]
@@ -85,6 +88,8 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                 current_line = content[lemma_line]
                 c_line_content = current_line.split(".")
                 c_modified_content = []
+                destination_name = str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+ "_"+lemma_name
+
                 destination_folder = os.path.join(os.path.dirname(source_folder),str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+ "_"+lemma_name)
 
                 stuck_folder = os.path.join(os.path.dirname(source_folder),"_lfind_" + str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1])+"_" + lemma_name)
@@ -96,9 +101,18 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                 else:
                     is_run_make = True
                 lemma_finder_copy(source_folder, destination_folder)
+                if example_dir:
+                    src = os.path.join(example_dir, destination_name)
+                    files=os.listdir(src)
+                    for file in files:
+                        print(file)
+                        shutil.copy2(os.path.join(src,file), destination_folder)
                 for i in range(0,len(c_line_content)):
                     if lemma_name in c_line_content[i]:
-                        c_modified_content.append("lfind")
+                        if debug:
+                            c_modified_content.append("lfind_debug")
+                        else:
+                            c_modified_content.append("lfind")
                     else:
                         c_modified_content.append(c_line_content[i])
                 lfind_content.append(". ".join(c_modified_content))
@@ -113,7 +127,7 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                 print(f"destination folder is {destination_folder}")
                 write_lemmafinder_content(os.path.join(destination_folder, file_name),lfind_content)
                 debug_log_folder = os.path.join(os.path.dirname(source_folder),"_lfind_" + str(os.path.basename(source_folder))+"_lf_" + os.path.splitext(file_name)[0] + "_" + location[0].replace("'","") + "_" + str(location[1]) + "_"+lemma_name)
-                log_file = f"{debug_log_folder}/lfind_debug_log.txt"
+                log_file = f"{debug_log_folder}/lfind_summary_log.txt"
                 make_log_file = f"{log_directory}/lfind_benchmark_log"
                 make_cmd = f"cd {destination_folder} && make > {make_log_file}"
                 print(make_cmd)
@@ -156,6 +170,11 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
                         lfind_log = os.path.join(log_folder, "lfind_log.txt")
                         with open(lfind_summary_log, 'r') as j:
                             lfind_log_content = j.read()
+                        with open(lfind_summary_log, 'r') as j:
+                            summary_content = j.readlines()
+                            for l in summary_content:
+                                if "Yes Cat 1: true" in l:
+                                    category_1_count += 1
                         theorem_name = os.path.splitext(file_name)[0] + "_" + location[0]
                         helper_name = os.path.splitext(file_name)[0] + "_" + location[2]
                         content_to_append = f"Theorem statement:\n{all_lemmas_from_file[theorem_name]}\n\nRequired Helper Statement:\n{all_lemmas_from_file[helper_name]}\n"
@@ -187,15 +206,17 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file):
     print(f"#myth parse errors: {len(myth_parse_errors)}\n")
     write_errors_to_csv(os.path.join(log_directory, "myth_parse_failures.csv"), myth_parse_errors)
     
-    return filtered_helper_lemma_dict, counter, all_lemmas
+    return filtered_helper_lemma_dict, counter, all_lemmas, category_1_count
 
 def main() -> None:
     args, parser = parse_arguments()
     helper_lemma_dict = get_locations(args.prelude)
     all_lemmas_from_file = get_all_lemmas(args.prelude)
-    filtered_helper_lemmas, total_lemmas, all_lemmas = run(args.prelude, helper_lemma_dict, args.log_directory, all_lemmas_from_file)
+    os.makedirs(args.log_directory, exist_ok=True)
+    filtered_helper_lemmas, total_lemmas, all_lemmas, cat_1_count = run(args.prelude, helper_lemma_dict, args.log_directory, all_lemmas_from_file, args.example_dir, args.debug)
     print(filtered_helper_lemmas)
     print(f"#Lemmas that pass lemmafinder/#Lemmas: {total_lemmas}/{all_lemmas} in {len(filtered_helper_lemmas)} coq files")
+    print(f"#Lemmas that contain category 1 results amongst the successful lemmas: {cat_1_count}/{total_lemmas} ")
 
 
 if __name__ == "__main__":

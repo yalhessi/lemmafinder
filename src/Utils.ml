@@ -187,3 +187,9 @@ let env_setup : unit =
   let coqofocaml_path = get_env_var "COQOFOCAML"
   in if String.equal coqofocaml_path "" then raise (Invalid_Env "COQOFOCAML path not set!")
   else Consts.coq_of_ocaml_path := coqofocaml_path;
+
+  let lfind_path = get_env_var "LFIND"
+  in if String.equal lfind_path "" then raise (Invalid_Env "LFIND SRC path not set!")
+  else Consts.lfind_path := if lfind_path.[(String.length lfind_path) -1] = '/' 
+                            then lfind_path
+                            else lfind_path ^ "/";
