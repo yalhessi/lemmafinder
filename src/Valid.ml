@@ -46,7 +46,7 @@ let validity_stats conjectures p_ctxt =
 
 let helpful_lemma_stats stats p_ctxt = 
   let n_cores = (Utils.cpu_count () / 2)
-  in Parmap.parmap ~ncores:n_cores
+  in Parmap.parmap ~ncores:1
           (
             fun s -> 
             if (s.is_valid) then 
@@ -61,7 +61,7 @@ let helpful_lemma_stats stats p_ctxt =
 
 let lemma_provable_stats stats p_ctxt = 
   let n_cores = (Utils.cpu_count () / 2)
-  in Parmap.parmap ~ncores:n_cores
+  in Parmap.parmap ~ncores:1
           (
             fun s -> 
             if (s.is_valid) then 

@@ -54,7 +54,7 @@ let coq_of_ocaml_path = ref ""
 
 let lfind_path = ref ""
 
-let myth_batch_size = 15
+let myth_batch_size = 5
 
 let time_to_category_1 = ref 0
 

@@ -98,9 +98,12 @@ def write_log_objs(csv_file, log_objs):
 "synth/gen",
 "total_synth",
 "total_gen"]
-    with open(csv_file, "w", newline="") as f:
+    if os.path.exists(csv_file):
+        column_names = []
+    with open(csv_file, "a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(column_names)
+        if len(column_names) > 0:
+            writer.writerow(column_names)
         s = sorted(log_objs, key=sort_logs_by_goal_no)
         for log_obj in s:
             writer.writerow(log_obj.row())
@@ -225,6 +228,17 @@ def compare_lemmas(lemma):
     # return len(lemma.split(",")[1])
     return getSizeOfNestedList(sexp_lemma)
 
+def get_stuck_provable(log_file):
+    contents = open(log_file).readlines()
+    is_stuck_provable = False
+    gen_stat_count = 0
+    for c in contents:
+        if "### Generalization Stat ###" in c:
+            gen_stat_count += 1
+        if gen_stat_count == 1 and "is_prover_provable" in c:
+            return (c.split(":")[1].strip()=="true")
+    return is_stuck_provable
+
 def get_ranked_lemmmas(lemma_file):
     contents = open(lemma_file).readlines()
     log_obj = LogDetails()
@@ -232,6 +246,12 @@ def get_ranked_lemmmas(lemma_file):
     is_useful = False
     is_valid = False
     for l in contents:
+        if ':' in l and '#' in l:
+            val = int(l.split(":")[1])
+        if "# Generalizations :" in l:
+            log_obj.total_gen = val
+        if "#Synthesized Lemmas not disprovable :" in l:
+            log_obj.total_synth = val
         if "Provable and Useful in Completing Stuck Goal (Category 1)" == l.strip():
             is_provable = True
         if "conj" in l and ":" in l and is_provable:
@@ -301,6 +321,7 @@ def run(lfind_op, log_dir):
                 lf_name = os.path.basename(f_name).replace("_lfind_","")
                 # l_file = os.path.join(log_dir, lf_name)
                 l_file = os.path.join(f_name, "lfind_summary_log.txt")
+                log_file = os.path.join(f_name, "lfind_log.txt")
                 count_total_lfind_logs +=1
                 log_obj = None
                 f_name_log = os.path.basename(f_name).replace("_lfind_","")
@@ -334,7 +355,8 @@ def run(lfind_op, log_dir):
                     lemma_synth.extend(log_obj.useful_stuck_provable_lemmas)
                     lemma_synth.extend(log_obj.valid_lemmas)
 
-                    print(len(lemma_synth))             
+                    print(len(lemma_synth))       
+                    log_obj.is_stuck_provable = get_stuck_provable(log_file)      
                     log_obj.helper_name = helper_lemma_name 
                     log_obj.helper_lemma = helper_lemma
                     pool_obj = multiprocessing.Pool(multiprocessing.cpu_count()-1)
@@ -389,6 +411,7 @@ def run(lfind_op, log_dir):
                     sort_and_print_lemmas(log_dir, log_obj)
                 if log_obj:
                     log_objs.append(log_obj)
+                    write_log_objs(os.path.join(log_dir,"summary.csv"), [log_obj])
                     provable_by_proverbot += int((log_obj.no_gen_provable + log_obj.no_synth_provable) > 0)
                     stuck_state_provable += int(log_obj.is_stuck_provable)
                     useful_stuck_provable_lemmas+=(len(log_obj.useful_stuck_provable_lemmas) > 0)
@@ -399,7 +422,7 @@ def run(lfind_op, log_dir):
                     missing_lemmas_profile[f_name] = "_lfind_ was not generated"
         break
     write_missing_lemmasto_csv(missing_lemmas_profile, log_dir)
-    write_log_objs(os.path.join(log_dir,"summary.csv"), log_objs)
+    # write_log_objs(os.path.join(log_dir,"summary.csv"), log_objs)
     matches_human = 0
     stronger_than_human = 0
     weaker_than_human = 0
