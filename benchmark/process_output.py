@@ -239,6 +239,19 @@ def get_stuck_provable(log_file):
             return (c.split(":")[1].strip()=="true")
     return is_stuck_provable
 
+def get_cat_2_from_log(log_file):
+    contents = open(log_file).readlines()
+    is_cat_2 = False
+    cat_2 = []
+    for l in contents:
+        if "# Lemmas useful to prove original goal" in l:
+            is_cat_2 = True
+        if "Lemma :" in l and is_cat_2:
+            cat_2.append(l.replace("Lemma :", "Lemma").strip())
+        if "### Synthesis Stats ###" in l:
+            is_cat_2 = False
+    return cat_2
+
 def get_ranked_lemmmas(lemma_file):
     contents = open(lemma_file).readlines()
     log_obj = LogDetails()
@@ -262,7 +275,7 @@ def get_ranked_lemmmas(lemma_file):
             is_useful = True
         if "conj" in l and ":" in l and is_useful:
             lem = "Lemma " + l
-            log_obj.useful_stuck_provable_lemmas.append(lem)
+            log_obj.useful_stuck_provable_lemmas.append(lem.strip())
         if "Valid Lemmas (Category 3)" == l.strip():
             is_valid = True
             is_useful = False
@@ -283,7 +296,7 @@ def  sort_and_print_lemmas(log_dir, log_obj):
     f.write("\nUseful in Completing Stuck Goal\n")
     s = log_obj.useful_stuck_provable_lemmas
     # sorted(log_obj.useful_stuck_provable_lemmas, key=compare_lemmas)
-    f.writelines('\n'.join(s))
+    f.writelines('\n\n'.join(s))
     f.write("\nValid Lemmas\n")
     s = log_obj.valid_lemmas
     # sorted(log_obj.valid_lemmas, key=compare_lemmas) 
@@ -349,6 +362,11 @@ def run(lfind_op, log_dir):
                             # sys.exit(0) 
                     imports = get_imports(lfind_state)
                     log_obj = get_ranked_lemmmas(l_file)
+                    cat_2_lemmas_from_log = get_cat_2_from_log(log_file)
+                    if len(cat_2_lemmas_from_log) > len(log_obj.useful_stuck_provable_lemmas):
+                        for l in cat_2_lemmas_from_log:
+                            if l not in log_obj.useful_stuck_provable_lemmas:
+                                log_obj.useful_stuck_provable_lemmas.append(l)
                     log_obj.sort_lemmas()
                     lemma_synth = []
                     lemma_synth.extend(log_obj.provable_lemmas)
