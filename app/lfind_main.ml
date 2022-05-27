@@ -184,6 +184,7 @@ let lfind_tac debug : unit Proofview.tactic =
         let start_time_synth = Unix.time ()
         in
         let cached_lemmas = ref (Hashtbl.create 1000)
+        in let cached_exprs = ref (Hashtbl.create 1000)
         in List.iter (
           fun c ->
           let curr_time = int_of_float(Unix.time ())
@@ -192,7 +193,7 @@ let lfind_tac debug : unit Proofview.tactic =
           if elapsed_time < 5100 then
           (print_endline c.conjecture_name;
           Log.debug (Consts.fmt "Cache size is %d\n" (Hashtbl.length !cached_lemmas));
-          (Synthesize.synthesize cached_lemmas p_ctxt ml_examples coq_examples c);)
+          (Synthesize.synthesize cached_exprs cached_lemmas p_ctxt ml_examples coq_examples c);)
           else ()
         )
         invalid_conjectures ;
