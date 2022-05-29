@@ -75,12 +75,14 @@ let get_type_of_atom env sigma atom =
 
 let rec get_return_type acc fun_type =
   match fun_type with
+  | (Sexp.Atom n)::[] -> n
   | (Sexp.Atom n):: tl -> if Utils.contains n "," then
                           (Sexp.string_of_sexpr tl)
                           else get_return_type acc tl
   | (Sexp.Expr e):: tl -> let head_acc = get_return_type acc e
                           in get_return_type head_acc tl
   | [] -> acc
+
 
 let derive_typ_quickchick typ_name : string= 
   Consts.fmt ("Derive Show for %s.\n
