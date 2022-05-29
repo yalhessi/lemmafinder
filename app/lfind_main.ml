@@ -47,34 +47,40 @@ let construct_state_as_lemma gl =
   in let c_ctxt = {env = env; sigma = sigma}
   in let atom_type_table = (update_type_table conc_atoms c_ctxt (Hashtbl.create 100))
   in let typs_from_conc = Hashtbl.fold (fun k v acc ->  if (Utils.contains v "Set") then k::acc else acc) atom_type_table []
-  in List.iter print_endline typs_from_conc;
+  in
   let hyps, vars, typs, var_typs =
     List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs) (v, hyp) -> 
-                              let var_str = (Names.Id.to_string v)
-                              in let hyp_str = (Consts.fmt "(%s:%s)" var_str (Utils.get_exp_str env sigma hyp))
-                              in if Utils.contains var_str "H"
-                                then 
-                                ( if Utils.contains hyp_str "forall" then acc_H, acc_V, acc_typs, acc_var_typs
-                                  else ( hyp_str::acc_H), acc_V, acc_typs, acc_var_typs
-                                )
-                                else
-                                  try 
-                                  let _ = Hashtbl.find var_set var_str
-                                  in (
-                                  let typ_name = (Utils.get_exp_str env sigma hyp)
-                                  (* in let typ_name = if String.equal typ_name "bool," then "bool" else typ_name *)
-                                  in let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t typ_name)) false acc_typs
-                                  in 
-                                  let updated_typ = match typ_exists with
-                                  | true -> acc_typs
-                                  | false -> (typ_name::acc_typs ) 
-                                  in 
-                                  acc_H, (var_str::acc_V), updated_typ, (hyp_str::acc_var_typs)
-                                  )
-                                  with _ ->
-                                  acc_H, acc_V, acc_typs, acc_var_typs
+                      let var_str = (Names.Id.to_string v)
+                      in let hyp_content =  (Utils.get_exp_str env sigma hyp)
+                      in let hyp_str = (Consts.fmt "(%s:%s)" var_str hyp_content)
+                      in
+                      let hyp_type = TypeUtils.get_type_of_atom env sigma hyp_content
+                      in let hyp_type = try TypeUtils.get_return_type "" (of_string ("(" ^ hyp_type ^ ")")) 
+                                         with  _ -> hyp_type
+                      in
+                      if Utils.contains hyp_type "Prop" then
+                        (hyp_str::acc_H), acc_V, acc_typs, acc_var_typs
+                      else
+                        (
+                          if Utils.contains hyp_type "Set" then
+                          (
+                            let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t hyp_content)) false acc_typs
+                            in let updated_typ = match typ_exists with
+                            | true -> acc_typs
+                            | false -> (hyp_content::acc_typs)
+                          in 
+                            acc_H, (var_str::acc_V), updated_typ, (hyp_str::acc_var_typs)
+                          )
+                          else
+                          (
+                            print_endline "There is a hypothesis that is neither Set or Prop";
+                            exit(0);
+                            acc_H, acc_V, acc_typs, acc_var_typs
+                          )
+                        )
                  ) ([],[],[],[]) hyps
-  in let hyps = List.append var_typs hyps
+  in
+  let hyps = List.append var_typs hyps
   in let typs = List.fold_left (fun acc v -> 
   let typ_name = v
     (* if String.equal v "bool," then "bool" else v  *)
@@ -184,6 +190,7 @@ let lfind_tac debug : unit Proofview.tactic =
         let start_time_synth = Unix.time ()
         in
         let cached_lemmas = ref (Hashtbl.create 1000)
+        in let cached_exprs = ref (Hashtbl.create 1000)
         in List.iter (
           fun c ->
           let curr_time = int_of_float(Unix.time ())
@@ -192,7 +199,7 @@ let lfind_tac debug : unit Proofview.tactic =
           if elapsed_time < 5100 then
           (print_endline c.conjecture_name;
           Log.debug (Consts.fmt "Cache size is %d\n" (Hashtbl.length !cached_lemmas));
-          (Synthesize.synthesize cached_lemmas p_ctxt ml_examples coq_examples c);)
+          (Synthesize.synthesize cached_exprs cached_lemmas p_ctxt ml_examples coq_examples c);)
           else ()
         )
         invalid_conjectures ;
