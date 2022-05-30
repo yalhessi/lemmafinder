@@ -4,7 +4,10 @@ import os
 import csv
 from posixpath import dirname, split
 from re import S, search, sub
+from sre_parse import State
 import sys
+import subprocess
+
 
 from torch import log_
 import coq_serapy
@@ -46,10 +49,43 @@ class LogDetails(object):
     def row(self):
         return [self.log_dir,self.is_stuck_provable,self.no_gen_provable,self.no_synth_provable, self.no_gen_useful_stuck_provable,self.no_syn_useful_stuck_provable,len(self.valid_lemmas), self.matches_human, self.matched_lemma,self.matched_lemma_loc,self.stronger_lemma,self.stronger_lemma_loc,self.weaker_lemma, self.weaker_lemma_loc, self.helper_name, self.helper_lemma, self.is_auto_provable, self.top_answer, self.total_synth, self.total_gen]
     
-    def sort_lemmas(self):
+    def premise(self, lemma, goal_state):
+        proverbot = os.getenv('PROVERBOT')
+        premise_file = os.path.join(proverbot, "src/score_premises.py")
+        weights_file = os.path.join(proverbot, "data/polyarg-weights.dat")
+        process = subprocess.Popen(["python3", premise_file, weights_file, goal_state, lemma], stdout=subprocess.PIPE)
+        res = process.communicate()[0].decode("utf-8").split("\n")
+        max_score = 0
+        for r in res:
+            try:
+                no = float(r)
+            except:
+                no = 0
+            if no > max_score:
+                max_score = no
+        return (lemma, max_score)
+
+    def sort_lemmas(self, premise_selection=False, goal_state=""):
         self.provable_lemmas = sorted(self.provable_lemmas, key=compare_lemmas)
-        self.useful_stuck_provable_lemmas = sorted(self.useful_stuck_provable_lemmas, key=compare_lemmas)
-        self.valid_lemmas = sorted(self.valid_lemmas, key=compare_lemmas)
+        if not premise_selection:
+            self.useful_stuck_provable_lemmas = sorted(self.useful_stuck_provable_lemmas, key=compare_lemmas)
+            self.valid_lemmas = sorted(self.valid_lemmas, key=compare_lemmas)
+        else:
+            cat_2_lemmas_with_scores = []
+            for l in self.useful_stuck_provable_lemmas:
+                cat_2_lemmas_with_scores.append(self.premise(l, goal_state))
+            assert len(cat_2_lemmas_with_scores) == len(self.useful_stuck_provable_lemmas)
+            self.useful_stuck_provable_lemmas = sorted(cat_2_lemmas_with_scores, key=lambda x: x[1], reverse=True)
+            if len(self.useful_stuck_provable_lemmas) > 0:
+                self.useful_stuck_provable_lemmas = (list(zip(*self.useful_stuck_provable_lemmas))[0])
+            
+            cat_3_lemmas_with_scores = []
+            for l in self.valid_lemmas:
+                cat_3_lemmas_with_scores.append(self.premise(l, goal_state))
+            assert len(cat_3_lemmas_with_scores) == len(self.valid_lemmas)
+            self.valid_lemmas = sorted(cat_3_lemmas_with_scores, key=lambda x: x[1], reverse=True)
+            if len(self.valid_lemmas) > 0:
+                self.valid_lemmas = (list(zip(*self.valid_lemmas))[0])
 
 def get_lemmas(benchmark_file):
     import json
@@ -133,6 +169,8 @@ def get_helper_lemma(prelude):
             elif len(split_name) > 2 and split_name[2] == comb_name:
                 theorem_name = l[2].replace("'","")
                 alternate_theorem_name = os.path.basename(k).split(".")[0] + "_" + theorem_name
+            else:
+                theorem_name = lemma_filename + "_" + l[2]
     return theorem_name, alternate_theorem_name
 
 def is_proof_complete(prelude, imports, proof_cmds, stmts=[]):
@@ -203,6 +241,23 @@ def is_weaker_than_human(human_lemma_name, synth_lemma, prelude, imports):
         "Qed."]
     is_proof_complete_rewrite_left = is_proof_complete(prelude, imports, rewrite_proof_cmds)
     return is_proof_complete_apply or is_proof_complete_rewrite or is_proof_complete_rewrite_left
+
+def get_goal_state(fname):
+    file = open(fname, 'r')
+    lines = file.readlines()
+    state = ""
+    is_state = False
+    i = 0
+    for i in range(0, len(lines)):
+        if "Lemma lfind_state" in lines[i]:
+            state += lines[i]
+            i+=1
+            while "Admitted" not in lines[i]:
+                state+=lines[i]
+                i+=1
+        if i >= len(lines):
+            break
+    return state
 
 def get_imports(fname):
     file = open(fname, 'r')
@@ -349,10 +404,12 @@ def run(lfind_op, log_dir):
                     helper_lemma_name, alternate_helper_lemma_name = get_helper_lemma(f_name)
                     try:
                         helper_lemma = all_lemmas[helper_lemma_name]
+                        helper_lemma_name = helper_lemma.split(":")[0].replace("Lemma ", "").replace("Theorem ", "")
                         # continue
                     except:
                         try:
                             helper_lemma = all_lemmas[alternate_helper_lemma_name]
+                            helper_lemma_name = helper_lemma.split(":")[0].replace("Lemma ", "").replace("Theorem ", "")
                         except:
                             helper_lemma = ""
                             print(f"helper was not found {helper_lemma_name}")
@@ -367,7 +424,8 @@ def run(lfind_op, log_dir):
                         for l in cat_2_lemmas_from_log:
                             if l not in log_obj.useful_stuck_provable_lemmas:
                                 log_obj.useful_stuck_provable_lemmas.append(l)
-                    log_obj.sort_lemmas()
+                    goal_state = get_goal_state(lfind_state).strip()
+                    log_obj.sort_lemmas(True, goal_state)
                     lemma_synth = []
                     lemma_synth.extend(log_obj.provable_lemmas)
                     lemma_synth.extend(log_obj.useful_stuck_provable_lemmas)
