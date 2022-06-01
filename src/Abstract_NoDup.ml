@@ -124,13 +124,11 @@ let abstract (p_ctxt : proof_context)
   in Log.debug (Consts.fmt "Size of terms list %d\n and Terms from the goal [%s]\n" (List.length terms) (List.fold_left (fun acc e -> acc ^ ";" ^ ((string_of_sexpr e))) "" terms));
   (* Added empty generalization for synthesizing from stuck state. *)
   let generalization_set = (sets terms)
-  in let hypo_implies_conc =
-    if with_hyp then 
-    LatticeUtils.construct_implications p_ctxt.goal p_ctxt.hypotheses
-    else p_ctxt.goal
-  in let all_type_table = Hashtbl.fold (fun k v acc -> Hashtbl.add acc k v; acc ) atom_type_table expr_type_table
-  in let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set all_type_table (of_string hypo_implies_conc)
+  in let hypo_implies_conc = p_ctxt.goal
+  in
+  let all_type_table = Hashtbl.fold (fun k v acc -> Hashtbl.add acc k v; acc ) atom_type_table expr_type_table
+  in let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set all_type_table conc_sexp hypo_sexps
   in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table expr_type_table p_ctxt)
   in
-  Log.debug (Consts.fmt "Generalizations: \n%s\n" (List.fold_left (fun acc c -> acc ^ (c.conjecture_str) ^ "\n") "" conjectures));
+  Log.debug (Consts.fmt "Generalizations: \n%s\n" (List.fold_left (fun acc c -> acc ^ (LatticeUtils.construct_implications c.conjecture_str c.hyps) ^ "\n") "" conjectures));
   terms, conjectures

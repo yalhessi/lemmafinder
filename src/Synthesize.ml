@@ -158,7 +158,8 @@ let get_synthesis_conjecture is_equal_conj op_type curr_synth_term conjecture va
                                   body_sexp = [];
                                   lfind_vars = [];
                                   all_expr_type_table = Hashtbl.create 0;
-                                  atom_type_table = var_types
+                                  atom_type_table = var_types;
+                                  hyps = conjecture.hyps;
                                 }
   in synthesized_expr, synthesis_conjecture
 

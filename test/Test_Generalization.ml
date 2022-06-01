@@ -109,13 +109,34 @@ let generalize_expr_list () =
   Hashtbl.add expr_type_table "rev y" "(forall _ : listnat, listnat)";
   Hashtbl.add expr_type_table "app x y" "(forall (_ : listnat) (_ : listnat), listnat)";
   Hashtbl.add expr_type_table "rev (app x y)" "(forall _ : listnat, listnat)";
-  let goal, sigma, vars = Generalize_NoDup.generalize_exprL gen_expr expr_type_table state_sexp
+  let goal, sigma, vars, hyps = Generalize_NoDup.generalize_exprL gen_expr expr_type_table state_sexp []
   in let expected_gen = "(@eq listnat lf1 (app lf2 (rev x)))"
   in let expected_var_names = ["lf2"; "lf1"]
   in let expected_sigma = Hashtbl.create 2
   in Hashtbl.add expected_sigma "" "";
   let matches = String.equal expected_gen (Sexp.string_of_sexpr goal) && expected_var_names = vars
   in Alcotest.(check bool) "goal generalized with expr list" true matches
+
+let generalize_expr_list_with_hyp () = 
+  let state = "(@eq listnat (rev (app x y)) (app (rev y) (rev x)))"
+  in let state_sexp = Sexp.of_string state
+  in let terms, atoms = Abstract_NoDup.collect_terms_no_dup [] [] state_sexp
+  in let gen_expr = [List.nth terms 1; List.nth terms 4]
+  in let expr_type_table = Hashtbl.create 3
+  in Hashtbl.add expr_type_table "app (rev y) (rev x)" "(forall (_ : listnat) (_ : listnat), listnat)";
+  Hashtbl.add expr_type_table "rev x" "(forall _ : listnat, listnat)";
+  Hashtbl.add expr_type_table "rev y" "(forall _ : listnat, listnat)";
+  Hashtbl.add expr_type_table "app x y" "(forall (_ : listnat) (_ : listnat), listnat)";
+  Hashtbl.add expr_type_table "rev (app x y)" "(forall _ : listnat, listnat)";
+  let goal, sigma, vars, hyps = Generalize_NoDup.generalize_exprL gen_expr expr_type_table state_sexp [Sexp.of_string "(@eq listnat (rev (app x y)) (app (rev y) (rev x)))"]
+  in
+  let expected_gen = "(@eq listnat lf1 (app lf2 (rev x)))"
+  in let expected_var_names = ["lf2"; "lf1"]
+  in let expected_sigma = Hashtbl.create 2
+  in Hashtbl.add expected_sigma "" "";
+  let expected_hyp = "(@eq listnat lf1 (app lf2 (rev x)))"
+  in let matches = String.equal expected_gen (Sexp.string_of_sexpr goal) && expected_var_names = vars && String.equal expected_hyp (Sexp.string_of_sexpr (List.nth hyps 0))
+  in Alcotest.(check bool) "goal and hypotheses generalized with expr list" true matches
 
 let collect_generalizations () =
   let state = "(@eq listnat (rev (app x y)) (app (rev y) (rev x)))"
@@ -130,7 +151,7 @@ let collect_generalizations () =
   Hashtbl.add type_table "app x y" "(forall (_ : listnat) (_ : listnat), listnat)";
   Hashtbl.add type_table "rev (app x y)" "(forall _ : listnat, listnat)";
   Hashtbl.add type_table "listnat" "Set";
-  let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set type_table state_sexp
+  let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set type_table state_sexp []
   in let expected_no_gen = 32
   in let is_matches = 32 = (List.length generalizations)
   in Alcotest.(check bool) "goal generalized with expr list" true is_matches
@@ -143,5 +164,6 @@ let all = [
   ("test generalization of an expression"            ,        `Quick, generalize_expr);
   ("test term sorting in descending order"           ,        `Quick, sort_terms);
   ("test generalization of list of expressions"            ,        `Quick, generalize_expr_list);
+  ("test generalization of goal and hyp with list of expressions"            ,        `Quick, generalize_expr_list_with_hyp);
   ("test generation of generalizations"            ,        `Quick, collect_generalizations);
 ]

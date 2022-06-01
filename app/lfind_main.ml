@@ -48,18 +48,25 @@ let construct_state_as_lemma gl =
   in let atom_type_table = (update_type_table conc_atoms c_ctxt (Hashtbl.create 100))
   in let typs_from_conc = Hashtbl.fold (fun k v acc ->  if (Utils.contains v "Set") then k::acc else acc) atom_type_table []
   in
-  let hyps, vars, typs, var_typs =
-    List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs) (v, hyp) -> 
+  let hyps, vars, typs, var_typs, hyps_str =
+    List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str) (v, hyp) -> 
                       let var_str = (Names.Id.to_string v)
                       in let hyp_content =  (Utils.get_exp_str env sigma hyp)
                       in let hyp_str = (Consts.fmt "(%s:%s)" var_str hyp_content)
                       in
-                      let hyp_type = TypeUtils.get_type_of_atom env sigma hyp_content
-                      in let hyp_type = try TypeUtils.get_return_type "" (of_string ("(" ^ hyp_type ^ ")")) 
+                      let hyp_type = try TypeUtils.get_type_of_atom env sigma hyp_content
+                                     with _ -> 
+                                     (
+                                       if Utils.contains hyp_content "forall" 
+                                        then (print_endline "Hypotheses contains forall, Quickchick might not work!"; exit(0);)
+                                        else ""
+                                     ) 
+                      in
+                      let hyp_type = try TypeUtils.get_return_type "" (of_string ("(" ^ hyp_type ^ ")")) 
                                          with  _ -> hyp_type
                       in
                       if Utils.contains hyp_type "Prop" then
-                        (hyp_str::acc_H), acc_V, acc_typs, acc_var_typs
+                        (hyp_str::acc_H), acc_V, acc_typs, acc_var_typs, (("(" ^ hyp_content ^ ")") :: acc_hyps_str)
                       else
                         (
                           if Utils.contains hyp_type "Set" then
@@ -69,35 +76,35 @@ let construct_state_as_lemma gl =
                             | true -> acc_typs
                             | false -> (hyp_content::acc_typs)
                           in 
-                            acc_H, (var_str::acc_V), updated_typ, (hyp_str::acc_var_typs)
+                            acc_H, (var_str::acc_V), updated_typ, (hyp_str::acc_var_typs), acc_hyps_str
                           )
                           else
                           (
                             print_endline "There is a hypothesis that is neither Set or Prop";
                             exit(0);
-                            acc_H, acc_V, acc_typs, acc_var_typs
+                            acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str
                           )
                         )
-                 ) ([],[],[],[]) hyps
+                 ) ([],[],[],[],[]) hyps
   in
-  let hyps = List.append var_typs hyps
+  let all_hyps = List.append var_typs hyps
   in let typs = List.fold_left (fun acc v -> 
   let typ_name = v
     (* if String.equal v "bool," then "bool" else v  *)
   in if (List.exists (String.equal typ_name) acc) then acc else typ_name::acc) typs typs_from_conc
-  in if List.length hyps == 0 then
+  in if List.length all_hyps == 0 then
      (
        let var_forall = List.fold_left (fun acc v -> acc ^ " " ^ v) "forall" vars
        in if List.length vars > 0 then
-       (Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall conc), typs, var_typs, vars
+       (Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall conc), typs, var_typs, vars, hyps_str
        else
-       (Consts.fmt "Lemma %s: %s.\nAdmitted." Consts.lfind_lemma conc), typs, var_typs, vars
+       (Consts.fmt "Lemma %s: %s.\nAdmitted." Consts.lfind_lemma conc), typs, var_typs, vars, hyps_str
      )
     else
     (
       let vars_all = ""
         (* List.fold_left (fun acc v -> acc ^ " " ^ v)  "" vars *)
-      in (Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all (String.concat " " hyps) conc), typs, var_typs, vars
+      in (Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all (String.concat " " all_hyps) conc), typs, var_typs, vars, hyps_str
     )
 
 let lfind_tac debug : unit Proofview.tactic =
@@ -111,7 +118,7 @@ let lfind_tac debug : unit Proofview.tactic =
     else
       begin
         Utils.env_setup;
-        let curr_state_lemma, typs, var_typs, vars = construct_state_as_lemma gl
+        let curr_state_lemma, typs, var_typs, vars, hyps = construct_state_as_lemma gl
         in print_endline curr_state_lemma;
         let p_ctxt, c_ctxt = construct_proof_context gl
         in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
@@ -120,7 +127,7 @@ let lfind_tac debug : unit Proofview.tactic =
         let module_names =
           Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
         in
-        let p_ctxt = {p_ctxt with modules = module_names; types = typs}
+        let p_ctxt = {p_ctxt with modules = module_names; types = typs; hypotheses = hyps}
         (* Generate .ml file and check if it is parsable by myth *)
         in let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
         in 

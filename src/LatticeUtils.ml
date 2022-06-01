@@ -21,6 +21,7 @@ type conjecture = {
   lfind_vars : string list;
   all_expr_type_table : (string, string) Hashtbl.t;
   atom_type_table : (string, string) Hashtbl.t;
+  hyps : Sexp.t list list;
 }
 
 let remove_conjecture_dups conjectures = 
@@ -62,8 +63,8 @@ let rec sets = function
 let conjs_to_string (conjectures: conjecture list) : string =
     List.fold_left (fun acc conj -> acc ^ conj.conjecture_str ^ "\n") "" conjectures
 
-let construct_implications (conc: string) (hyps: string list) : string =
-    List.fold_left (fun acc hyp -> "(" ^ hyp ^  "->" ^ acc ^ ")") conc hyps
+let construct_implications (conc: string) (hyps: Sexp.t list list) : string =
+    List.fold_left (fun acc hyp -> "(" ^ (Sexp.string_of_sexpr hyp) ^  "->" ^ acc ^ ")") conc hyps
 
 let gen_conjecture_name prefix inc = 
     prefix ^ "conj" ^ (string_of_int (inc()))

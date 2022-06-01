@@ -7,6 +7,27 @@ open ExprUtils
 let gen_var next_val = 
   "lf" ^ (string_of_int (next_val()))
 
+let generalize_expr_with_var (expr: Sexp.t list) (var_name: string) (s: Sexp.t list)=
+  let rec aux (acc: string list) = function 
+  | (Atom tag)::tl -> 
+                      if (equal [Atom tag] (expr)) then
+                        (aux ((var_name)::acc) tl)
+                      else
+                        (aux ((protect tag)::acc) tl)
+  | (Expr e)::tl ->
+    let str_to_concat= (aux [] e)
+    in
+    let to_app = if (equal e expr) then 
+                  var_name
+                 else 
+                  "(" ^ (String.concat " " str_to_concat) ^ ")"
+      in
+      aux (to_app::acc) tl
+  | [] -> (List.rev acc)
+  in
+  let str_expr = (aux [] s)
+  in String.concat " " str_expr
+  
 let generalize_expr (s: Sexp.t list) (expr: Sexp.t list) (next_val: unit -> int) =
   let var_name = ref ""
   in let rec aux (acc: string list) = function 
@@ -43,24 +64,25 @@ let generalize_expr (s: Sexp.t list) (expr: Sexp.t list) (next_val: unit -> int)
   
 let generalize_exprL (exprL: Sexp.t list list)
                      (type_table: (string, string) Hashtbl.t)
-                     (goal: Sexp.t list) =
+                     (goal: Sexp.t list)
+                     (hypotheses: Sexp.t list list)
+                     =
   let sigma = Hashtbl.create 100
   in let counter = ref 0
-  in List.fold_left 
-             (fun (acc, sigma, vars) e ->
+  in List.fold_left
+             (fun (acc, sigma, vars, acc_hyps) e ->
                 let gen, var_name = (generalize_expr acc e (Utils.next_val counter))
                 in if String.equal var_name ""
                     then 
-                      acc, sigma, vars
+                      acc, sigma, vars, acc_hyps
                     else 
                     (
-                      (
-                        (Hashtbl.add sigma var_name (e, (Hashtbl.find type_table (string_of_sexpr e))));
-                        of_string gen, sigma, var_name::vars
-                      )
+                      let subs_hyps = List.map (fun hyp -> of_string (generalize_expr_with_var e var_name hyp)) acc_hyps
+                      in (Hashtbl.add sigma var_name (e, (Hashtbl.find type_table (string_of_sexpr e))));
+                        of_string gen, sigma, var_name::vars, subs_hyps
                     )
              )
-             (goal, sigma, []) exprL
+             (goal, sigma, [], hypotheses) exprL
 
 let get_var_type t =
   let return_type = try (TypeUtils.get_return_type "" (of_string t)) with _ -> t
@@ -86,7 +108,8 @@ let get_all_conjectures generalizations
     Output: De-duped set of generalizations as conjecture objects
   *)
   let counter = ref 0
-  in let generalized_conjecture_strings = List.map (fun (g, sigma, vars) ->
+  in let generalized_conjecture_strings = 
+              List.map (fun (g, sigma, vars, hyps) ->
                   let gvars = (get_variables_in_expr g [] p_ctxt.vars)
                   in let var_str = (List.fold_left (fun acc v -> 
                                                     acc ^ 
@@ -109,6 +132,7 @@ let get_all_conjectures generalizations
                       lfind_vars=vars;
                       all_expr_type_table = expr_type_table;
                       atom_type_table = atom_type_table;
+                      hyps = hyps;
                      }
                 )
             generalizations
@@ -125,6 +149,7 @@ let get_all_conjectures generalizations
                                        lfind_vars=c.lfind_vars;
                                        all_expr_type_table = c.all_expr_type_table;
                                        atom_type_table = c.atom_type_table;
+                                       hyps = c.hyps;
                                       }
                         in (conj::acc)
                     ) [] conjectures
@@ -132,6 +157,7 @@ let get_all_conjectures generalizations
 let construct_all_generalizations (generalization_set: Sexp.t list list list) 
                                   (type_table: (string, string) Hashtbl.t)
                                   (goal: Sexp.t list)
+                                  (hypotheses: Sexp.t list list)
                                    =
   (* 
     Input: Powerset of all terms, types, and goal
@@ -140,6 +166,6 @@ let construct_all_generalizations (generalization_set: Sexp.t list list list)
   List.map
         (
           fun g -> let sorted_g = LatticeUtils.sort_by_size g
-          in generalize_exprL sorted_g type_table goal
+          in generalize_exprL sorted_g type_table goal hypotheses
         ) generalization_set
 
