@@ -16,6 +16,7 @@ type generalization_stat = {
     is_provable : bool;
     is_prover_provable: bool;
     synthesis_stats : synthesis_stat list;
+    cgs: string list;
 }
 
 let global_stat : generalization_stat list ref = ref []

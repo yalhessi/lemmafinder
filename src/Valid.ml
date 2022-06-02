@@ -22,24 +22,26 @@ let generate_lfind_file (p_ctxt: proof_context)
   lfind_file
 
 let check_validity (conjecture: conjecture)
-                   (p_ctxt: proof_context) : bool =
+                   (p_ctxt: proof_context) 
+                   : bool * string list =
   let name = conjecture.conjecture_name in
   let lfind_file = generate_lfind_file p_ctxt conjecture.conjecture_str name
-  in let is_valid = Quickcheck.run lfind_file p_ctxt.namespace p_ctxt.dir
+  in let is_valid, cgs = Quickcheck.run lfind_file p_ctxt.namespace p_ctxt.dir
   in
-  is_valid
+  is_valid, cgs
 
 let validity_stats conjectures p_ctxt =
     let n_cores = (Utils.cpu_count () / 2)
     in Parmap.parmap ~ncores:n_cores
                        (
-                          fun c -> let is_valid = check_validity c p_ctxt 
+                          fun c -> let is_valid, cgs = check_validity c p_ctxt 
                           in let g_stat = {
                                              conjecture = c;
                                              is_valid =is_valid;
                                              is_provable = false;
                                              is_prover_provable = false;
-                                             synthesis_stats=[]
+                                             synthesis_stats=[];
+                                             cgs = cgs
                                           }
                           in g_stat
                        ) (Parmap.L conjectures)

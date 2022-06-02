@@ -208,8 +208,8 @@ let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture 
   in Parmap.parmap ~ncores:n_cores (fun (s, conj) ->
                       (
                         (
-                          let is_valid = Valid.check_validity conj p_ctxt
-                          in (s, conj, is_valid)
+                          let is_valid, cgs = Valid.check_validity conj p_ctxt
+                          in (s, conj, is_valid, cgs)
                          )
                       )
                   ) (Parmap.L synthesized_conjectures)
@@ -272,8 +272,7 @@ let synthesize_lemmas (synth_count: int ref)
   Log.debug (Consts.fmt "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term));
   let all_vars = List.append p_ctxt.vars conjecture.lfind_vars
   in let _, output_examples = (Evaluate.evaluate_coq_expr curr_synth_term coq_examples p_ctxt all_vars conjecture.sigma (Some conjecture))
-  in 
-  
+  in
   let vars_for_synthesis = get_vars_for_synthesis conjecture curr_synth_term p_ctxt.vars all_vars
   in 
   let synthesized_conjectures, enumerated_exprs = enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt ml_examples output_examples synth_count false
@@ -299,7 +298,7 @@ let synthesize_lemmas (synth_count: int ref)
   
   let filtered_valid_conjectures = filter_valid_conjectures filtered_conjectures p_ctxt conjecture
   in let valid_conjectures = List.fold_right (
-                                              fun (s, conj, is_valid) acc ->
+                                              fun (s, conj, is_valid, cgs) acc ->
                                                 if is_valid then
                                                 (
                                                   (s,conj)::acc
@@ -362,12 +361,13 @@ let synthesize cached_exprs cached_lemmas p_ctxt ml_examples coq_examples conjec
     in let synth_stats = List.map (synthesize_lemmas synth_count conjecture ml_examples coq_examples p_ctxt cached_lemmas cached_exprs) sorted_synth_terms
     in
     let gen_stat = {
-                        conjecture = conjecture;
-                        is_valid = false;
-                        is_provable = false;
-                        is_prover_provable = false;
-                        synthesis_stats = synth_stats;
-                      }
+                      conjecture = conjecture;
+                      is_valid = false;
+                      is_provable = false;
+                      is_prover_provable = false;
+                      synthesis_stats = synth_stats;
+                      cgs = [];
+                   }
     in Log.write_to_log (genstat_to_string gen_stat) !Log.stats_log_file;
     global_stat := gen_stat :: !global_stat;
     ()
