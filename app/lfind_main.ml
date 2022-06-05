@@ -194,6 +194,11 @@ let lfind_tac debug : unit Proofview.tactic =
         
         let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
         in
+        let hyp_conjectures = Hypotheses.conjectures_with_hyp invalid_conjectures p_ctxt
+        in 
+        let hypo_valid_conjectures, _ = (Valid.split_as_true_and_false hyp_conjectures p_ctxt)
+        in
+        Log.debug (Consts.fmt "no of valid conjectures with hypotheses is %d" (List.length hypo_valid_conjectures));
         let start_time_synth = Unix.time ()
         in
         let cached_lemmas = ref (Hashtbl.create 1000)

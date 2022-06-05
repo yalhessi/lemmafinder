@@ -4,6 +4,27 @@ open LatticeUtils
 open ProofContext
 open ExprUtils
 
+
+let add_expr_vars expr_vars vars var sigma =
+  let is_exists_in_vars = List.exists (fun v -> String.equal v var) vars
+  in let is_exists_in_sigma = try 
+                                let _ = Hashtbl.find sigma var
+                                in true
+                              with _ -> false
+  in let is_dup = List.exists (fun v -> String.equal v var) expr_vars
+  in if (is_exists_in_vars || is_exists_in_sigma) & (not is_dup) 
+     then List.append expr_vars [var]
+     else expr_vars
+
+let rec get_variables_in_expr expr expr_vars vars sigma : string list=
+  match expr with
+  | (Atom v) :: tl -> 
+                      get_variables_in_expr tl (add_expr_vars expr_vars vars v sigma) vars sigma
+  | (Expr hd) :: tl ->
+                      let head_vars = get_variables_in_expr hd expr_vars vars sigma
+                        in get_variables_in_expr tl head_vars vars sigma
+  | [] -> expr_vars
+
 let gen_var next_val = 
   "lf" ^ (string_of_int (next_val()))
 
@@ -93,10 +114,8 @@ let get_var_type t =
 
 let get_conjecture (gen: string) sigma var_str counter: string =
   let conjecture_str = ": forall " ^ var_str
-  in let quantified_var_str = Hashtbl.fold (fun k (e, t) acc 
-                                            -> acc ^ "("^ k ^ (get_var_type t) ^")"
-                                           )  sigma conjecture_str
-  in quantified_var_str ^ " , " ^ gen
+  in
+  conjecture_str ^ " , " ^ gen
 
 let get_all_conjectures generalizations
                         (atom_type_table : (string, string) Hashtbl.t)
@@ -110,16 +129,21 @@ let get_all_conjectures generalizations
   let counter = ref 0
   in let generalized_conjecture_strings = 
               List.map (fun (g, sigma, vars, hyps) ->
-                  let gvars = (get_variables_in_expr g [] p_ctxt.vars)
+                  let gvars = (get_variables_in_expr g [] p_ctxt.vars sigma)
                   in let var_str = (List.fold_left (fun acc v -> 
-                                                    acc ^ 
-                                                    (" (" 
-                                                      ^ v 
-                                                      ^":"
-                                                      ^ (Hashtbl.find atom_type_table v) 
-                                                      ^ ")"
-                                                    )
-                                                   ) "" gvars)
+                                          acc ^ 
+                                          (
+                                            try 
+                                                        " (" 
+                                                        ^ v 
+                                                        ^":"
+                                                        ^ (Hashtbl.find atom_type_table v) 
+                                                        ^ ")"
+                                            with _ -> 
+                                            (let _, t = Hashtbl.find sigma v
+                                            in "("^ v ^ (get_var_type t) ^")")
+                                          )
+                                          ) "" gvars)
                   in
                   let conjecture_body = (get_conjecture (string_of_sexpr g) sigma var_str counter)
                   in
@@ -133,6 +157,10 @@ let get_all_conjectures generalizations
                       all_expr_type_table = expr_type_table;
                       atom_type_table = atom_type_table;
                       hyps = hyps;
+                      cgs = [];
+                      vars = gvars;
+                      vars_with_types = var_str;
+                      normalized_var_map = Hashtbl.create 0;
                      }
                 )
             generalizations
@@ -150,6 +178,10 @@ let get_all_conjectures generalizations
                                        all_expr_type_table = c.all_expr_type_table;
                                        atom_type_table = c.atom_type_table;
                                        hyps = c.hyps;
+                                       cgs = c.cgs;
+                                       vars = c.vars;
+                                       vars_with_types = c.vars_with_types;
+                                       normalized_var_map = Hashtbl.create 0;
                                       }
                         in (conj::acc)
                     ) [] conjectures

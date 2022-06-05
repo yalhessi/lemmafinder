@@ -22,6 +22,10 @@ type conjecture = {
   all_expr_type_table : (string, string) Hashtbl.t;
   atom_type_table : (string, string) Hashtbl.t;
   hyps : Sexp.t list list;
+  cgs : string list;
+  vars: string list;
+  vars_with_types: string;
+  normalized_var_map: (string, string) Hashtbl.t;
 }
 
 let remove_conjecture_dups conjectures = 

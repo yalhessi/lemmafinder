@@ -112,7 +112,7 @@ let split_as_true_and_false conjectures p_ctxt : conjecture list * conjecture li
                         )
                         else 
                         (
-                          true_conj, List.append false_conj [s.conjecture]
+                          true_conj, List.append false_conj [{s.conjecture with cgs = s.cgs}]
                         )
                      ) ([], []) can_prove_conj_stats
   in
