@@ -107,7 +107,10 @@ let generalize_exprL (exprL: Sexp.t list list)
 
 let get_var_type t =
   let return_type = try (TypeUtils.get_return_type "" (of_string t)) with _ -> t
-  in return_type
+  in
+  if String.equal return_type ""
+      then return_type
+      else ":" ^ return_type
 
 let get_conjecture (gen: string) sigma var_str counter: string =
   let conjecture_str = ": forall " ^ var_str
@@ -124,44 +127,32 @@ let get_all_conjectures generalizations
     Output: De-duped set of generalizations as conjecture objects
   *)
   let counter = ref 0
-  in let generalized_conjecture_strings =
+  in let generalized_conjecture_strings = 
               List.map (fun (g, sigma, vars, hyps) ->
                   let gvars = (get_variables_in_expr g [] p_ctxt.vars sigma)
-                  in let var_types = Hashtbl.create (List.length gvars)
                   in let var_str = (List.fold_left (fun acc v -> 
                                           acc ^ 
                                           (
                                             try 
-                                              Hashtbl.add var_types v (Hashtbl.find atom_type_table v);
-                                              " (" 
-                                              ^ v 
-                                              ^":"
-                                              ^ (Hashtbl.find atom_type_table v) 
-                                              ^ ")"
+                                                        " (" 
+                                                        ^ v 
+                                                        ^":"
+                                                        ^ (Hashtbl.find atom_type_table v) 
+                                                        ^ ")"
                                             with _ -> 
-                                            (
-                                              let _, t = Hashtbl.find sigma v
-                                              in let return_type = (get_var_type t)
-                                              in Hashtbl.add var_types v return_type;
-                                              let v_type = if String.equal return_type ""
-                                              then return_type
-                                              else ":" ^ return_type
-                                              in
-                                              "("^ v ^ v_type ^")"
-                                            )
+                                            (let _, t = Hashtbl.find sigma v
+                                            in "("^ v ^ (get_var_type t) ^")")
                                           )
                                           ) "" gvars)
                   in
-                  let var_str, _, normalized_vars = Sexp.normalize_sexp g var_types
-                  in let normalized_g = Sexp.normalize_sexp_vars g normalized_vars
-                  in let conjecture_body = (get_conjecture normalized_g sigma var_str counter)
+                  let conjecture_body = (get_conjecture (string_of_sexpr g) sigma var_str counter)
                   in
                    {
                       sigma=sigma; 
                       conjecture_str="";
                       conjecture_name="";
                       body=conjecture_body;
-                      body_sexp=(Sexp.of_string normalized_g);
+                      body_sexp=g;
                       lfind_vars=vars;
                       all_expr_type_table = expr_type_table;
                       atom_type_table = atom_type_table;
@@ -169,7 +160,7 @@ let get_all_conjectures generalizations
                       cgs = [];
                       vars = gvars;
                       vars_with_types = var_str;
-                      normalized_var_map = normalized_vars;
+                      normalized_var_map = Hashtbl.create 0;
                      }
                 )
             generalizations
@@ -190,7 +181,7 @@ let get_all_conjectures generalizations
                                        cgs = c.cgs;
                                        vars = c.vars;
                                        vars_with_types = c.vars_with_types;
-                                       normalized_var_map = c.normalized_var_map;
+                                       normalized_var_map = Hashtbl.create 0;
                                       }
                         in (conj::acc)
                     ) [] conjectures
