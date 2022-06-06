@@ -58,10 +58,10 @@ let get_synthesized_prover_provable_lemmas stats=
                 ) ([],0) stats
 
 let get_synthesized_provable_lemmas stats=
-   let conj, count =  List.fold_left (fun (acc,len) g_stat -> 
+   let conj, count =  List.fold_left (fun (acc,len) g_stat ->
                     let new_acc, l = 
                     (List.fold_left 
-                        (fun (acc_synth,len) s_stat -> 
+                        (fun (acc_synth,len) s_stat ->
                             let l = len + (List.length s_stat.provable_lemmas)
                             in List.append s_stat.provable_lemmas acc_synth, l
                         ) (acc, 0) g_stat.synthesis_stats
@@ -109,10 +109,10 @@ let summarize stats curr_state_lemma =
     let no_valid_gen_lemmas = List.length (List.filter (fun g -> g.is_valid) (List.tl useful_stats))
     in let gen_useful_provable_lemmas, len_gen_useful_provable_lemmas = generalized_lemma_useful_and_provable (List.tl useful_stats)
     in let gen_provable_lemmas, len_gen_provable_lemmas = generalized_lemma_useful (List.tl useful_stats)
-    in let total_synthesized_valid_lemmas = get_synthesized_valid_lemmas (List.tl useful_stats)
-    in let str_provable_lemmas, total_synthesized_provable_lemmas = get_synthesized_provable_lemmas (List.tl useful_stats)
+    in let total_synthesized_valid_lemmas = get_synthesized_valid_lemmas useful_stats
+    in let str_provable_lemmas, total_synthesized_provable_lemmas = get_synthesized_provable_lemmas useful_stats
     in let str_prover_provable_lemmas, total_synth_prover_provable_lemmas =
-    get_synthesized_prover_provable_lemmas (List.tl useful_stats)
+    get_synthesized_prover_provable_lemmas useful_stats
     in let cat_1_lemmas_str,cat_1_lemmas = combine_gen_synth_sort gen_useful_provable_lemmas str_prover_provable_lemmas []
     in
     let cat_2_lemmas_str, cat_2_lemmas = combine_gen_synth_sort gen_provable_lemmas str_provable_lemmas cat_1_lemmas

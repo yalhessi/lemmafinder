@@ -115,14 +115,11 @@ match conjecture with
                             in get_variables_except_expr tl expr head_vars vars lfind_vars)
 | [] -> conj_vars
 
-let get_normalized_var_name count =
-  "lv"^(string_of_int count)
-
 let get_quantified_var var_types =
   let normalized_vars = Hashtbl.create (Hashtbl.length var_types)
   in let count = ref 0
   in (Hashtbl.fold (fun k v (acc, acc_vars) ->
-                               let new_var = get_normalized_var_name !count
+                               let new_var = Sexp.get_normalized_var_name !count
                                in count := !count + 1;
                                Hashtbl.add normalized_vars k new_var;
                                if String.equal k synthesis_op
@@ -133,14 +130,16 @@ let get_quantified_var var_types =
 let get_synthesis_conjecture is_equal_conj op_type curr_synth_term conjecture var_types counter synthesized_expr =
   Log.debug (Consts.fmt "synth term is %s" (Sexp.string_of_sexpr curr_synth_term));
   Log.debug (Consts.fmt "synthesized expression is %s" synthesized_expr);
-  let (var_strs, norm_vars), normalized_vars = (get_quantified_var var_types)
-  in let synthesized_expr = "(" ^ synthesized_expr ^ ")"
-  in 
-  let replaced_conj = 
-  if not is_equal_conj then
-   Sexp.normalize_sexp_vars (Sexp.of_string (Sexp.replace_sub_sexp conjecture.body_sexp curr_synth_term synthesized_expr)) normalized_vars
-  else
-  Sexp.normalize_sexp_vars (Sexp.of_string (Consts.fmt "(@eq %s (%s) (%s))"  op_type (Sexp.string_of_sexpr curr_synth_term) synthesized_expr)) normalized_vars
+  let synthesis_body = if not is_equal_conj then
+                       (Sexp.of_string (Sexp.replace_sub_sexp conjecture.body_sexp curr_synth_term synthesized_expr))
+                       else
+                       (Sexp.of_string (Consts.fmt "(@eq %s (%s) (%s))"  op_type (Sexp.string_of_sexpr curr_synth_term) synthesized_expr))
+  in
+  let var_strs, norm_vars, normalized_vars = Sexp.normalize_sexp synthesis_body var_types
+  in
+  let synthesized_expr = "(" ^ synthesized_expr ^ ")"
+  in
+  let replaced_conj = Sexp.normalize_sexp_vars synthesis_body normalized_vars
   in
   let conj_prefix = 
   if is_equal_conj then

@@ -173,12 +173,46 @@ let string_of_sexpr_indent s =
   in
   String.concat "\n" (aux 0 [] s)
 
+let get_normalized_var_name count =
+"lv"^(string_of_int count) 
+
+let normalize_sexp s (orig_var_types:(string, string) Hashtbl.t) =
+let normalized_var_map = Hashtbl.create (Hashtbl.length orig_var_types)
+in let count = ref 0
+in let rec aux (i:int) (acc, orig_vars) = function
+| (Atom tag)::tl ->
+    (
+      try 
+        let _ = Hashtbl.find normalized_var_map tag
+        in aux i (acc, orig_vars) tl
+      with _ -> begin
+                  try
+                  let v = Hashtbl.find orig_var_types tag
+                  in let new_var = get_normalized_var_name !count
+                  in count := !count + 1;
+                  Hashtbl.add normalized_var_map tag new_var;
+                  let new_acc = if String.equal tag Consts.synthesis_op
+                                then acc, orig_vars
+                                else acc ^ " " ^ "(" ^ new_var ^ " : " ^ v ^ ")", List.append orig_vars [tag]
+                  in aux i new_acc tl
+                  with _ -> aux i (acc, orig_vars) tl
+                end
+    )
+| (Expr e)::tl ->
+    let head_acc, head_orig_vars = aux (succ i) (acc, orig_vars) e
+    in aux i (head_acc, head_orig_vars) tl
+| [] -> acc, orig_vars
+in
+let vars_str, orig_vars = aux 0 ("",[]) s
+in vars_str, orig_vars, normalized_var_map
+
 let normalize_sexp_vars s normalized_vars =
   let rec aux i acc = function
   | (Atom tag)::tl -> 
       let t = (try
                 Hashtbl.find normalized_vars tag
-              with _ -> (protect tag))
+                with _ -> (protect tag)
+              )
       in aux i (t::acc) tl
   | (Expr e)::tl ->
       let s =
@@ -218,12 +252,12 @@ let sexp_size sexp =
 let replace_sub_sexp sexp sub_expr repl_expr =
   let rec aux (acc: string list) = function 
   | (Atom tag)::tl -> 
-    let to_app = if (equal [Atom tag] sub_expr) then repl_expr
+    let to_app = if (equal [Atom tag] sub_expr) then "(" ^ repl_expr ^ ")"
     else (protect tag)
     in (aux (to_app::acc) tl)
   | (Expr e)::tl ->
     let str_to_concat= (aux [] e)
-    in let to_app = if (equal e sub_expr) then repl_expr
+    in let to_app = if (equal e sub_expr) then "(" ^ repl_expr ^ ")"
       else
         "(" ^
         (String.concat " " str_to_concat)
