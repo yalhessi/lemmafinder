@@ -2,6 +2,8 @@ Coq Lemma Synthesis Plugin
 ---------------------------
 These instructions were tested in macos and ubuntu.
 
+`git clone --recurse-submodules https://github.com/AishwaryaSivaraman/lemmafinder.git`
+
 Install the following software:
 
 - opam 2.0.7
