@@ -57,6 +57,13 @@ let construct_state_as_lemma gl =
                       let hyp_type = try TypeUtils.get_type_of_atom env sigma hyp_content
                                      with _ -> 
                                      (
+                                       
+                                       if Utils.contains hyp_content "forall _" then 
+                                        (
+                                          (* coq represents -> relation with forall _, quickchick can handle those since the quantifier is not nested *)
+                                         "Prop"
+                                        )
+                                       else
                                        if Utils.contains hyp_content "forall" 
                                         then (print_endline "Hypotheses contains forall, Quickchick might not work!"; exit(0);)
                                         else ""
@@ -127,11 +134,11 @@ let lfind_tac debug : unit Proofview.tactic =
         let module_names =
           Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
         in
-        let p_ctxt = {p_ctxt with modules = module_names; types = typs; hypotheses = hyps}
+        let p_ctxt = {p_ctxt with modules = module_names; types = typs; hypotheses = hyps; all_vars = vars}
         (* Generate .ml file and check if it is parsable by myth *)
         in let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
         in 
-        ( 
+        (
         let is_success = is_ml_generation_success ml_file p_ctxt
         in
         if not is_success then raise (Invalid_MLFile "Failed Generating .ml of the .v file") else 

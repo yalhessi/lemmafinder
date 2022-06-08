@@ -14,7 +14,8 @@ type proof_context =
     funcs: string list;
     modules: string list;
     types: string list;
-    theorem : string
+    theorem : string;
+    all_vars: string list;
   }
 
 type coq_context = 
@@ -110,6 +111,7 @@ let construct_proof_context gl =
         funcs = hyp_funcs;
         modules = [];
         types = [];
+        all_vars = [];
        }
     in p_ctxt, c_ctxt
                   

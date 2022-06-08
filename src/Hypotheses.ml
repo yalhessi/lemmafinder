@@ -31,7 +31,7 @@ let get_invalid_hyps (p_ctxt: proof_context)
                      t list list * t list list=
     List.fold_left 
       (fun (acc_cg, acc) h -> 
-        let h_vars = (Generalize_NoDup.get_variables_in_expr h [] p_ctxt.vars c.sigma)
+        let h_vars = (Generalize_NoDup.get_variables_in_expr h [] p_ctxt.all_vars c.sigma)
         in
         let is_subset = vars_is_subset h_vars c.vars
         in

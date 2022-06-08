@@ -106,9 +106,9 @@ let summarize stats curr_state_lemma =
     (* The last stat is the same as the stuck state, it does not provide any useful indicator *)
     let useful_stats = (List.rev stats)
     in 
-    let no_valid_gen_lemmas = List.length (List.filter (fun g -> g.is_valid) (List.tl useful_stats))
-    in let gen_useful_provable_lemmas, len_gen_useful_provable_lemmas = generalized_lemma_useful_and_provable (List.tl useful_stats)
-    in let gen_provable_lemmas, len_gen_provable_lemmas = generalized_lemma_useful (List.tl useful_stats)
+    let no_valid_gen_lemmas = List.length (List.filter (fun g -> g.is_valid) useful_stats)
+    in let gen_useful_provable_lemmas, len_gen_useful_provable_lemmas = generalized_lemma_useful_and_provable useful_stats
+    in let gen_provable_lemmas, len_gen_provable_lemmas = generalized_lemma_useful useful_stats
     in let total_synthesized_valid_lemmas = get_synthesized_valid_lemmas useful_stats
     in let str_provable_lemmas, total_synthesized_provable_lemmas = get_synthesized_provable_lemmas useful_stats
     in let str_prover_provable_lemmas, total_synth_prover_provable_lemmas =

@@ -46,6 +46,7 @@ let extract_ml_examples () =
     funcs = [];
     modules = [];
     types = [];
+    all_vars=[];
    }
   in let ml_example_1 = Hashtbl.create 1
   in Hashtbl.add ml_example_1 "x" "(  Natnil)";
