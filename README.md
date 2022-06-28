@@ -95,6 +95,7 @@ export LFIND=<path to lemma finder source>
 To run ```lfind``` in a proof you need to add the following
 
 ```
+Load LFindLoad.
 From lfind Require Import LFind.
 Unset Printing Notations.
 Set Printing Implicit.
