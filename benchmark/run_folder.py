@@ -35,9 +35,8 @@ def get_all_lemmas(folder):
 
 def lemma_finder_copy(source_folder, dest_folder) -> None:
     print(dest_folder)
-    if os.path.isdir(dest_folder):
-        shutil.rmtree(dest_folder)
-    shutil.copytree(source_folder, dest_folder)
+    if not os.path.isdir(dest_folder):
+        shutil.copytree(source_folder, dest_folder)
 
 def write_lemmafinder_content(file, content):
     print(file)
@@ -97,22 +96,27 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, e
                 # is_run_make = True
                 if os.path.isdir(stuck_folder) and os.path.isfile(lfind_summary_log):
                     print("found lfind summary");
+                    continue
                     is_run_make = False
                 else:
                     is_run_make = True
                 lemma_finder_copy(source_folder, destination_folder)
                 if example_dir:
                     src = os.path.join(example_dir, destination_name)
-                    files=os.listdir(src)
-                    for file in files:
-                        print(file)
-                        shutil.copy2(os.path.join(src,file), destination_folder)
+                    if os.path.isdir(src):
+                        files=os.listdir(src)
+                        for file in files:
+                            shutil.copy2(os.path.join(src,file), destination_folder)
                 for i in range(0,len(c_line_content)):
+                    first_index_val = c_line_content[i].strip().split(" ")[0]
+                    lfind_tactic = ""
+                    if '*' in first_index_val or '-' in first_index_val or '+' in first_index_val or '{' in first_index_val:
+                        lfind_tactic = first_index_val
                     if lemma_name in c_line_content[i]:
                         if debug:
-                            c_modified_content.append("lfind_debug")
+                            c_modified_content.append(lfind_tactic + " lfind_debug")
                         else:
-                            c_modified_content.append("lfind")
+                            c_modified_content.append(lfind_tactic + " lfind")
                     else:
                         c_modified_content.append(c_line_content[i])
                 lfind_content.append(". ".join(c_modified_content))
