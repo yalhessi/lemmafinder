@@ -1,2 +1,4 @@
+Add ML Path "%{lib}%/bigarray".
 Add ML Path "%{lib}%/parmap".
 Add ML Path "%{lib}%/ocaml".
+
