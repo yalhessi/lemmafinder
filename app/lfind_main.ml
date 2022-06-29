@@ -48,7 +48,8 @@ let construct_state_as_lemma gl =
   in let atom_type_table = (update_type_table conc_atoms c_ctxt (Hashtbl.create 100))
   in let typs_from_conc = Hashtbl.fold (fun k v acc ->  if (Utils.contains v "Set") then k::acc else acc) atom_type_table []
   in
-  let hyps, vars, typs, var_typs, hyps_str =
+  let contanins_forall = ref false
+  in let hyps, vars, typs, var_typs, hyps_str =
     List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str) (v, hyp) -> 
                       let var_str = (Names.Id.to_string v)
                       in let hyp_content =  (Utils.get_exp_str env sigma hyp)
@@ -65,7 +66,7 @@ let construct_state_as_lemma gl =
                                         )
                                        else
                                        if Utils.contains hyp_content "forall" 
-                                        then (print_endline "Hypotheses contains forall, Quickchick might not work!"; exit(0);)
+                                        then (print_endline "Hypotheses contains forall, Quickchick might not work!"; contanins_forall := true; "Prop")
                                         else ""
                                      ) 
                       in
@@ -103,15 +104,15 @@ let construct_state_as_lemma gl =
      (
        let var_forall = List.fold_left (fun acc v -> acc ^ " " ^ v) "forall" vars
        in if List.length vars > 0 then
-       (Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall conc), typs, var_typs, vars, hyps_str
+       !contanins_forall, (Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall conc), typs, var_typs, vars, hyps_str
        else
-       (Consts.fmt "Lemma %s: %s.\nAdmitted." Consts.lfind_lemma conc), typs, var_typs, vars, hyps_str
+       !contanins_forall, (Consts.fmt "Lemma %s: %s.\nAdmitted." Consts.lfind_lemma conc), typs, var_typs, vars, hyps_str
      )
     else
     (
       let vars_all = ""
         (* List.fold_left (fun acc v -> acc ^ " " ^ v)  "" vars *)
-      in (Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all (String.concat " " all_hyps) conc), typs, var_typs, vars, hyps_str
+      in !contanins_forall, (Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all (String.concat " " all_hyps) conc), typs, var_typs, vars, hyps_str
     )
 
 let lfind_tac debug : unit Proofview.tactic =
@@ -125,7 +126,7 @@ let lfind_tac debug : unit Proofview.tactic =
     else
       begin
         Utils.env_setup;
-        let curr_state_lemma, typs, var_typs, vars, hyps = construct_state_as_lemma gl
+        let contanins_forall, curr_state_lemma, typs, var_typs, vars, hyps = construct_state_as_lemma gl
         in print_endline curr_state_lemma;
         let p_ctxt, c_ctxt = construct_proof_context gl
         in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
@@ -157,19 +158,23 @@ let lfind_tac debug : unit Proofview.tactic =
           )
         )        
         );
-
+        
         (* if example file exists use it, else generate examples *)
         let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
         in 
         if not (Sys.file_exists example_file) && (List.length vars) > 0 then 
         (
           print_endline "Example file not found, generating";
-          let op = GenerateExamples.generate_example p_ctxt typs module_names curr_state_lemma var_typs vars
-          in print_endline (string_of_int (List.length op));
-          let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
-          in
-          if not is_success then raise (Invalid_Examples "Quickchick failed to generate examples!") else 
-          Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
+          if contanins_forall then (print_endline ("Contains forall, and no example file provided. Quickchick does not work with forall"); exit(0);)
+          else
+          (
+            let op = GenerateExamples.generate_example p_ctxt typs module_names curr_state_lemma var_typs vars
+            in print_endline (string_of_int (List.length op));
+            let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
+            in
+            if not is_success then raise (Invalid_Examples "Quickchick failed to generate examples!") else 
+            Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
+          )
         )
         else
         ();
