@@ -14,6 +14,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
         "Count the number of proofs that uses helper lemma")
     parser.add_argument('--prelude', default=".")
     parser.add_argument('--output', default=None)
+    parser.add_argument('--project', default=False, action="store_true")
     return parser.parse_args(), parser
 
 def isProofStatement(line):
@@ -26,7 +27,7 @@ def isProofStatement(line):
         return True
     return False
 
-def get_all_lemmas(folder):
+def get_all_lemmas(folder, is_project):
     lemmas = {}
     lemma_name_content = {}
     no_lemmas = 0
@@ -40,7 +41,10 @@ def get_all_lemmas(folder):
                     with open(os.path.join(directory, file)) as f:
                         for line in f:
                             if isProofStatement(line):
-                                file_lemma_name = file.split(".")[0] + "_"+line.split()[1].replace(":","")
+                                if is_project:
+                                    file_lemma_name = line.split()[1].replace(":","")
+                                else:
+                                    file_lemma_name = file.split(".")[0] + "_"+line.split()[1].replace(":","")
                                 lemma_name = line.split()[1].replace(":","")
                                 lemma_content = line
                             elif ("Proof" in line or "Admitted" in line) and (len(lemma_name) > 0):
@@ -55,6 +59,33 @@ def get_all_lemmas(folder):
                     print(e)
                     print (f"Error processing {directory}/{file}")
     return lemmas, no_lemmas, lemma_name_content
+
+
+def tactic_stats(file, tactics_after_rewrite, lemma_names):
+    with open(file) as f:
+        for line in f:
+            content = line.split(".")
+            for i in range(0, len(content)):
+                if "rewrite" in content[i] or "apply" in content[i]:
+                    c = content[i].split()
+                    helper_name = c[len(c)-1].replace(";","")
+                    helper_name = helper_name.replace("(","")
+                    if helper_name in lemma_names:
+                        if i+1 < len(content):
+                            t=[]
+                            if "Bool" in content[i]:
+                                if i+2 < len(content):
+                                    t = content[i+2].split()
+                            else:
+                                t = content[i+1].split()
+                            if len(t) > 0:
+                                tactic = t[0]
+                                if "rewrite" in tactic:
+                                    print(content)
+                                if tactic in tactics_after_rewrite.keys():
+                                    tactics_after_rewrite[tactic] +=1
+                                else:
+                                    tactics_after_rewrite[tactic] = 1
 
 def count_file(file, lemma_names, lemma_files_names, lemmas_so_far):
     count_helper = 0
@@ -105,19 +136,21 @@ def count_file(file, lemma_names, lemma_files_names, lemmas_so_far):
         print (f"Error processing {file}")
     return count_helper
 
-def count(folder, output_folder):
+def count(folder, output_folder, is_project):
     no_coq_files = 0
     no_with_helper = 0
-    lemmas, no_lemmas, lemma_content = get_all_lemmas(folder)
+    lemmas, no_lemmas, lemma_content = get_all_lemmas(folder, is_project)
     write_lemmas(lemma_content, output_folder)
     lemma_files_names = {}
     lemmas_so_far = {}
+    tactics_dict = {}
     for directory, dirs, files in os.walk(folder):
         for file in files:
             if file.endswith(".v"):
                 no_coq_files += 1
                 no_with_helper += count_file(os.path.join(directory, file), lemmas, lemma_files_names, lemmas_so_far)
-    return no_coq_files,no_with_helper,no_lemmas, lemma_files_names
+                tactic_stats(os.path.join(directory, file), tactics_dict, lemmas)
+    return no_coq_files,no_with_helper,no_lemmas, lemma_files_names, tactics_dict
 
 def write_lemmas(content, output_dir):
     with open(os.path.join(output_dir,"lemmafinder_all_lemmas.txt"), "w") as f:
@@ -132,8 +165,9 @@ def main() -> None:
     args, parser = parse_arguments()
     if args.output is None:
         args.output = args.prelude
-    no_coq_files, no_with_helper, total_lemmas, lemma_file_names = count(args.prelude, args.output)
+    no_coq_files, no_with_helper, total_lemmas, lemma_file_names, tactics_dict = count(args.prelude, args.output, args.project)
     write_op(lemma_file_names,args.output)
+    print(dict(sorted(tactics_dict.items(), key=lambda x: x[1], reverse=True)))
     print(f"#Lemmas w atleast one helper/#Lemmas: {no_with_helper}/{total_lemmas} in {no_coq_files} coq files")
 
 
