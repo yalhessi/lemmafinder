@@ -1,0 +1,1 @@
+{"list_rev_append_nil": "Lemma append_nil : forall x : lst, append x Nil = x.", "list_rev_append_assoc": "Lemma append_assoc : forall x y z : lst,  append x (append y z) = append (append x y) z.", "list_rev_rev_append": "Lemma rev_append: forall x y : lst, rev (append x y) = append (rev y) (rev x).", "list_rev_rev_rev": "Theorem rev_rev : forall x : lst, rev (rev x) = x."}
