@@ -1,23 +1,14 @@
 import argparse
-from cmath import log
 from genericpath import isdir
 import os
 import csv
 import json
-from posixpath import dirname, split
-from re import S, search, sub
-from sre_parse import State
-import sys
+from posixpath import dirname
 import subprocess
-from numpy import source
 
-
-from torch import log_, prelu
 import coq_serapy
 import subprocess
-import shutil
-import operator, functools
-from sexpdata import loads, dumps
+from sexpdata import loads
 import multiprocessing
 from functools import partial
 
@@ -56,7 +47,36 @@ class LogDetails(object):
 
     def row(self):
         return [self.log_dir,self.is_stuck_provable,self.no_gen_provable,self.no_synth_provable, self.no_gen_useful_stuck_provable,self.no_syn_useful_stuck_provable,len(self.valid_lemmas), self.matches_human, self.matched_lemma,self.matched_lemma_loc,self.stronger_lemma,self.stronger_lemma_loc,self.weaker_lemma, self.weaker_lemma_loc, self.helper_name, self.helper_lemma, self.is_auto_provable, self.top_answer, self.total_synth, self.total_gen, self.theorem_prop, self.helper_prop, self.top_can_prop, self.is_success, self.is_in_search_space]
-    
+
+    def of_string(self, values):
+        self.log_dir = values[0]
+        self.is_stuck_provable= to_bool(values[1])
+        self.no_gen_provable = to_int(values[2])
+        self.no_synth_provable = to_int(values[3])
+        self.no_gen_useful_stuck_provable = to_int(values[4])
+        self.no_syn_useful_stuck_provable = to_int(values[5])
+        self.matches_human= to_bool(values[7])
+        self.matched_lemma= values[8]
+        self.matched_lemma_loc= to_int(values[9])
+        self.stronger_lemma= values[10]
+        self.stronger_lemma_loc= to_int(values[11])
+        self.weaker_lemma= values[12]
+        self.weaker_lemma_loc= to_int(values[13])
+        self.helper_name= values[14]
+        self.helper_lemma= values[15]
+        self.is_auto_provable= to_bool(values[16])
+        self.top_answer= values[17]
+        self.total_synth= to_int(values[18])
+        self.total_gen= to_int(values[19])
+        self.is_stronger_than_human = self.stronger_lemma_loc==1
+        self.is_success = to_bool(values[20])
+        if len(values) >= 25:
+            self.theorem_prop= values[20]
+            self.helper_prop= values[21]
+            self.top_can_prop= values[22]
+            self.is_success= to_bool(values[23])
+            self.is_in_search_space= to_bool(values[24])
+
     def premise(self, lemma, goal_state):
         proverbot = os.getenv('PROVERBOT')
         premise_file = os.path.join(proverbot, "src/score_premises.py")
@@ -94,6 +114,20 @@ class LogDetails(object):
             self.valid_lemmas = sorted(cat_3_lemmas_with_scores, key=lambda x: x[1], reverse=True)
             if len(self.valid_lemmas) > 0:
                 self.valid_lemmas = (list(zip(*self.valid_lemmas))[0])
+
+def to_int(value):
+    try:
+        return int(value)
+    except:
+        return 0
+
+def to_bool(value):
+    if value.upper() == 'FALSE':
+        return False
+    elif value.upper() == 'TRUE':
+        return True
+    else: 
+        return False
 
 def get_lemmas(benchmark_file):
     import json
@@ -181,10 +215,6 @@ def get_helper_lemma(prelude):
                 continue
             comb_name = l[0].replace("'","") + "_" + str(l[1])+ "_"+l[2]
             split_name = orig_lemma_name.split(lemma_filename + "_")
-            print("===")
-            print(comb_name)
-            print(split_name)
-            print(lemma_filename + "_" + split_name[2])
             if split_name[1] == comb_name:
                 theorem_name = l[2].replace("'","")
                 alternate_theorem_name = os.path.basename(k).split(".")[0] + "_" + theorem_name
@@ -198,13 +228,10 @@ def get_helper_lemma(prelude):
     return theorem_name, alternate_theorem_name
 
 def is_proof_complete(prelude, imports, proof_cmds, stmts=[]):
-    print(proof_cmds)
     with coq_serapy.SerapiContext(
             ["sertop", "--implicit"],    
             None,
             prelude) as coq:
-        # coq.run_stmt("Add ML Path \"/Users/aish/.opam/4.07.1+flambda/lib/bigarray\".")
-        # coq.run_stmt("Declare ML Module \"bigarray".")
         for imp in imports:
             coq.run_stmt(imp)
         for stmt in stmts:
@@ -220,7 +247,6 @@ def is_proof_complete(prelude, imports, proof_cmds, stmts=[]):
             return False
 
 def get_prop(prelude, imports, lemma):
-    print(prelude)
     if lemma == "":
         return "", False
     lemma = lemma.strip()
@@ -373,6 +399,42 @@ def get_cat_2_from_log(log_file):
             is_cat_2 = False
     return cat_2
 
+def get_runtimes(lemma_file):
+    contents = open(lemma_file).readlines()
+    time_to_first = 0
+    total_time = 0
+    for l in contents:
+        if "Time to first category" in l and ":" in l:
+            time_to_first = float(l.split(":")[1].strip())
+        elif "Total Time" in l and ":" in l:
+            total_time = float(l.split(":")[1].strip())
+            if time_to_first == 0:
+                time_to_first = total_time
+    return time_to_first, total_time
+            
+def get_filter_data(lemma_file):
+    contents = open(lemma_file).readlines()
+    total_lemma = 0
+    after_qc = 0
+    trivial = 0
+    duplicate = 0
+    version = 0
+    after_other_filters = 0
+    for l in contents:
+        if "Total Lemmas:" in l:
+            total_lemma = int(l.split(":")[1].strip())
+        if "Filter Quickchick:" in l:
+            no_qc = int(l.split(":")[1].strip())
+            after_qc = total_lemma - no_qc
+        if "Filter duplicate:" in l:
+            duplicate = int(l.split(":")[1].strip())
+        if "Filter trivial:" in l:
+            trivial = int(l.split(":")[1].strip())
+        if "Filter is_version:" in l:
+            version = int(l.split(":")[1].strip())
+            after_other_filters = total_lemma - (duplicate + trivial + version+no_qc)
+    return total_lemma, after_qc, after_other_filters
+
 def get_ranked_lemmmas(lemma_file):
     contents = open(lemma_file).readlines()
     log_obj = LogDetails()
@@ -404,6 +466,30 @@ def get_ranked_lemmmas(lemma_file):
         if "conj" in l and ":" in l and is_valid:
             lem = "Lemma " + l
             log_obj.valid_lemmas.append(lem)
+    return log_obj
+
+def get_lemmas_from_file(filename):
+    contents = open(filename).readlines()
+    is_auto_provable = False
+    is_cat_2 = False
+    is_valid = False
+    log_obj = LogDetails()
+    for l in contents:
+        if "Provable and Useful in Completing Stuck Goal" == l.strip():
+            is_auto_provable = True
+        elif is_auto_provable and "conj" in l:
+            log_obj.provable_lemmas.append(l)
+        elif "Useful in Completing Stuck Goal" == l.strip():
+            is_auto_provable = False
+            is_cat_2 = True
+        elif is_cat_2 and "conj" in l:
+            log_obj.useful_stuck_provable_lemmas.append(l)
+        elif "Valid Lemmas" == l.strip():
+            is_auto_provable = False
+            is_cat_2 = False
+            is_valid = True
+        elif is_valid and "conj" in l:
+            log_obj.valid_lemmas.append(l)
     return log_obj
 
 def  sort_and_print_lemmas(log_dir, log_obj):
@@ -451,8 +537,32 @@ def get_lfind_lemma(lfind_state_file):
         if "Lemma" in l:
             return l    
 
+def read_logs_from_folder(log_dir):
+    total_times = []
+    time_to_firsts = []
+    total_lemmas_all = []
+    total_afterquickchick = []
+    total_after_other_filters = []
+    for root, dirs, files in os.walk(log_dir):
+        for name in dirs:
+            f_name = os.path.join(root, name)
+            if os.path.isdir(f_name) and "_lfind_" in f_name:
+                l_file = os.path.join(f_name, "lfind_summary_log.txt")
+                if os.path.exists(l_file):
+                    time_to_first, total_time = get_runtimes(l_file)
+                    if time_to_first < total_time:
+                        time_to_firsts.append(time_to_first/60.0)
+                        total_times.append(time_to_first/60.0)
+                    else:
+                        total_times.append(total_time/60.0)
+                    total_lemma, after_qc, after_others = get_filter_data(l_file)
+                    total_lemmas_all.append(total_lemma)
+                    total_afterquickchick.append(after_qc)
+                    total_after_other_filters.append(after_others)
+        break
+    return total_times, time_to_firsts, total_lemmas_all, total_afterquickchick,total_after_other_filters
 
-def run(log_dir, helper_lemma_locations, is_project):
+def run_process_logs(log_dir, helper_lemma_locations, is_project, source_folder=""):
     op_csv = os.path.join(log_dir, "lfind_benchmark_summary.csv")
     count_total_lfind_logs = 0
     total_lemmas = 0
@@ -465,9 +575,14 @@ def run(log_dir, helper_lemma_locations, is_project):
     matches_human = 0
     stronger_than_human = 0
     weaker_than_human = 0
+    total_times = []
+    time_to_firsts = []
+    total_lemmas_all = []
+    total_afterquickchick = []
+    total_after_other_filters = []
     for file in helper_lemma_locations:
         for location in helper_lemma_locations[file]:
-            print(location)
+            file = os.path.join(source_folder, file)
             file_name = os.path.basename(file)
             source_folder = dirname(file)
             helper_prefix = os.path.splitext(file_name)[0]
@@ -481,8 +596,7 @@ def run(log_dir, helper_lemma_locations, is_project):
                 helper_lemma_name = lemma_name
             else:
                 helper_lemma_name = helper_prefix + "_" + lemma_name
-            
-            print(destination_folder)
+
             f_name_log = os.path.basename(stuck_folder).replace("_lfind_","")
             l_log_file = os.path.join(log_dir, f_name_log)
             if os.path.isfile(l_log_file):
@@ -506,15 +620,19 @@ def run(log_dir, helper_lemma_locations, is_project):
                     helper_lemma = get_lemma_from_all_lemmas(all_lemmas, helper_lemma_name)
                     helper_lemma_name = lemma_name
                     if helper_lemma == "":
-                        print("helper lemma not found, exiting")
-                        import sys
-                        sys.exit(0)
+                        print("helper lemma not found")
+                        # import sys
+                        # sys.exit(0)
                     imports = get_imports(lfind_state)
                     lfind_state_lemma = get_lfind_lemma(lfind_state)
-                    print(lfind_state_lemma)
                     lfind_state_prop, _ = get_prop(destination_folder, imports, lfind_state_lemma)
                     helper_lemma_prop, helper_is_conditional = get_prop(destination_folder, imports, helper_lemma)
                     log_obj = get_ranked_lemmmas(l_file)
+                    time_to_first, total_time = get_runtimes(l_file)
+                    total_lemma, after_qc, after_others = get_filter_data(l_file)
+                    total_lemmas_all.append(total_lemma)
+                    total_afterquickchick.append(after_qc)
+                    total_after_other_filters.append(after_others)
                     cat_2_lemmas_from_log = get_cat_2_from_log(log_file)
                     if len(cat_2_lemmas_from_log) > len(log_obj.useful_stuck_provable_lemmas):
                         for l in cat_2_lemmas_from_log:
@@ -526,11 +644,10 @@ def run(log_dir, helper_lemma_locations, is_project):
                     lemma_synth.extend(log_obj.provable_lemmas)
                     lemma_synth.extend(log_obj.useful_stuck_provable_lemmas)
                     lemma_synth.extend(log_obj.valid_lemmas)
-                    print(len(lemma_synth))       
                     log_obj.is_stuck_provable = get_stuck_provable(log_file)      
                     log_obj.helper_name = helper_lemma_name 
                     log_obj.helper_lemma = helper_lemma
-                    pool_obj = multiprocessing.Pool(multiprocessing.cpu_count()-1)
+                    pool_obj = multiprocessing.Pool(multiprocessing.cpu_count())
                     func_process = partial(process_lemma, helper_lemma_name,helper_lemma,destination_folder,imports)
                     processed_lemmas = pool_obj.map(func_process, lemma_synth)
                     for i in range(0, len(processed_lemmas)):
@@ -567,7 +684,11 @@ def run(log_dir, helper_lemma_locations, is_project):
                                 log_obj.top_answer = "G"
                     log_obj.log_dir = stuck_folder
                     log_obj.is_auto_provable = len(log_obj.provable_lemmas) > 0
-
+                    if log_obj.is_auto_provable:
+                            time_to_firsts.append(time_to_first/60.0)
+                            total_times.append(time_to_first/60.0)
+                    else:
+                        total_times.append(total_time/60.0)
                     top_lemma = ""
                     if log_obj.is_auto_provable:
                         log_obj.is_in_search_space = True
@@ -623,21 +744,13 @@ def run(log_dir, helper_lemma_locations, is_project):
         matches_human +=o.matches_human
         stronger_than_human +=o.is_stronger_than_human
         weaker_than_human += o.is_weaker_than_human
-
-    print(f"#Lemmas matching humans/#Lemmas: {matches_human}/{total_lemmas-(len(missing_lemmas_profile))}")
-    print(f"#Lemmas stronger than humans/#Lemmas: {stronger_than_human}/{total_lemmas-(len(missing_lemmas_profile))}")
-    print(f"#Lemmas weaker than humans/#Lemmas: {weaker_than_human}/{total_lemmas-(len(missing_lemmas_profile))}")
-    return provable_by_proverbot, total_lemmas, (len(missing_lemmas_profile)), stuck_state_provable, useful_stuck_provable_lemmas
+    return log_objs, total_times, time_to_firsts, total_lemmas_all, total_afterquickchick, total_after_other_filters
 
 
 def main():
     args, parser = parse_arguments()
     helper_lemma_dict = get_locations(args.benchmark_file)
-    provable_by_proverbot, total_lemmas, missing_lemmas,stuck_state_provable,useful_stuck_provable_lemmas = run(args.log_dir, helper_lemma_dict, args.project)
-    print(f"#Lemmas stuck state provable/#Lemmas: {stuck_state_provable}/{total_lemmas-missing_lemmas}")
-    print(f"#Lemmas that are fully provable/#Lemmas: {provable_by_proverbot}/{total_lemmas-missing_lemmas}")
-    print(f"#Lemmas that help prove/#Lemmas: {useful_stuck_provable_lemmas}/{total_lemmas-missing_lemmas}")
-    print(f"#Lemmas that are missing/#Lemmas: {missing_lemmas}/{total_lemmas}")
+    log_objs, total_times, time_to_firsts = run_process_logs(args.log_dir, helper_lemma_dict, args.project)
 
 if __name__ == "__main__":
     main()
