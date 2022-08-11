@@ -120,8 +120,9 @@ def count_file(file, lemma_names, lemma_files_names, lemmas_so_far):
                     helper_indices_len = 0
                     while helper_indices_len < len(helper_indices):
                         if file not in lemma_files_names:
-                            lemma_files_names[file] = []
-                        lemma_files_names[file].append((lemma_name,line_number,helper_indices[helper_indices_len][1]))
+                            file_name = os.path.basename(file)
+                            lemma_files_names[file_name] = []
+                        lemma_files_names[file_name].append((lemma_name,line_number,helper_indices[helper_indices_len][1]))
                         count_helper+=1
                         helper_indices_len += 1                   
                         # start_proof = False
