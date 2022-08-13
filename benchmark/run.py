@@ -31,6 +31,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser.add_argument('--large', default=False, action='store_true')
     parser.add_argument('--summarize', default=False, action='store_true')
     parser.add_argument('--project', default=False, action='store_true')
+    parser.add_argument('-b', '--bench', help='list of benchmarks or projects', type=str, required=True)
     return parser.parse_args(), parser
 
 def get_locations(folder):
@@ -420,8 +421,7 @@ def compare_size_of_sketch_synth(all_logs, benchmarks, log_dir):
 
 def main() -> None:
     args, parser = parse_arguments()
-    benchmark_small = ["clam", "fulladder", "lia"]
-    benchmark_all = ["clam", "fulladder","compiler", "lia"]
+    benchmark_all = [item for item in args.bench.split(',')]
     
     if args.getting_started:
         # run LFIND on the given repo
