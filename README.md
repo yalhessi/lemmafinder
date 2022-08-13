@@ -1,5 +1,15 @@
-Coq Lemma Synthesis Plugin
+LFIND - Coq Lemma Synthesis Plugin
 ---------------------------
+
+<p align="center">
+  <img src="docs/lfind.png" width="400"/>
+  <br>
+</p>
+
+## Manual Installation
+
+<details><summary><kbd>CLICK</kbd> to reveal instructions</summary>
+
 These instructions were tested in macos and ubuntu.
 
 `git clone --recurse-submodules https://github.com/AishwaryaSivaraman/lemmafinder.git`
@@ -77,7 +87,7 @@ Myth supports only a part of the ocaml syntax. We need a translator that takes i
 We are now ready to make this project.
 Run `cd lemmafinder && opam config subst theories/LFindLoad.v && dune build && dune build && dune install`
 
-## Environment Setup
+### Environment Setup
 In the folder that you run make or coqc export the following environment variable
 
 ```
@@ -87,9 +97,33 @@ export COQOFOCAML=/Users/<username>/.opam/4.07.1+flambda/bin/coq-of-ocaml
 export REWRITE=<path to ast_rewriter>/_build/default/bin/main.exe
 export LFIND=<path to lemma finder source>
 ```
+</details>
 
+## Lemma Synthesis
+ 
+Synthesize a required helper lemma by invoking lfind as follows:
+```
+cd <path to lfind>
+cd benchmark/motivating_example && make && cd ../../
+python3 benchmark/run.py --prelude=<path to lfind>/benchmark/motivating_example --log_dir=<path to log directory> --getting_started
+```
 
-## Running lemma finder on a particular proof
+This should take ~5min and you should see the following synthesized lemma as the output of the script.
+```
+-----------------------------------------------
+Run complete
+Top Lemmas:
+(cat 1) Lemma conj14eqsynthconj6 : forall  (lv0 : lst) (lv1 : nat), (@eq lst (rev (append lv0 (Cons lv1 Nil))) (Cons lv1 (rev lv0)))
+(cat 2) Lemma conj6eqsynthconj3 : forall  (lv0 : lst) (lv1 : lst), (@eq lst (rev (append lv0 lv1)) (append (rev lv1) (rev lv0)))
+(cat 2) Lemma conj10eqsynthconj5 : forall  (lv0 : lst) (lv1 : lst), (@eq lst (rev (append (rev lv0) lv1)) (append (rev lv1) lv0))
+Runtime: 5.683333333333334 min
+-----------------------------------------------
+```
+
+<details>
+<summary><kbd>CLICK</kbd> for running lfind on a particular proof state.</summary>
+
+## Running lemma finder on a particular proof state
 <em> Note, the tool requires that the original project folder has run `make`</em>
 
 To run ```lfind``` in a proof you need to add the following
@@ -113,10 +147,11 @@ This should first make the existing coq file.
 3. Run `make`. If the setup is done correctly, this should run the lemma finder in ~30 min and at the end of the run you should see  `Error: LFIND Successful`. The output of this run is saved in `benchmark/_lfind_bench_rev_append`.
 You can find the results of the run in `benchmark/_lfind_bench_rev_append/lfind_summary_log.txt`. You can find debug logs in `benchmark/_lfind_bench_rev_append/lfind_debug_log.txt`
 
+</details>
 
-## Evaluating Lemma Finder on a project
+## Evaluating lfind on a project
 
-A. Make the project
+1. Make the project
   1. If your project already has a Makefile, just run `make`.
   2. Otherwise, collect your source files into a project with the test prefix:
   ```
@@ -133,23 +168,42 @@ A. Make the project
   make
   ```
 
-B. Collect the lemma usages
+2. Collect the lemma usages
 
-`python3 benchmark/collect_stats.py --prelude=<full path to project>`
+`python3 benchmark/collect_stats.py --prelude=<full path to project> --project`
 
 This script collects all locations in `lemmafinder_bench.txt` where an apply or rewrite tactic has been used. It also collects all theorems/lemmas in `lemmafinder_all_lemmas.txt`.
 
-C. Run lemmafinder
+3. Run lemmafinder
 
 Run the following:
-`python3 benchmark/run_folder.py --prelude=<full path to project> --log_directory=<full path to log directory>`
+```
+cd <path to lfind>
+python benchmark/run.py --prelude=<path to parent folder of the project> --log_dir=<path to log dir> --project --large --bench <project folder name>
+```
 
 This should run on the theorems that require helper lemma (logged in `lemmafinder_bench.txt` ) and output how many of were able to identify helper lemmas and amongst those how many were category 1 lemmas. You should find the output files in the --log_directory. 
 
-Make the project.
+## Evaluating lfind on benchmarks
 
+1. You can find benchmark lemma synthesis locations in benchmarks/clam, benchmarks/lia, benchmarks/fulladder, and benchmarks/compiler.
+
+2. Before running any of the benchmark, run `make` on each of the benchmark folders.
+
+3. To generate lemmas, run the following:
+
+```
+cd <path to lfind>
+python benchmark/run.py --prelude=cd <path to lfind>/benchmark --log_dir=<path to lfind> --large --bench "clam, lia, fulladder, compiler"
+```
+This command runs all benchmark locations and the output can be found in the log directory. 
+
+
+<details>
+<summary><kbd>CLICK</kbd> for note on external dependencies.</summary>
 
 ### Note on External Dependencies ###
 External dependencies are not fully supported via dune for Coq-plugins. See https://github.com/coq/coq/issues/7698. To workaround this, we need to add external library dependencies (transitively) to src/dune and theories/dune and add the corresponding module to `Lfind.v`. See https://github.com/ejgallego/coq-plugin-template.
 
 After this workaround, make sure that library.cmxs is visible in the current loadpath.
+</details>
