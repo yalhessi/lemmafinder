@@ -207,3 +207,9 @@ External dependencies are not fully supported via dune for Coq-plugins. See http
 
 After this workaround, make sure that library.cmxs is visible in the current loadpath.
 </details>
+
+## Running OOPSLA-version of lfind
+
+1. You can find the OOPSLA artifact VM [here](https://www.dropbox.com/sh/fkhl87holekyh0v/AAB5Zug7WXSf0OLpnZXXHNsUa?dl=0) with installation instructions. 
+
+2. Further, you can find instructions to reproduce the results [here](https://docs.google.com/document/d/1C_A3wibNOLGsPv5Wytn_x3N3S6YpraK9kVPuWFYzZ9g/). 
