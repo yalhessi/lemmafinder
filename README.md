@@ -34,6 +34,9 @@ Install the following software:
 - opam install base-bigarray
 - opam install alcotest=1.4.0
 
+- pip install matplotlib
+- pip install tabulate
+
 
 ## Additional Setup
 We need to setup the following packages before we can run lemmafinder.
