@@ -103,8 +103,8 @@ export LFIND=<path to lemma finder source>
 </details>
 
 ## Lemma Synthesis
- 
-Synthesize a required helper lemma by invoking lfind as follows:
+
+Synthesize a required helper lemma by invoking lfind as follows, making sure to only use *absolute* paths:
 ```
 cd <path to lfind>
 cd benchmark/motivating_example && make && cd ../../
