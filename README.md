@@ -139,7 +139,7 @@ Set Printing Implicit.
 ```
 
 In the proof where u are stuck, add `lfind.` tactic and run `make` again in the folder.
-If you want to obtain detailed debug logs for your run, use `lfind_debug` tactic instead. 
+If you want to obtain detailed debug logs for your run, use `lfind_debug` tactic instead.
 
 ### Example:
 1. cd `benchmark/bench_rev_append` && make.
@@ -185,7 +185,7 @@ cd <path to lfind>
 python benchmark/run.py --prelude=<path to parent folder of the project> --log_dir=<path to log dir> --project --large --bench <project folder name>
 ```
 
-This should run on the theorems that require helper lemma (logged in `lemmafinder_bench.txt` ) and output how many of were able to identify helper lemmas and amongst those how many were category 1 lemmas. You should find the output files in the --log_directory. 
+This should run on the theorems that require helper lemma (logged in `lemmafinder_bench.txt` ) and output how many of were able to identify helper lemmas and amongst those how many were category 1 lemmas. You should find the output files in the --log_directory.
 
 ## Evaluating lfind on benchmarks
 
@@ -199,7 +199,7 @@ This should run on the theorems that require helper lemma (logged in `lemmafinde
 cd <path to lfind>
 python benchmark/run.py --prelude=cd <path to lfind>/benchmark --log_dir=<path to lfind> --large --bench "clam, lia, fulladder, compiler"
 ```
-This command runs all benchmark locations and the output can be found in the log directory. 
+This command runs all benchmark locations and the output can be found in the log directory.
 
 
 <details>
@@ -213,8 +213,8 @@ After this workaround, make sure that library.cmxs is visible in the current loa
 
 ## Running OOPSLA-version of lfind
 
-1. You can find the OOPSLA artifact VM [here](https://www.dropbox.com/sh/fkhl87holekyh0v/AAB5Zug7WXSf0OLpnZXXHNsUa?dl=0) with installation instructions. 
+1. You can find the OOPSLA artifact VM [here](https://www.dropbox.com/sh/fkhl87holekyh0v/AAB5Zug7WXSf0OLpnZXXHNsUa?dl=0) with installation instructions.
 
-2. Further, you can find instructions to reproduce the results [here](https://docs.google.com/document/d/1C_A3wibNOLGsPv5Wytn_x3N3S6YpraK9kVPuWFYzZ9g/). 
+2. Further, you can find instructions to reproduce the results [here](https://docs.google.com/document/d/1C_A3wibNOLGsPv5Wytn_x3N3S6YpraK9kVPuWFYzZ9g/).
 
 Note that the VM works with a 15s timeout for Proverbot, which has a similar trend to the one reported in the paper with a 30s timeout.
