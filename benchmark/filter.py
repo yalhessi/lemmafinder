@@ -47,7 +47,6 @@ def simplify_lemma(lemma, prelude, imports):
         return lemmaname, coq.goals.strip()
 
 def is_proof_complete(prelude, imports, proof_cmds, stmts=[]):
-    print(proof_cmds)
     with coq_serapy.SerapiContext(
             ["sertop", "--implicit"],    
             None,
@@ -175,15 +174,15 @@ def main():
 
     # func = partial(process, prelude, imports, theorem_name, theorem)
     # simplified_lemmas = pool_obj.map(func, lemmas)
-    print(f"{trivial_count}:trivial_count")
-    print(f"{is_version_count}:is_version_count")
-    print("start simplified lemmas")
+    print(f"{trivial_count}:trivial_count", flush=True)
+    print(f"{is_version_count}:is_version_count", flush=True)
+    print("start simplified lemmas", flush=True)
     for l in simplified_lemmas:
         if l != None:
             name = (l[0].split("Lemma ")[1])
             stmt = l[1].replace("\n","")
-            print(f"FilteredLemma${name}${stmt}")
-    print("end simplified lemmas")
+            print(f"FilteredLemma${name}${stmt}", flush=True)
+    print("end simplified lemmas", flush=True)
 
 if __name__ == "__main__":
     main()
