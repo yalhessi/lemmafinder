@@ -166,12 +166,12 @@ let get_synthesis_conjecture is_equal_conj op_type curr_synth_term conjecture va
                                 }
   in synthesized_expr, synthesis_conjecture
 
-let filter_cached_lemmas conjectures cached_lemmas = 
-  List.filter (fun (s, conj) -> try
-                        let _ = (Hashtbl.find cached_lemmas conj.body)
-                        in false
-                        with _ -> true
-              ) conjectures
+let filter_cached_lemmas conjectures cached_lemmas =
+  List.filter (fun (s, conj) ->
+    if (Hashtbl.mem cached_lemmas conj.body)
+      then false
+      else (Hashtbl.replace cached_lemmas conj.body true; true)
+  ) conjectures
 
 let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture =
   let n_cores = (Utils.cpu_count () / 2)
@@ -291,7 +291,7 @@ let synthesize_lemmas (synth_count: int ref)
   let valid_conjectures =  List.append valid_conjectures hyp_valid_conjectures
   in
   Consts.is_false := !Consts.is_false + ((List.length(filtered_conjectures) + List.length(hyp_conjectures)) - List.length(valid_conjectures));
-  
+
   let imports = Consts.fmt "\"%s\" %s \"From %s Require Import %s.\""
                 Consts.lfind_declare_module
                 (List.fold_left (fun acc d -> if (String.length d > 0) then acc ^ Consts.fmt " \"%s\"" d else acc) "" (String.split_on_char '\n' p_ctxt.declarations))
@@ -306,16 +306,26 @@ let synthesize_lemmas (synth_count: int ref)
   List.iter (fun (_,c) -> Hashtbl.replace !cached_lemmas c.body true;) filtered_conjectures;
 
   (* Identify synthesized lemmas that can help prove the stuck state *)
+  print_endline "filtered_conjectures";
+  List.iter (fun (name, c) -> print_endline c.body ) filtered_conjectures;
+  print_endline "----------------";
   let provable_conjectures = filter_provable_conjectures filtered_conjectures p_ctxt conjecture
-  in let p_conjectures, provable_conjectures = List.fold_right (fun (s, c, is_provable) (p_acc, pro_acc) -> 
+  in let p_conjectures, provable_conjectures = List.fold_right (fun (s, c, is_provable) (p_acc, pro_acc) ->
       if is_provable
       then (c::p_acc, (s, c)::pro_acc)
       else (p_acc, pro_acc)
   ) provable_conjectures ([],[])
   in
+  (* print_endline "proving_conjectures";
+  List.iter (fun (name, c) -> print_endline c.body ) provable_conjectures;
+  print_endline "----------------"; *)
   (* Identify synthesized lemmas that can prover the stuck goal, can be proven by the prover *)
   let prover_provable_conjectures, _ = Provable.split_as_provable_non_provable p_conjectures p_ctxt
-  in let synth_stat = {
+  in
+  (* print_endline "provable_conjectures";
+  List.iter (fun (c) -> print_endline c.body ) prover_provable_conjectures;
+  print_endline "----------------"; *)
+  let synth_stat = {
                         synthesis_term = (Sexp.string_of_sexpr curr_synth_term);
                         enumerated_exprs = enumerated_exprs;
                         valid_lemmas = filtered_conjectures;
