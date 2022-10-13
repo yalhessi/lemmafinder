@@ -86,10 +86,6 @@ Myth supports only a part of the ocaml syntax. We need a translator that takes i
 
 2. dune build && dune install
 
-### Lemmafinder
-We are now ready to make this project.
-Run `cd lemmafinder && opam config subst theories/LFindLoad.v && dune build && dune build && dune install`
-
 ### Environment Setup
 In the folder that you run make or coqc export the following environment variable
 
@@ -100,6 +96,10 @@ export COQOFOCAML=/Users/<username>/.opam/4.07.1+flambda/bin/coq-of-ocaml
 export REWRITE=<path to ast_rewriter>/_build/default/bin/main.exe
 export LFIND=<path to lemma finder source>
 ```
+
+### Lemmafinder
+We are now ready to make this project.
+Run `cd lemmafinder && opam config subst theories/LFindLoad.v && dune build && dune build && dune install`
 </details>
 
 ## Lemma Synthesis
