@@ -108,7 +108,7 @@ Synthesize a required helper lemma by invoking lfind as follows, making sure to 
 ```
 cd <path to lfind>
 cd benchmark/motivating_example && make && cd ../../
-python3 benchmark/run.py --prelude=<path to lfind>/benchmark/motivating_example --log_dir=<path to log directory> --getting_started -b $PWD/benchmark/motivating_example
+python3 benchmark/run.py --prelude=<path to lfind>/benchmark/motivating_example --log_dir=<path to log directory> --getting_started -b <path to lfind>/benchmark/motivating_example
 ```
 
 This should take ~5min and you should see the following synthesized lemma as the output of the script.
