@@ -16,6 +16,7 @@ type proof_context =
     types: string list;
     theorem : string;
     all_vars: string list;
+    original_dir: string;
   }
 
 type coq_context = 
@@ -112,6 +113,7 @@ let construct_proof_context gl =
         modules = [];
         types = [];
         all_vars = [];
+        original_dir = dir;
        }
     in p_ctxt, c_ctxt
                   

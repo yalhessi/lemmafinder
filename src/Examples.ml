@@ -46,7 +46,7 @@ let get_ml_examples (examples: (string, string) Hashtbl.t list)
                  ) [] examples
 
 let get_example_index examplestr index examples vars_for_synthesis lfind_sigma =
-  List.fold_left (fun examplestr v ->
+  List.fold_left (fun (examplestr,ind) v ->
                     (* either the var is generalized or original *)
                     let index_example_tbl = (List.nth examples index)
                     in let op = try Hashtbl.find index_example_tbl v
@@ -55,8 +55,12 @@ let get_example_index examplestr index examples vars_for_synthesis lfind_sigma =
                                let generalized_term, _ = (Hashtbl.find lfind_sigma v)
                                in (Hashtbl.find index_example_tbl (Sexp.string_of_sexpr generalized_term))
                              )
-                    in examplestr ^ op ^ " => "
-                 ) "" vars_for_synthesis
+                    in 
+                    if ind == ((List.length vars_for_synthesis)-1) then
+                    (examplestr ^ op, ind+1)
+                    else
+                    ((examplestr ^ op ^ " , "), ind+1)
+                 ) ("", 0) vars_for_synthesis
 
 let gen_synthesis_examples (examples:(string, string) Hashtbl.t list) 
                            (output_examples: string list)
@@ -65,7 +69,7 @@ let gen_synthesis_examples (examples:(string, string) Hashtbl.t list)
                            : string list=
   List.mapi (
              fun index op ->
-                  let input_str = get_example_index "" index examples vars_for_synthesis lfind_sigma
+                  let input_str,_ = get_example_index "" index examples vars_for_synthesis lfind_sigma
                   in 
-                  if Int.equal 0 index then input_str ^ op else input_str ^ op ^ ";"
+                  input_str ^ "=" ^ op ^ ";"
             ) output_examples

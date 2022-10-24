@@ -12,7 +12,7 @@ let summary_log_file = "/lfind_summary_log.txt"
 
 let error_log_file = "/error_lfind_log.txt"
 
-let myth_timeout = "12"
+let synthesizer_timeout = "12"
 
 let coq_printing_depth = "Set Printing Depth 1000."
 
@@ -48,13 +48,15 @@ let prover_path = ref ""
 
 let synthesizer_path = ref ""
 
+let coq_synthesizer_path = "coq_synth"
+
 let rewriter_path = ref ""
 
 let coq_of_ocaml_path = ref ""
 
 let lfind_path = ref ""
 
-let myth_batch_size = 5
+let myth_batch_size = 6
 
 let time_to_category_1 = ref 0
 
