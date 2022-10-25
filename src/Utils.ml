@@ -176,9 +176,13 @@ let env_setup : unit =
                            then prover_path
                            else prover_path ^ "/";
 
-  let synthesizer_path = get_env_var Consts.synthesizer
-  in if String.equal synthesizer_path "" then raise (Invalid_Env "Synthesizer path not set!")
-  else Consts.synthesizer_path := synthesizer_path;
+  if String.equal !Consts.synthesizer "myth" then
+  (
+    let synthesizer_path = get_env_var "MYTH"
+    in if String.equal synthesizer_path "" then raise (Invalid_Env "Synthesizer path not set!")
+    else 
+    Consts.synthesizer_path := synthesizer_path;
+  );
 
   let rewriter_path = get_env_var Consts.rewriter
   in if String.equal rewriter_path "" then raise (Invalid_Env "AST rewriter path not set!")

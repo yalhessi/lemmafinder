@@ -40,7 +40,7 @@ let def_qc_num_examples = "Extract Constant defNumTests => \"50\"."
 
 let prover = "PROVERBOT"
 
-let synthesizer = "MYTH"
+let synthesizer = ref ""
 
 let rewriter = "REWRITE"
 

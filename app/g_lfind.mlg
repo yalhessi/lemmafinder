@@ -5,11 +5,11 @@ open Ltac_plugin
 }
 
 TACTIC EXTEND lfind_tac
-| [ "lfind" ] -> { Lfind_main.lfind_tac false}
+| [ "lfind" ] -> { Lfind_main.lfind_tac false "coqsynth"}
 END
 
 TACTIC EXTEND lfind_debug_tac
-| [ "lfind_debug" ] -> { Lfind_main.lfind_tac true}
+| [ "lfind_debug" ] -> { Lfind_main.lfind_tac true "coqsynth"}
 END
 
 VERNAC COMMAND EXTEND Success CLASSIFIED AS QUERY

@@ -79,7 +79,8 @@ let get_expr_vals output =
 let evaluate_coq_expr expr examples p_ctxt all_vars 
 (lfind_sigma:(string, Sexp.t list * string) Hashtbl.t) conj
 : ((string list) * (string list)) =
-  let var_typs =  match conj with
+  let synthesizer = !Consts.synthesizer
+  in let var_typs =  match conj with
                   | None -> (Hashtbl.create 0)
                   | Some c -> ExprUtils.get_type_vars c all_vars
   in let evalstr = get_evaluate_str expr all_vars examples lfind_sigma var_typs
@@ -90,14 +91,19 @@ let evaluate_coq_expr expr examples p_ctxt all_vars
      have different order. Hacky solution now!
   *)
   let coq_output  = (List.rev (get_expr_vals output))
-  in let names, defs = get_defs_evaluated_examples coq_output
-  in let ext_coqfile = generate_ml_extraction_file p_ctxt names defs
-  in
-  let output = run_ml_extraction p_ctxt.dir ext_coqfile p_ctxt.namespace
-  in
-  let ext_mlfile = Consts.fmt "%s/lfind_extraction.ml" p_ctxt.dir
-  in let ext_output = List.rev (FileUtils.read_file ext_mlfile)
-  in let ml_output = List.rev (get_ml_evaluated_examples ext_output)
-  in Log.debug (Consts.fmt "length of examples %d\n" (List.length examples));
-  Log.debug (Consts.fmt "length of extracted examples %d\n" (List.length ml_output));
+  in 
+  let ml_output = []
+  in if String.equal synthesizer "myth" then
+  (
+    let names, defs = get_defs_evaluated_examples coq_output
+    in let ext_coqfile = generate_ml_extraction_file p_ctxt names defs
+    in
+    let output = run_ml_extraction p_ctxt.dir ext_coqfile p_ctxt.namespace
+    in
+    let ext_mlfile = Consts.fmt "%s/lfind_extraction.ml" p_ctxt.dir
+    in let ext_output = List.rev (FileUtils.read_file ext_mlfile)
+    in let ml_output = List.rev (get_ml_evaluated_examples ext_output)
+    in Log.debug (Consts.fmt "length of examples %d\n" (List.length examples));
+    Log.debug (Consts.fmt "length of extracted examples %d\n" (List.length ml_output));
+  );
   (coq_output, ml_output)

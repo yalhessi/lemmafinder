@@ -215,7 +215,7 @@ let enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt m
   let output_type = ( try TypeUtils.get_return_type "" (Sexp.of_string output_type) with _ -> output_type)
   in Hashtbl.add var_types synthesis_op output_type;
   let myth_examples = Examples.gen_synthesis_examples ml_examples output_examples vars_for_synthesis conjecture.sigma
-  in LogUtils.write_list_to_log myth_examples (Consts.synthesizer ^ " examples");
+  in LogUtils.write_list_to_log myth_examples (!Consts.synthesizer ^ " examples");
   
   let vars_for_synthesis = List.append vars_for_synthesis [synthesis_op]
   in let conjecture_name = (conjecture.conjecture_name ^ string_of_int(Utils.next_val synth_count ())) in
@@ -240,22 +240,31 @@ let get_filtered_conjectures conjectures p_ctxt conjecture cached_lemmas =
                         )
                       ) filtered_valid_conjectures ([], [])  
 
-let synthesize_lemmas (synth_count: int ref)
+let synthesize_lemmas 
+                      (synth_count: int ref)
                       (conjecture: conjecture)
                       (ml_examples: (string, string) Hashtbl.t list)
                       (coq_examples: (string, string) Hashtbl.t list)
                       (p_ctxt: proof_context)
                       (cached_lemmas: (string, bool) Hashtbl.t ref)
                       (cached_exprs: (string, bool) Hashtbl.t ref)
-                      (curr_synth_term: Sexp.t list)  : synthesis_stat =
-  
-  Log.debug (Consts.fmt "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term));
+                      (curr_synth_term: Sexp.t list)
+                      : synthesis_stat =
+  let synthesizer = !Consts.synthesizer
+  in let input_examples = if String.equal synthesizer "myth" then ml_examples else coq_examples
+  in Log.debug (Consts.fmt "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term));
   let all_vars = List.append p_ctxt.vars conjecture.lfind_vars
-  in let output_examples, _ = (Evaluate.evaluate_coq_expr curr_synth_term coq_examples p_ctxt all_vars conjecture.sigma (Some conjecture))
-  in
-  let vars_for_synthesis = get_vars_for_synthesis conjecture curr_synth_term p_ctxt.vars all_vars
+  in let coq_output_examples, ml_output_examples = (Evaluate.evaluate_coq_expr curr_synth_term input_examples p_ctxt all_vars conjecture.sigma (Some conjecture))
   in 
-  let synthesized_conjectures, enumerated_exprs = enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt coq_examples output_examples synth_count false
+  let vars_for_synthesis = get_vars_for_synthesis conjecture curr_synth_term p_ctxt.vars all_vars
+  in
+  let output_examples = 
+  if String.equal synthesizer "myth" then
+    ml_output_examples
+  else 
+    coq_output_examples
+  in
+  let synthesized_conjectures, enumerated_exprs = enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt input_examples output_examples synth_count false
 
   in let expr_found = try
   let _ = (Hashtbl.find !cached_exprs (Sexp.string_of_sexpr curr_synth_term))
@@ -267,7 +276,7 @@ let synthesize_lemmas (synth_count: int ref)
   let vars_for_synthesis = get_vars_for_equal_synthesis conjecture curr_synth_term p_ctxt.vars all_vars
   in 
   LogUtils.write_list_to_log vars_for_synthesis "equal vars for synthesis";
-  let equal_synthesized_conjectures, equal_enumerated_exprs = enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt coq_examples output_examples synth_count true
+  let equal_synthesized_conjectures, equal_enumerated_exprs = enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt input_examples output_examples synth_count true
   in Hashtbl.add !cached_exprs (Sexp.string_of_sexpr curr_synth_term) true;
   (List.append synthesized_conjectures equal_synthesized_conjectures), (List.append enumerated_exprs equal_enumerated_exprs)
   )
@@ -320,10 +329,9 @@ let synthesize_lemmas (synth_count: int ref)
                       }
   in synth_stat
 
-let synthesize cached_exprs cached_lemmas p_ctxt ml_examples coq_examples conjecture=
+let synthesize cached_exprs cached_lemmas p_ctxt ml_examples coq_examples conjecture =
   Log.debug(Consts.fmt "Synthesizing for conjecture %s\n" conjecture.conjecture_str);
   Log.debug(Consts.fmt "#Coq Input Examples %d\n" (List.length coq_examples));
-  Log.debug(Consts.fmt "#ML Input Examples %d\n" (List.length ml_examples));
   (
     Log.debug (Consts.fmt "the body of sexp is %s" (Sexp.string_of_sexpr conjecture.body_sexp));
     let first_synth_terms = get_all_terms_to_synthesize [] conjecture.body_sexp conjecture.lfind_vars conjecture.all_expr_type_table conjecture.body_sexp false
