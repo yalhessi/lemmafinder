@@ -86,6 +86,13 @@ Myth supports only a part of the ocaml syntax. We need a translator that takes i
 
 2. dune build && dune install
 
+### Coq-synth
+If using the coq-synth synthesizer backend instead of Myth and AST-Rewriter:
+
+1. `git clone git@github.com:qsctr/coq-synth.git`
+
+2. `opam install . --deps-only && dune build && dune install`
+
 ### Environment Setup
 In the folder that you run make or coqc export the following environment variable
 
