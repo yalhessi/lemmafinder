@@ -2,6 +2,9 @@ open Sexp
 open LatticeUtils
 
 let add_expr_vars expr_vars vars var =
+  List.iter (fun evar -> Log.debug ("expr_var: " ^ evar)) expr_vars;
+  List.iter (fun var -> Log.debug ("var: " ^ var)) vars;
+  Log.debug ("curr_var: " ^ var);
   let is_exists_in_vars = List.exists (fun v -> String.equal v var) vars in
   let is_dup = List.exists (fun v -> String.equal v var) expr_vars in
   if is_exists_in_vars & not is_dup then var :: expr_vars else expr_vars

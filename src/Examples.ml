@@ -66,11 +66,18 @@ let get_example_index examplestr index examples vars_for_synthesis lfind_sigma =
 let gen_synthesis_examples (examples : (string, string) Hashtbl.t list)
     (output_examples : string list) (vars_for_synthesis : string list)
     (lfind_sigma : (string, Sexp.t list * string) Hashtbl.t) : string list =
+  (* Log.debug "Inside gen_synthesis_examples";
+     List.iter (fun hsh -> Hashtbl.iter (fun k v -> Log.debug (Consts.fmt "%s -> %s" k v)) hsh) examples;
+     List.iter (fun output_example -> Log.debug (Consts.fmt "Output Example: %s" output_example)) output_examples;
+     List.iter (fun var -> Log.debug (Consts.fmt "Vars for synth: %s" var)) vars_for_synthesis; *)
   List.mapi
     (fun index op ->
       let input_str, _ =
-        get_example_index "" index examples vars_for_synthesis lfind_sigma
+        get_example_index "" index examples
+          (List.rev vars_for_synthesis)
+          lfind_sigma
       in
+      Log.debug ("Input String: " ^ input_str);
       if String.equal !Consts.synthesizer "myth" then
         if Int.equal 0 index then input_str ^ " => " ^ op
         else input_str ^ " => " ^ op ^ ";"

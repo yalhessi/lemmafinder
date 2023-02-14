@@ -45,6 +45,7 @@ let extract_ml_examples () =
     proof_name = "";
     funcs = [];
     modules = [];
+    coq_types = [];
     types = [];
     all_vars=[];
     original_dir = "";

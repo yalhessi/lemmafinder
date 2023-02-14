@@ -8,9 +8,10 @@ let generate_eval_file p_ctxt eval_str : string =
     List.fold_left (fun acc m -> acc ^ m ^ "\n") "" p_ctxt.modules
   in
   let content =
-    Consts.fmt "%s%s\nFrom %s Require Import %s.\n%s\n%s\n%s"
+    Consts.fmt "%s%s\nFrom %s Require Import %s.\n%s\n%s\n%s\n%s\n%s"
       Consts.lfind_declare_module p_ctxt.declarations p_ctxt.namespace
-      p_ctxt.fname "" (* module_imports *) Consts.coq_printing_depth eval_str
+      p_ctxt.fname "" (* module_imports *) Consts.coq_printing_depth
+      "Unset Printing Notations." "Set Printing Implicit." eval_str
   in
   FileUtils.write_to_file lfind_file content;
   lfind_file
@@ -20,6 +21,10 @@ let run_eval dir fname namespace =
   try FileUtils.run_cmd cmd with _ -> []
 
 let get_eval_definition expr vars (var_typs : (string, string) Hashtbl.t) =
+  Log.debug "Vars types: \n";
+  Hashtbl.iter
+    (fun k v -> Log.debug (Consts.fmt "Variable: %s, Type: %s" k v))
+    var_typs;
   let var_string =
     match Hashtbl.length var_typs with
     | 0 -> List.fold_left (fun acc v -> acc ^ " " ^ v) "" vars
@@ -53,6 +58,15 @@ let get_input_string vars example lfind_sigma =
 let get_evaluate_str expr vars examples lfind_sigma
     (var_typs : (string, string) Hashtbl.t) =
   let expr_vars = get_variables_in_expr expr [] vars in
+  Log.debug "Expr vars: \n";
+  List.iter (fun var -> Log.debug (Consts.fmt "Variable: %s" var)) expr_vars;
+  let expr_vars =
+    if
+      List.exists (fun v -> String.equal v "T") expr_vars
+      && not (String.equal (List.nth expr_vars 0) "T")
+    then "T" :: List.filter (fun v -> not (String.equal v "T")) expr_vars
+    else expr_vars
+  in
   let eval_def = get_eval_definition expr expr_vars var_typs in
   List.fold_left
     (fun acc example ->
@@ -85,6 +99,23 @@ let evaluate_coq_expr expr examples p_ctxt all_vars
     | None -> Hashtbl.create 0
     | Some c -> ExprUtils.get_type_vars c all_vars
   in
+  Log.debug "All vars: \n";
+  List.iter (fun var -> Log.debug (Consts.fmt "Variable: %s" var)) all_vars;
+  Log.debug "Var types: \n";
+  Hashtbl.iter
+    (fun k v -> Log.debug (Consts.fmt "Variable: %s, Type: %s" k v))
+    var_typs;
+
+  (* Hashtbl.add var_typs "T" "Type";
+     Hashtbl.add var_typs "x" "list T";
+     Hashtbl.add var_typs "a" "T"; *)
+  let all_vars =
+    if List.exists (fun v -> String.equal v "T") all_vars then List.rev all_vars
+    else all_vars
+  in
+  let evalstr = get_evaluate_str expr all_vars examples lfind_sigma var_typs in
+  let efile = generate_eval_file p_ctxt evalstr in
+  let output = run_eval p_ctxt.dir efile p_ctxt.namespace in
   let evalstr = get_evaluate_str expr all_vars examples lfind_sigma var_typs in
   let efile = generate_eval_file p_ctxt evalstr in
   let output = run_eval p_ctxt.dir efile p_ctxt.namespace in

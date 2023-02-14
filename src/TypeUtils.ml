@@ -80,10 +80,19 @@ let rec get_return_type acc fun_type =
       get_return_type head_acc tl
   | [] -> acc
 
-let derive_typ_quickchick typ_name : string =
-  Consts.fmt
-    "Derive Show for %s.\n\n\
-    \              Derive Arbitrary for %s.\n\n\
-    \              Instance Dec_Eq_%s : Dec_Eq %s.\n\n\
-    \              Proof. dec_eq. Qed.\n"
-    typ_name typ_name typ_name typ_name
+let derive_typ_quickchick (p_ctxt : ProofContext.proof_context)
+    (typ : CoqType.coqtype) : string =
+  let typ_name = CoqType.get_type_name typ in
+  let file_name = Consts.fmt "%s/show_%s.v" p_ctxt.dir typ_name in
+  if Sys.file_exists file_name then
+    String.concat "\n" (FileUtils.read_file file_name |> List.rev)
+  else
+    match typ with
+    | CoqType.Type | CoqType.TypeVar _ -> ""
+    | CoqType.Concrete _ | CoqType.Parametric _ ->
+        Consts.fmt
+          "Derive Show for %s.\n\n\
+          \ Derive Arbitrary for %s.\n\n\
+          \ Instance Dec_Eq_%s : Dec_Eq %s.\n\n\
+          \ Proof. dec_eq. Qed.\n"
+          typ_name typ_name typ_name typ_name

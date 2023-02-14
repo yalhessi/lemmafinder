@@ -21,6 +21,7 @@ let search prelude proverbot fname axiom_opt conjecture_name =
       python script prelude weights_file fname axiom_opt prelude conjecture_name
       rnd_str
   in
+  Log.debug (Consts.fmt "Running Proverbot Search CMD: %s\n" cmd);
   let run_op = run_cmd cmd in
   Log.debug
     (List.fold_left
@@ -38,16 +39,20 @@ let output_code prelude conjecture_name report_name : bool =
   else match List.hd cmd_op with "0" -> false | "1" -> true | _ -> false
 
 let remove_current_search prelude =
-  let cmd = "rm -rf " ^ prelude ^ "/search-report*" in
-  let cmd_op = run_cmd cmd in
+  (* let cmd = "rm -rf " ^ prelude ^ "/search-report*"
+     in let cmd_op = run_cmd cmd
+     in () *)
   ()
 
 let run prelude proof_name fname axiom_fname : bool =
-  if !Opts.enable_proverbot then
-    let axiom_opt = if String.equal axiom_fname "" then "" else "--add-axioms=" ^ axiom_fname
-    in let report_folder = search prelude !Consts.prover_path fname axiom_opt proof_name
-    in let code = (output_code prelude proof_name report_folder)
-    in Log.debug(Consts.fmt "Code for conjecture %s is %b\n" proof_name code);
-    code
-  else
-    false
+  if !Opts.enable_proverbot then (
+    let axiom_opt =
+      if String.equal axiom_fname "" then "" else "--add-axioms=" ^ axiom_fname
+    in
+    let report_folder =
+      search prelude !Consts.prover_path fname axiom_opt proof_name
+    in
+    let code = output_code prelude proof_name report_folder in
+    Log.debug (Consts.fmt "Code for conjecture %s is %b\n" proof_name code);
+    code )
+  else false

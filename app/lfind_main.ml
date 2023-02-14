@@ -130,6 +130,7 @@ let construct_state_as_lemma gl =
         if List.exists (String.equal typ_name) acc then acc else typ_name :: acc)
       typs typs_from_conc
   in
+
   if List.length all_hyps == 0 then
     let var_forall =
       List.fold_left (fun acc v -> acc ^ " " ^ v) "forall" vars
@@ -138,14 +139,12 @@ let construct_state_as_lemma gl =
       ( !contanins_forall,
         Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall
           conc,
-        typs,
         var_typs,
         vars,
         hyps_str )
     else
       ( !contanins_forall,
         Consts.fmt "Lemma %s: %s.\nAdmitted." Consts.lfind_lemma conc,
-        typs,
         var_typs,
         vars,
         hyps_str )
@@ -158,7 +157,6 @@ let construct_state_as_lemma gl =
       Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all
         (String.concat " " all_hyps)
         conc,
-      typs,
       var_typs,
       vars,
       hyps_str )
@@ -174,16 +172,18 @@ let lfind_tac (debug : bool) (synthesizer : string) : unit Proofview.tactic =
         Tacticals.New.tclZEROMSG (Pp.str "LFind is already running! Aborting")
       else (
         Utils.env_setup ();
-        let contanins_forall, curr_state_lemma, typs, var_typs, vars, hyps =
+        let contanins_forall, curr_state_lemma, var_typs, vars, hyps =
           construct_state_as_lemma gl
         in
+        let new_var_typs = List.map CoqType.string_to_coqvartype var_typs in
         print_endline curr_state_lemma;
-        print_endline ("tbl Contents of " ^ "typs");
-        List.iter (fun k -> print_endline (Consts.fmt "Type -> %s" k)) typs;
         print_endline ("tbl Contents of " ^ "var_typs");
-        List.iter (fun k -> print_endline (Consts.fmt "Type -> %s" k)) var_typs;
+        List.iter (fun k -> print_endline (Consts.fmt "Type -> %s ---- %s -> %s" k (CoqType.extract_var_from_var_typ k) (CoqType.extract_typ_from_var_typ k))) var_typs;
+        print_endline ("tbl Contents of " ^ "new_var_typs");
+        List.iter (fun k -> print_endline (Consts.fmt "Type -> %s" (CoqType.coqvartype_to_string k))) new_var_typs;
+
         let typs =
-          List.map (fun t -> TypeUtils.extract_typ_from_var_typ t) var_typs
+          List.map (fun t -> CoqType.extract_typ_from_var_typ t) var_typs
         in
         print_endline ("tbl Contents of " ^ "typs");
         List.iter (fun k -> print_endline (Consts.fmt "Type -> %s" k)) typs;
@@ -200,6 +200,7 @@ let lfind_tac (debug : bool) (synthesizer : string) : unit Proofview.tactic =
             p_ctxt with
             modules = module_names;
             types = typs;
+            coq_types = List.map (fun (CoqType.Vartype(name, typ)) -> typ) new_var_typs;
             hypotheses = hyps;
             all_vars = vars;
           }
@@ -245,7 +246,7 @@ let lfind_tac (debug : bool) (synthesizer : string) : unit Proofview.tactic =
         let example_file =
           Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
         in
-        if (not (Sys.file_exists example_file)) && List.length vars > 0 then (
+        (* if (not (Sys.file_exists example_file)) && List.length vars > 0 then *) ( 
           print_endline "Example file not found, generating";
           if contanins_forall then (
             print_endline
@@ -269,7 +270,8 @@ let lfind_tac (debug : bool) (synthesizer : string) : unit Proofview.tactic =
             else
               Feedback.msg_info
                 (Pp.str "lemmafinder_example_generation_success") ) );
-        print_endline "here";
+        print_endline "done generating examples";
+        (* exit 0; *)
         let coq_examples =
           Examples.dedup_examples (FileUtils.read_file example_file)
         in

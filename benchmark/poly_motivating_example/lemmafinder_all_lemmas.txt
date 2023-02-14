@@ -1,0 +1,1 @@
+{"list_rev_rev_append": "Lemma rev_append: forall {T} (x y : list T), rev (x ++ y) = rev y ++ rev x.", "list_rev_rev_rev": "Theorem rev_rev : forall {T} (x : list T), rev (rev x) = x."}

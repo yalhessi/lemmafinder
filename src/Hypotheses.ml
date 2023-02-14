@@ -85,19 +85,36 @@ let construct_hyp_goal_conj invalid_hyps c =
 
 let conjectures_with_hyp (invalid_conjectures : conjecture list)
     (p_ctxt : proof_context) =
+  Log.debug "invalid_conjectures: ";
+  List.iter (fun c -> Log.debug c.conjecture_name) invalid_conjectures;
   List.fold_left
     (fun acc (c : conjecture) ->
-      match List.length c.cgs with
+      let cgs =
+        if List.length c.vars == List.length c.cgs + 1 then "nat" :: c.cgs
+        else c.cgs
+      in
+      Log.debug ("c.conjecture_str: " ^ c.conjecture_str);
+      Log.debug ("c.name" ^ c.conjecture_name);
+      Log.debug ("c.cgs: " ^ string_of_int (List.length c.cgs));
+      List.iter (fun cg -> Log.debug cg) c.cgs;
+      Log.debug ("c.vars: " ^ string_of_int (List.length c.vars));
+      List.iter (fun v -> Log.debug v) c.vars;
+      match List.length cgs with
       | 0 -> acc
       | _ ->
           let cgs_table = Hashtbl.create (List.length c.vars) in
+          Log.debug "Before iteri";
           List.iteri
             (fun index c_var ->
-              Hashtbl.add cgs_table c_var (List.nth c.cgs index))
+              Hashtbl.add cgs_table c_var (List.nth cgs index))
             c.vars;
+          Log.debug "Before get_invalid_hyps";
           let invalid_hyps, other_hyps = get_invalid_hyps p_ctxt c cgs_table in
-          if List.length invalid_hyps > 0 then
+          Log.debug "After get_invalid_hyps";
+          if List.length invalid_hyps > 0 then (
+            Log.debug "Before construct_hyp_goal_conj";
             let hyp_conj = construct_hyp_goal_conj invalid_hyps c in
-            hyp_conj :: acc
+            Log.debug "After construct_hyp_goal_conj";
+            hyp_conj :: acc )
           else acc)
     [] invalid_conjectures

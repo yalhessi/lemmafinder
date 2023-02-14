@@ -1,0 +1,132 @@
+DIGEST 2e3d9ebb0bc5669bbb2d603b15d21971
+Fpoly_compiler.compiler
+R15:28 Coq.Lists.List <> <> lib
+ind 42:44 <> exp
+constr 58:60 <> Num
+constr 77:80 <> Plus
+R67:70 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R71:73 poly_compiler.compiler <> exp ind
+R64:66 Coq.Init.Datatypes <> nat ind
+R87:90 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R94:97 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R98:100 poly_compiler.compiler <> exp ind
+R91:93 poly_compiler.compiler <> exp ind
+R84:86 poly_compiler.compiler <> exp ind
+def 113:119 <> evalExp
+R126:128 poly_compiler.compiler <> exp ind
+R133:135 Coq.Init.Datatypes <> nat ind
+R148:148 poly_compiler.compiler <> e var
+R159:161 poly_compiler.compiler <> Num constr
+R174:177 poly_compiler.compiler <> Plus constr
+R192:192 Coq.Init.Peano <> ::nat_scope:x_'+'_x not
+R203:207 Coq.Init.Peano <> ::nat_scope:x_'+'_x not
+R218:218 Coq.Init.Peano <> ::nat_scope:x_'+'_x not
+R193:199 poly_compiler.compiler <> evalExp def
+R208:214 poly_compiler.compiler <> evalExp def
+ind 239:243 <> instr
+constr 257:260 <> Push
+constr 279:282 <> AddI
+R267:270 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R271:275 poly_compiler.compiler <> instr ind
+R264:266 Coq.Init.Datatypes <> nat ind
+R286:290 poly_compiler.compiler <> instr ind
+def 305:309 <> execI
+R319:323 poly_compiler.compiler <> instr ind
+R331:334 Coq.Init.Datatypes <> list ind
+R336:338 Coq.Init.Datatypes <> nat ind
+R343:346 Coq.Init.Datatypes <> list ind
+R348:350 Coq.Init.Datatypes <> nat ind
+R363:363 poly_compiler.compiler <> i var
+R374:377 poly_compiler.compiler <> Push constr
+R386:389 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R390:390 poly_compiler.compiler <> s var
+R397:400 poly_compiler.compiler <> AddI constr
+R415:415 poly_compiler.compiler <> s var
+R431:435 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R446:446 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R438:441 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R452:452 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R460:464 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R455:457 Coq.Init.Peano <> ::nat_scope:x_'+'_x not
+R481:483 Coq.Init.Datatypes <> nil constr
+def 510:515 <> execIs
+R525:528 Coq.Init.Datatypes <> list ind
+R530:534 poly_compiler.compiler <> instr ind
+R542:545 Coq.Init.Datatypes <> list ind
+R547:549 Coq.Init.Datatypes <> nat ind
+R554:557 Coq.Init.Datatypes <> list ind
+R559:561 Coq.Init.Datatypes <> nat ind
+R574:574 poly_compiler.compiler <> l var
+R585:587 Coq.Init.Datatypes <> nil constr
+R592:592 poly_compiler.compiler <> s var
+R599:602 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R609:614 poly_compiler.compiler <> execIs def
+R620:624 poly_compiler.compiler <> execI def
+R628:628 poly_compiler.compiler <> s var
+def 648:654 <> compile
+R661:663 poly_compiler.compiler <> exp ind
+R668:671 Coq.Init.Datatypes <> list ind
+R673:677 poly_compiler.compiler <> instr ind
+R690:690 poly_compiler.compiler <> e var
+R701:703 poly_compiler.compiler <> Num constr
+R710:710 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R717:721 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R711:714 poly_compiler.compiler <> Push constr
+R722:724 Coq.Init.Datatypes <> nil constr
+R730:733 poly_compiler.compiler <> Plus constr
+R747:747 Coq.Init.Datatypes <> ::list_scope:x_'++'_x not
+R758:762 Coq.Init.Datatypes <> ::list_scope:x_'++'_x not
+R748:754 poly_compiler.compiler <> compile def
+R763:763 Coq.Init.Datatypes <> ::list_scope:x_'++'_x not
+R774:779 Coq.Init.Datatypes <> ::list_scope:x_'++'_x not
+R791:791 Coq.Init.Datatypes <> ::list_scope:x_'++'_x not
+R764:770 poly_compiler.compiler <> compile def
+R784:787 Coq.Init.Datatypes <> ::list_scope:x_'::'_x not
+R780:783 poly_compiler.compiler <> AddI constr
+R788:790 Coq.Init.Datatypes <> nil constr
+prf 807:832 <> correct_compilation_strong
+R848:850 poly_compiler.compiler <> exp ind
+R858:861 Coq.Init.Datatypes <> list ind
+R863:867 poly_compiler.compiler <> instr ind
+R874:877 Coq.Init.Datatypes <> list ind
+R879:881 Coq.Init.Datatypes <> nat ind
+R887:888 Coq.Init.Logic <> eq ind
+R932:937 poly_compiler.compiler <> execIs def
+R942:945 Coq.Init.Datatypes <> cons constr
+R959:959 poly_compiler.compiler <> s var
+R948:954 poly_compiler.compiler <> evalExp def
+R956:956 poly_compiler.compiler <> e var
+R939:939 poly_compiler.compiler <> l var
+R902:907 poly_compiler.compiler <> execIs def
+R928:928 poly_compiler.compiler <> s var
+R910:910 Coq.Init.Datatypes <> ::list_scope:x_'++'_x not
+R920:924 Coq.Init.Datatypes <> ::list_scope:x_'++'_x not
+R911:917 poly_compiler.compiler <> compile def
+R919:919 poly_compiler.compiler <> e var
+R925:925 poly_compiler.compiler <> l var
+R891:894 Coq.Init.Datatypes <> list ind
+R896:898 Coq.Init.Datatypes <> nat ind
+R1036:1049 Coq.Lists.List <> app_assoc thm
+R1036:1049 Coq.Lists.List <> app_assoc thm
+R1036:1049 Coq.Lists.List <> app_assoc thm
+R1077:1090 Coq.Lists.List <> app_assoc thm
+R1077:1090 Coq.Lists.List <> app_assoc thm
+R1077:1090 Coq.Lists.List <> app_assoc thm
+prf 1143:1161 <> correct_compilation
+R1174:1174 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R1197:1201 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R1222:1222 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R1175:1180 poly_compiler.compiler <> execIs def
+R1194:1196 Coq.Init.Datatypes <> nil constr
+R1183:1189 poly_compiler.compiler <> compile def
+R1191:1191 poly_compiler.compiler <> e var
+R1202:1205 Coq.Init.Datatypes <> cons constr
+R1219:1221 Coq.Init.Datatypes <> nil constr
+R1208:1214 poly_compiler.compiler <> evalExp def
+R1216:1216 poly_compiler.compiler <> e var
+R1300:1325 poly_compiler.compiler <> correct_compilation_strong thm
+R1300:1325 poly_compiler.compiler <> correct_compilation_strong thm
+R1300:1325 poly_compiler.compiler <> correct_compilation_strong thm
+R1340:1365 poly_compiler.compiler <> correct_compilation_strong thm
+R1340:1365 poly_compiler.compiler <> correct_compilation_strong thm
+R1340:1365 poly_compiler.compiler <> correct_compilation_strong thm

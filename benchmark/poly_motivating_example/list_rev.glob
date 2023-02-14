@@ -1,0 +1,33 @@
+DIGEST e998e7912b99ca590d418649b0df7fba
+Fpolylia.list_rev
+R15:28 Coq.Lists.List <> <> lib
+prf 39:48 <> rev_append
+R69:72 Coq.Init.Datatypes <> list ind
+R74:74 polylia.list_rev <> T var
+R90:92 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R78:80 Coq.Lists.List <> rev def
+R84:87 Coq.Init.Datatypes <> ::list_scope:x_'++'_x not
+R83:83 polylia.list_rev <> x var
+R88:88 polylia.list_rev <> y var
+R98:101 Coq.Init.Datatypes <> ::list_scope:x_'++'_x not
+R93:95 Coq.Lists.List <> rev def
+R97:97 polylia.list_rev <> y var
+R102:104 Coq.Lists.List <> rev def
+R106:106 polylia.list_rev <> x var
+R154:162 Coq.Lists.List <> app_nil_r thm
+R154:162 Coq.Lists.List <> app_nil_r thm
+R154:162 Coq.Lists.List <> app_nil_r thm
+R208:216 Coq.Lists.List <> app_assoc thm
+R208:216 Coq.Lists.List <> app_assoc thm
+R208:216 Coq.Lists.List <> app_assoc thm
+prf 246:252 <> rev_rev
+R272:275 Coq.Init.Datatypes <> list ind
+R277:277 polylia.list_rev <> T var
+R292:294 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R281:283 Coq.Lists.List <> rev def
+R286:288 Coq.Lists.List <> rev def
+R290:290 polylia.list_rev <> x var
+R295:295 polylia.list_rev <> x var
+R358:367 polylia.list_rev <> rev_append thm
+R358:367 polylia.list_rev <> rev_append thm
+R358:367 polylia.list_rev <> rev_append thm

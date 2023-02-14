@@ -27,15 +27,13 @@ let output_code (op : string list) : bool * string list =
     in
     (false, cgs)
 
-let run (fname: string) (namespace: string) (dir: string)
-        : bool * string list =
-  if !Opts.enable_quickchick then
-    (output_code (quickcheck fname namespace dir))
-  else
-    (false, [])
-  
+let run (fname : string) (namespace : string) (dir : string) :
+    bool * string list =
+  if !Opts.enable_quickchick then output_code (quickcheck fname namespace dir)
+  else (false, [])
 
 let remove_files dir =
-  let cmd = "rm -rf " ^ dir ^ "/lfindconj*" in
-  let cmd_op = run_cmd cmd in
+  (* let cmd = "rm -rf " ^ dir ^ "/lfindconj*"
+     in let cmd_op = run_cmd cmd
+     in () *)
   ()

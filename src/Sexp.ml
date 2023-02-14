@@ -153,6 +153,8 @@ let string_of_sexpr_indent s =
 let get_normalized_var_name count = "lv" ^ string_of_int count
 
 let normalize_sexp s (orig_var_types : (string, string) Hashtbl.t) =
+  Log.debug "inside normalize_sexp";
+
   let normalized_var_map = Hashtbl.create (Hashtbl.length orig_var_types) in
   let count = ref 0 in
   let rec aux (i : int) (acc, orig_vars) = function
@@ -163,16 +165,27 @@ let normalize_sexp s (orig_var_types : (string, string) Hashtbl.t) =
         with _ -> (
           try
             let v = Hashtbl.find orig_var_types tag in
-            let new_var = get_normalized_var_name !count in
-            count := !count + 1;
-            Hashtbl.add normalized_var_map tag new_var;
-            let new_acc =
-              if String.equal tag Consts.synthesis_op then (acc, orig_vars)
-              else
-                ( acc ^ " " ^ "(" ^ new_var ^ " : " ^ v ^ ")",
-                  List.append orig_vars [ tag ] )
-            in
-            aux i new_acc tl
+            if String.equal v "Type" then aux i (acc, orig_vars) tl
+            else
+              let poly_acc =
+                if
+                  String.contains v ' '
+                  && not (Hashtbl.mem normalized_var_map "T")
+                then (
+                  Hashtbl.add normalized_var_map "T" "T";
+                  "(T : Type)" )
+                else ""
+              in
+              let new_var = get_normalized_var_name !count in
+              count := !count + 1;
+              Hashtbl.add normalized_var_map tag ("(" ^ new_var ^ ")");
+              let new_acc =
+                if String.equal tag Consts.synthesis_op then (acc, orig_vars)
+                else
+                  ( poly_acc ^ acc ^ " " ^ "(" ^ new_var ^ " : " ^ v ^ ")",
+                    List.append orig_vars [ tag ] )
+              in
+              aux i new_acc tl
           with _ -> aux i (acc, orig_vars) tl ) )
     | Expr e :: tl ->
         let head_acc, head_orig_vars = aux (succ i) (acc, orig_vars) e in

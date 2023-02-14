@@ -10,12 +10,12 @@ let generate_lfind_file (p_ctxt : proof_context) (conjecture : string)
   in
   let typ_derive =
     List.fold_left
-      (fun acc t -> acc ^ TypeUtils.derive_typ_quickchick t)
-      "" p_ctxt.types
+      (fun acc t -> acc ^ TypeUtils.derive_typ_quickchick p_ctxt t)
+      "" (Utils.dedup_list p_ctxt.coq_types)
   in
   let content =
     Consts.fmt
-      "%s%s\n\
+      "Unset Notations All. %s%s\n\
        %s\n\
        From %s Require Import %s.\n\
        %s\n\
@@ -33,6 +33,8 @@ let check_validity (conjecture : conjecture) (p_ctxt : proof_context) :
     bool * string list =
   let name = conjecture.conjecture_name in
   let lfind_file = generate_lfind_file p_ctxt conjecture.conjecture_str name in
+  Log.debug ("Generated lfind file: " ^ lfind_file);
+  Log.debug ("Checking the validity of: " ^ conjecture.conjecture_str);
   let is_valid, cgs = Quickcheck.run lfind_file p_ctxt.namespace p_ctxt.dir in
   (is_valid, cgs)
 
@@ -93,7 +95,9 @@ let split_as_true_and_false conjectures p_ctxt :
   in
   Proverbot.remove_current_search p_ctxt.dir;
   Provable.remove_axioms p_ctxt.dir;
+  Log.debug "After removing axioms";
   Quickcheck.remove_files p_ctxt.dir;
+  Log.debug "After removing quickcheck files";
   let valid_conjectures, invalid_conjectures =
     List.fold_left
       (fun (true_conj, false_conj) (s, time_to_p) ->
@@ -110,4 +114,7 @@ let split_as_true_and_false conjectures p_ctxt :
             List.append false_conj [ { s.conjecture with cgs = s.cgs } ] ))
       ([], []) can_prove_conj_stats
   in
+  Log.debug "After splitting";
+  (* Log.debug (string_of_int (List.length (List.nth invalid_conjectures 0).cgs)); *)
+  (* Log.debug (string_of_int (List.length (List.nth invalid_conjectures 0).vars)); *)
   (valid_conjectures, invalid_conjectures)

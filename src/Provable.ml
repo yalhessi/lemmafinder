@@ -49,8 +49,9 @@ let split_as_provable_non_provable (conjectures : conjecture list)
     ([], []) res
 
 let remove_axioms prelude =
-  let cmd = "rm -rf " ^ prelude ^ "/lfind_axiom*" in
-  let cmd_op = FileUtils.run_cmd cmd in
+  (* let cmd = "rm -rf " ^ prelude ^ "/lfind_axiom*"
+     in let cmd_op = FileUtils.run_cmd cmd
+     in () *)
   ()
 
 let check_lfind_theorem_add_axiom p_ctxt proof_name additional_conj : bool =

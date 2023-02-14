@@ -223,3 +223,7 @@ let env_setup () =
     Consts.lfind_path :=
       if lfind_path.[String.length lfind_path - 1] = '/' then lfind_path
       else lfind_path ^ "/"
+
+let cons_uniq xs x = if List.mem x xs then xs else x :: xs
+
+let dedup_list xs = List.rev (List.fold_left cons_uniq [] xs)

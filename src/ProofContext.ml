@@ -12,6 +12,7 @@ type proof_context = {
   proof_name : string;
   funcs : string list;
   modules : string list;
+  coq_types : CoqType.coqtype list;
   types : string list;
   theorem : string;
   all_vars : string list;
@@ -117,6 +118,7 @@ let construct_proof_context gl =
       proof_name;
       funcs = hyp_funcs;
       modules = [];
+      coq_types = [];
       types = [];
       all_vars = [];
       original_dir = dir;
