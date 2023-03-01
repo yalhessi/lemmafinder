@@ -2,3 +2,9 @@ _build/
 benchmark/_lfind*
 *DS_Store
 */.merlin
+*/*.d
+*/*.aux
+*/*.glob
+*/*.vo
+*/*.vos
+*/*.vok
