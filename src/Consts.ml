@@ -30,8 +30,7 @@ let string_scope = "Open Scope string_scope.\n"
 
 let extract_print = "Extract Constant print => \"Extract.print\".\n"
 
-let require_extraction =
-  "\nRequire Coq.extraction.Extraction.\nExtraction Language OCaml.\n"
+let require_extraction = "\nRequire Coq.extraction.Extraction.\nExtraction Language OCaml.\n"
 
 let vernac_success = "Success."
 
