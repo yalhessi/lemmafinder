@@ -33,7 +33,7 @@ let extract_ml_examples () =
   in let p_ctxt = {
     theorem = "";
     hypotheses = []; 
-    goal = "";
+    goal = EConstr.mkProp;
     functions = []; 
     samples = [];
     dir = dir ^ "test/test_rev_append";
@@ -48,6 +48,8 @@ let extract_ml_examples () =
     types = [];
     all_vars=[];
     original_dir = "";
+    env = Environ.empty_env;
+    sigma = Evd.empty;
    }
   in let ml_example_1 = Hashtbl.create 1
   in Hashtbl.add ml_example_1 "x" "(  Natnil)";

@@ -1,7 +1,7 @@
 type proof_context = 
   {
     hypotheses : string list;
-    goal : string;
+    goal : EConstr.t;
     functions : string list;
     vars : string list;
     samples :  string list list;
@@ -17,6 +17,8 @@ type proof_context =
     theorem : string;
     all_vars: string list;
     original_dir: string;
+    env: Environ.env;
+    sigma: Evd.evar_map;
   }
 
 type coq_context = 
@@ -28,9 +30,12 @@ type coq_context =
 let hyp_to_string hyp = 
   List.fold_left (fun acc h ->  acc ^ "\n" ^ h) "" hyp
 
+let goal_to_string env sigma goal = 
+  Utils.get_sexp_compatible_expr_str env sigma goal
+
 let to_string p_ctxt = 
   let hyp_str = hyp_to_string p_ctxt.hypotheses
-  in hyp_str ^ "\n" ^ "=========================" ^ p_ctxt.goal
+  in hyp_str ^ "\n" ^ "=========================" ^ (goal_to_string p_ctxt.env p_ctxt.sigma p_ctxt.goal)
   
 let get_fname full_context =
   let library = List.hd (String.split_on_char '\n' full_context)
@@ -99,7 +104,7 @@ let construct_proof_context gl =
     in let p_ctxt = {
         theorem = theorem;
         hypotheses = hyps_strl; 
-        goal = (Utils.get_sexp_compatible_expr_str env sigma goal); 
+        goal = goal; 
         functions = []; 
         samples = [];
         dir = lfind_dir;
@@ -114,6 +119,8 @@ let construct_proof_context gl =
         types = [];
         all_vars = [];
         original_dir = dir;
+        env = env;
+        sigma = sigma;
        }
     in p_ctxt, c_ctxt
                   

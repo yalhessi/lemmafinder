@@ -99,7 +99,7 @@ let abstract (p_ctxt : proof_context)
   in let recursive_funcs = p_ctxt.functions
   in let hypo_sexps = List.map (fun hyp -> Sexp.of_string hyp) p_ctxt.hypotheses
   in
-  let conc_sexp = Sexp.of_string p_ctxt.goal
+  let conc_sexp = Sexp.of_string (ProofContext.goal_to_string p_ctxt.env p_ctxt.sigma p_ctxt.goal)
   in let conc_terms, conc_atoms = collect_terms_no_dup [] [] conc_sexp
   in let hypo_terms, hyp_atoms = List.fold_left 
                                   (fun (hyp_terms,hyp_atoms) hypo_sexp -> 
