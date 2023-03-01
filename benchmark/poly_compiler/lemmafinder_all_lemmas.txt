@@ -1,0 +1,1 @@
+{"compiler_correct_compilation_strong": "Lemma correct_compilation_strong:forall  (e : exp) (l : list instr) (s: list nat), (@eq (list nat) (execIs ((compile e) ++ l) s) (execIs l (cons (evalExp e) s))).", "compiler_correct_compilation": "Theorem correct_compilation:forall e,(execIs (compile e) nil) =(cons (evalExp e) nil)."}
