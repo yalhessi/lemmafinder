@@ -292,8 +292,14 @@ let synthesize_lemmas
   )
 
   in Consts.total_synth := !Consts.total_synth + List.length(synthesized_conjectures);
+  print_endline
+  ( "No of conjectures synthesized: "
+  ^ string_of_int (List.length synthesized_conjectures) );
   let filtered_conjectures = filter_cached_lemmas synthesized_conjectures !cached_lemmas
   in Consts.is_dup := !Consts.is_dup + (List.length(synthesized_conjectures) - List.length(filtered_conjectures));
+  print_endline
+  ( "No of conjectures after filtering: "
+  ^ string_of_int (List.length filtered_conjectures) );
   let valid_conjectures, invalid_conjectures = get_filtered_conjectures filtered_conjectures  p_ctxt conjecture cached_lemmas
   in
   let hyp_conjectures = Hypotheses.conjectures_with_hyp invalid_conjectures p_ctxt
@@ -304,6 +310,8 @@ let synthesize_lemmas
   Log.debug (Consts.fmt "<Synthesis> no of valid conjectures with hypotheses is %d" (List.length hyp_valid_conjectures));
   let valid_conjectures =  List.append valid_conjectures hyp_valid_conjectures
   in
+  print_endline
+  (Consts.fmt "No of valid conjectures is %d" (List.length valid_conjectures));
   Consts.is_false := !Consts.is_false + ((List.length(filtered_conjectures) + List.length(hyp_conjectures)) - List.length(valid_conjectures));
 
   let imports = Consts.fmt "\"%s\" %s \"From %s Require Import %s.\""
@@ -316,6 +324,9 @@ let synthesize_lemmas
   Consts.trivial_count := !Consts.trivial_count + int_of_string(trivial_count);
   let filtered_conjectures = filter_cached_lemmas filter_trivial_simplify !cached_lemmas
   in
+  print_endline
+  (Consts.fmt "No of conjectures after filtering is %d"
+     (List.length filtered_conjectures));
   Consts.is_dup := !Consts.is_dup + (List.length(filter_trivial_simplify) - List.length(filtered_conjectures));
   List.iter (fun (_,c) -> Hashtbl.replace !cached_lemmas c.body true;) filtered_conjectures;
   (* Identify synthesized lemmas that can help prove the stuck state *)
@@ -326,9 +337,14 @@ let synthesize_lemmas
       else (p_acc, pro_acc)
   ) provable_conjectures ([],[])
   in
+  print_endline
+  (Consts.fmt "Provable conjectures: %d" (List.length provable_conjectures));
   (* Identify synthesized lemmas that can prover the stuck goal, can be proven by the prover *)
   let prover_provable_conjectures, _ = Provable.split_as_provable_non_provable p_conjectures p_ctxt
   in
+  print_endline
+  (Consts.fmt "Prover provable conjectures: %d"
+     (List.length prover_provable_conjectures));
   let synth_stat = {
                         synthesis_term = (Sexp.string_of_sexpr curr_synth_term);
                         enumerated_exprs = enumerated_exprs;
