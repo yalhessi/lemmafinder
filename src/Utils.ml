@@ -182,15 +182,15 @@ let env_setup () =
     in if String.equal synthesizer_path "" then raise (Invalid_Env "Synthesizer path not set!")
     else 
     Consts.synthesizer_path := synthesizer_path;
+    
+    let rewriter_path = get_env_var Consts.rewriter
+    in if String.equal rewriter_path "" then raise (Invalid_Env "AST rewriter path not set!")
+    else Consts.rewriter_path := rewriter_path;
+  
+    let coqofocaml_path = get_env_var "COQOFOCAML"
+    in if String.equal coqofocaml_path "" then raise (Invalid_Env "COQOFOCAML path not set!")
+    else Consts.coq_of_ocaml_path := coqofocaml_path;
   );
-
-  let rewriter_path = get_env_var Consts.rewriter
-  in if String.equal rewriter_path "" then raise (Invalid_Env "AST rewriter path not set!")
-  else Consts.rewriter_path := rewriter_path;
-
-  let coqofocaml_path = get_env_var "COQOFOCAML"
-  in if String.equal coqofocaml_path "" then raise (Invalid_Env "COQOFOCAML path not set!")
-  else Consts.coq_of_ocaml_path := coqofocaml_path;
 
   let lfind_path = get_env_var "LFIND"
   in if String.equal lfind_path "" then raise (Invalid_Env "LFIND SRC path not set!")
