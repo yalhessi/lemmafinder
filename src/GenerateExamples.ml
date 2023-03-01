@@ -16,10 +16,18 @@ let construct_data_collection vars typs var_typs =
 
 let lfind_extract_examples p_ctxt =
 let lfind_content = "
+module SS = Set.Make(String)
+let values = ref SS.empty
+  
 let write_to_file value=
   let oc = open_out_gen [Open_append; Open_creat] 0o777 \""^p_ctxt.dir ^"/examples_" ^  p_ctxt.fname ^ ".txt\" in
-  Printf.fprintf oc \"%s\\n\"  value;
+  if not(SS.mem value !values) then 
+    (
+      values := SS.add value !values;
+      Printf.fprintf oc \"%s\\n\"  value;
+    );
   close_out oc; ()
+
 let print n nstr=
   write_to_file (String.of_seq (List.to_seq nstr));
   (n)
