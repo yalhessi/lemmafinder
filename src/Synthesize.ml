@@ -203,6 +203,16 @@ let get_vars_for_synthesis conjecture curr_synth_term vars all_vars =
                             else vars_for_synthesis
   in vars_for_synthesis
 
+let is_deterministic_eval examples =
+  let tbl = Hashtbl.create 0 in
+  let split_examples = List.map (fun example -> 
+    let in_out = String.split_on_char '=' example in (List.hd in_out, List.hd (List.tl in_out))) examples in
+  List.for_all (fun example ->
+    let input, output = example in
+    if (Hashtbl.mem tbl input) && not (String.equal (Hashtbl.find tbl input) output) then false
+    else (Hashtbl.add tbl input output; true)
+  ) split_examples
+
 let enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt ml_examples output_examples synth_count is_equal_conj = 
   let var_types = ExprUtils.get_type_vars conjecture vars_for_synthesis
   in
@@ -216,6 +226,7 @@ let enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt m
   in Hashtbl.add var_types synthesis_op output_type;
   let myth_examples = Examples.gen_synthesis_examples ml_examples output_examples vars_for_synthesis conjecture.sigma
   in LogUtils.write_list_to_log myth_examples (!Consts.synthesizer ^ " examples");
+  if not (is_deterministic_eval myth_examples) then ((Log.debug "found non-deterministic results"); [], []) else
   
   let vars_for_synthesis = List.append vars_for_synthesis [synthesis_op]
   in let conjecture_name = (conjecture.conjecture_name ^ string_of_int(Utils.next_val synth_count ())) in
