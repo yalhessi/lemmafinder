@@ -47,6 +47,7 @@ We use proverbot to check if the synthesized or generalized lemma is provable or
 1. `git clone --recurse-submodules https://github.com/UCSD-PL/proverbot9001.git`
     - git branch should point to master
 
+<<<<<<< Updated upstream
 2. For Mac users ONLY: In `Makefile` replace `cp dataloader/target/release/libdataloader.so src/dataloader.so` with `cp dataloader/target/release/libdataloader.dylib src/dataloader.so`.
 
 3. mkdir proverbot9001/dataloader/.cargo
@@ -63,6 +64,10 @@ rustflags = [
 See https://pyo3.rs/v0.5.3/ for why we need this.
 
 6. Comment lines 16-23 in `setup.sh`
+=======
+6. Comment lines 14-23 and line 54 in `proverbot9001/src/setup.sh`
+7. Remove the `--user` in line 25 of `proverbot9001/src/setup.sh`
+>>>>>>> Stashed changes
 
 7. Ensure you have git, opam, rustup, graphviz, libgraphviz-dev, python3.7, python3.7-dev and python3.7-pip installed.
 
