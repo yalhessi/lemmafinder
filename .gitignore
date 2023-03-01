@@ -1,10 +1,11 @@
 _build/
 benchmark/_lfind*
+benchmark/**/Makefile.conf
 *DS_Store
 */.merlin
-*/*.d
-*/*.aux
-*/*.glob
-*/*.vo
-*/*.vos
-*/*.vok
+**/*.d
+**/*.aux
+**/*.glob
+**/*.vo
+**/*.vos
+**/*.vok
