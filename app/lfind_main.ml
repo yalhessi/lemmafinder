@@ -30,19 +30,18 @@ let is_ml_generation_success ml_file p_ctxt: bool=
   )
   else true
 
-let construct_state_as_lemma gl =
-  let goal = Proofview.Goal.concl gl in
+let construct_state_as_lemma p_ctxt =
+  let goal = p_ctxt.goal in
   let goal_vars = Utils.get_vars_in_expr goal
-  in let hyps = Proofview.Goal.hyps gl
+  in let hyps = p_ctxt.hypotheses
   in let hyps_str = Utils.get_hyps hyps
   in let all_vars = List.fold_left (fun acc (_, expr)->
   List.append acc (Utils.get_vars_in_expr expr)) goal_vars hyps_str
   in let var_set = Hashtbl.create (List.length all_vars)
   in List.iter (fun v -> Hashtbl.replace var_set v "") all_vars;
-  let env = Proofview.Goal.env gl in
-  let sigma = Proofview.Goal.sigma gl in
+  let env = p_ctxt.env in
+  let sigma = p_ctxt.sigma in
   let conc = (Utils.get_exp_str env sigma goal)
-  in let goal = Proofview.Goal.concl gl
   in let conc_sexp = Sexp.of_string (Utils.get_sexp_compatible_expr_str env sigma goal)
   in let _, conc_atoms = (Abstract_NoDup.collect_terms_no_dup [] [] conc_sexp)
   in let c_ctxt = {env = env; sigma = sigma}
@@ -129,10 +128,10 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
     else
       begin
         Utils.env_setup ();
-        let contanins_forall, curr_state_lemma, typs, var_typs, vars, hyps, hyps_str = construct_state_as_lemma gl
+        let p_ctxt, c_ctxt = construct_proof_context gl in
+        let contanins_forall, curr_state_lemma, typs, var_typs, vars, hyps, hyps_str = construct_state_as_lemma p_ctxt
         in print_endline curr_state_lemma;
-        let p_ctxt, c_ctxt = construct_proof_context gl
-        in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
+        Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
         Log.stats_summary_file := p_ctxt.dir ^ Consts.summary_log_file;
         let module_names =
