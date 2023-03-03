@@ -1,8 +1,7 @@
 type proof_context = 
   {
-    hypotheses : string list;
-    goal : EConstr.t;
-    functions : string list;
+    hypotheses : EConstr.named_context;
+    goal : EConstr.constr;
     vars : string list;
     samples :  string list list;
     fname: string;
@@ -27,15 +26,18 @@ type coq_context =
     sigma : Evd.evar_map;
   }
 
-let hyp_to_string hyp = 
-  List.fold_left (fun acc h ->  acc ^ "\n" ^ h) "" hyp
+let hyps_to_string_list env sigma hyps = 
+  Utils.get_hyps_strl hyps env sigma
 
+let hyps_to_string env sigma hyps = 
+  let hyps_str = Utils.get_hyps_strl hyps env sigma in
+  List.fold_left (fun acc h ->  acc ^ "\n" ^ h) "" hyps_str
 let goal_to_string env sigma goal = 
   Utils.get_sexp_compatible_expr_str env sigma goal
 
-let to_string p_ctxt = 
-  let hyp_str = hyp_to_string p_ctxt.hypotheses
-  in hyp_str ^ "\n" ^ "=========================" ^ (goal_to_string p_ctxt.env p_ctxt.sigma p_ctxt.goal)
+let to_string (p_ctxt : proof_context) = 
+  let hyps_str = hyps_to_string p_ctxt.env p_ctxt.sigma p_ctxt.hypotheses
+  in hyps_str ^ "\n" ^ "=========================" ^ (goal_to_string p_ctxt.env p_ctxt.sigma p_ctxt.goal)
   
 let get_fname full_context =
   let library = List.hd (String.split_on_char '\n' full_context)
@@ -84,7 +86,6 @@ let construct_proof_context gl =
     let sigma = Proofview.Goal.sigma gl in
     let goal = Proofview.Goal.concl gl in
     let hyps = Proofview.Goal.hyps gl in
-    let hyps_strl = Utils.get_hyps_strl hyps env sigma in
     let c_ctxt = {env = env; sigma = sigma}
     in let vars = Utils.get_vars_in_expr goal
     in let funcs = Utils.get_funcs_in_expr goal []
@@ -103,9 +104,8 @@ let construct_proof_context gl =
     in let theorem = get_theorem proof_name lfind_dir f_name 
     in let p_ctxt = {
         theorem = theorem;
-        hypotheses = hyps_strl; 
+        hypotheses = hyps; 
         goal = goal; 
-        functions = []; 
         samples = [];
         dir = lfind_dir;
         full_context = full_context;

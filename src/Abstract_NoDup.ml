@@ -96,8 +96,7 @@ let abstract (p_ctxt : proof_context)
     Ouput: Tuple <generalized terms/expr, generalized conjectures>
   *)
   let with_hyp = false
-  in let recursive_funcs = p_ctxt.functions
-  in let hypo_sexps = List.map (fun hyp -> Sexp.of_string hyp) p_ctxt.hypotheses
+  in let hypo_sexps = List.map (fun hyp -> Sexp.of_string hyp) (Utils.get_hyps_strl p_ctxt.hypotheses p_ctxt.env p_ctxt.sigma)
   in
   let conc_sexp = Sexp.of_string (ProofContext.goal_to_string p_ctxt.env p_ctxt.sigma p_ctxt.goal)
   in let conc_terms, conc_atoms = collect_terms_no_dup [] [] conc_sexp

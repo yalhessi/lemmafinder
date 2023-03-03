@@ -34,7 +34,6 @@ let extract_ml_examples () =
     theorem = "";
     hypotheses = []; 
     goal = EConstr.mkProp;
-    functions = []; 
     samples = [];
     dir = dir ^ "test/test_rev_append";
     full_context = "";

@@ -33,9 +33,10 @@ let is_ml_generation_success ml_file p_ctxt: bool=
 let construct_state_as_lemma gl =
   let goal = Proofview.Goal.concl gl in
   let goal_vars = Utils.get_vars_in_expr goal
-  in let hyps = (Utils.get_hyps (Proofview.Goal.hyps gl))
+  in let hyps = Proofview.Goal.hyps gl
+  in let hyps_str = Utils.get_hyps hyps
   in let all_vars = List.fold_left (fun acc (_, expr)->
-  List.append acc (Utils.get_vars_in_expr expr)) goal_vars hyps
+  List.append acc (Utils.get_vars_in_expr expr)) goal_vars hyps_str
   in let var_set = Hashtbl.create (List.length all_vars)
   in List.iter (fun v -> Hashtbl.replace var_set v "") all_vars;
   let env = Proofview.Goal.env gl in
@@ -49,7 +50,7 @@ let construct_state_as_lemma gl =
   in let typs_from_conc = Hashtbl.fold (fun k v acc ->  if (Utils.contains v "Set") then k::acc else acc) atom_type_table []
   in
   let contanins_forall = ref false
-  in let hyps, vars, typs, var_typs, hyps_str =
+  in let hyps_str, vars, typs, var_typs, hyps_content =
     List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str) (v, hyp) -> 
                       let var_str = (Names.Id.to_string v)
                       in let hyp_content =  (Utils.get_exp_str env sigma hyp)
@@ -93,9 +94,9 @@ let construct_state_as_lemma gl =
                             acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str
                           )
                         )
-                 ) ([],[],[],[],[]) hyps
+                 ) ([],[],[],[],[]) hyps_str
   in
-  let all_hyps = List.append var_typs hyps
+  let all_hyps = List.append var_typs hyps_str
   in let typs = List.fold_left (fun acc v -> 
   let typ_name = v
     (* if String.equal v "bool," then "bool" else v  *)
@@ -104,15 +105,15 @@ let construct_state_as_lemma gl =
      (
        let var_forall = List.fold_left (fun acc v -> acc ^ " " ^ v) "forall" vars
        in if List.length vars > 0 then
-       !contanins_forall, (Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall conc), typs, var_typs, vars, hyps_str
+       !contanins_forall, (Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall conc), typs, var_typs, vars, hyps, hyps_content
        else
-       !contanins_forall, (Consts.fmt "Lemma %s: %s.\nAdmitted." Consts.lfind_lemma conc), typs, var_typs, vars, hyps_str
+       !contanins_forall, (Consts.fmt "Lemma %s: %s.\nAdmitted." Consts.lfind_lemma conc), typs, var_typs, vars, hyps, hyps_content
      )
     else
     (
       let vars_all = ""
         (* List.fold_left (fun acc v -> acc ^ " " ^ v)  "" vars *)
-      in !contanins_forall, (Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all (String.concat " " all_hyps) conc), typs, var_typs, vars, hyps_str
+      in !contanins_forall, (Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all (String.concat " " all_hyps) conc), typs, var_typs, vars, hyps, hyps_content
     )
 
 let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
@@ -128,7 +129,7 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
     else
       begin
         Utils.env_setup ();
-        let contanins_forall, curr_state_lemma, typs, var_typs, vars, hyps = construct_state_as_lemma gl
+        let contanins_forall, curr_state_lemma, typs, var_typs, vars, hyps, hyps_str = construct_state_as_lemma gl
         in print_endline curr_state_lemma;
         let p_ctxt, c_ctxt = construct_proof_context gl
         in Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
