@@ -1,5 +1,9 @@
 exception Invalid_Env of string
 
+let cons_uniq xs x = if List.mem x xs then xs else x :: xs
+
+let dedup_list xs = List.rev (List.fold_left cons_uniq [] xs)
+
 let parse_constr = Pcoq.parse_string Pcoq.Constr.constr;;
 
 let str_to_constr str = (parse_constr str)
@@ -21,6 +25,12 @@ let get_str_of_pp pp_expr : string=
 let get_exp_str env sigma expr : string =
   (get_str_of_pp (Printer.pr_goal_concl_style_env env sigma expr))
 
+let get_econstr_str env sigma expr : string =
+  (get_str_of_pp (Printer.pr_goal_concl_style_env env sigma expr))
+  
+let get_constr_str env sigma expr : string =
+  (get_str_of_pp (Printer.pr_constr_goal_style_env env sigma expr))
+  
 let get_sexp_compatible_expr_str env sigma expr : string = 
   "(" ^ (get_exp_str env sigma expr) ^ ")"
 
@@ -96,7 +106,22 @@ and vars_of_constrarray a : string list =
     List.fold_left (fun acc elem -> List.append acc (aux elem acc)) [] (Array.to_list a)
 in aux constr_goal []
 
-
+let rec new_get_funcs_in_constr env sigma constr = 
+  (* let constr_goal = (econstr_to_constr expr) *)
+  match Constr.kind constr with
+  | Cast(ty1,ck,ty2) -> new_get_funcs_in_constr env sigma ty1 @ new_get_funcs_in_constr env sigma ty2
+  | Prod(na, ty, c) -> new_get_funcs_in_constr env sigma ty @ new_get_funcs_in_constr env sigma c 
+  | Lambda(na,ty,c) -> new_get_funcs_in_constr env sigma ty @ new_get_funcs_in_constr env sigma c
+  | LetIn (na,b,ty,c) -> new_get_funcs_in_constr env sigma b @ new_get_funcs_in_constr env sigma ty @ new_get_funcs_in_constr env sigma c
+  | App(f,args) -> new_get_funcs_in_constr env sigma f @ List.concat (List.map (fun arg -> new_get_funcs_in_constr env sigma arg) (Array.to_list args))
+  | Const(c,u) -> (* needed for zero-arg defintions *) [constr]
+  | Case(ci, p, c, bl) -> new_get_funcs_in_constr env sigma c @ List.concat (List.map (fun e -> new_get_funcs_in_constr env sigma e) (Array.to_list bl))
+  | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> []
+  
+let new_get_funcs_in_econstr env sigma econstr = 
+  print_endline (get_sexp_compatible_expr_str env sigma econstr);
+  econstr_to_constr econstr |> new_get_funcs_in_constr env sigma |> dedup_list 
+  
 let get_funcs_in_expr expr funcs=
   let constr_goal = (econstr_to_constr expr)
   in let rec aux constr_goal (funcs : string list) =

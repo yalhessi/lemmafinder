@@ -1,7 +1,7 @@
 type proof_context = 
   {
     hypotheses : EConstr.named_context;
-    goal : EConstr.constr;
+    goal : EConstr.t;
     vars : string list;
     samples :  string list list;
     fname: string;
@@ -10,7 +10,7 @@ type proof_context =
     namespace: string;
     declarations: string;
     proof_name: string;
-    funcs: string list;
+    funcs: Constr.t list;
     modules: string list;
     types: string list;
     theorem : string;
@@ -88,8 +88,15 @@ let construct_proof_context gl =
     let hyps = Proofview.Goal.hyps gl in
     let c_ctxt = {env = env; sigma = sigma}
     in let vars = Utils.get_vars_in_expr goal
-    in let funcs = Utils.get_funcs_in_expr goal []
-    in let hyp_funcs = List.fold_left 
+    in let funcs = Utils.get_funcs_in_expr goal [] in
+    print_endline "funcs:";
+    List.iter (print_endline) funcs;
+    print_endline "new funcs:";
+    let new_funcs : Constr.t list = Utils.new_get_funcs_in_econstr env sigma goal in
+    List.iter (fun f -> print_endline (Utils.get_constr_str env sigma f)) new_funcs;
+    (* exit(0); *)
+
+    let hyp_funcs = List.fold_left 
                         (fun acc (_,h) -> (Utils.get_funcs_in_expr h acc)
                         ) funcs (Utils.get_hyps hyps)
     in let paths = Loadpath.get_load_paths ()
@@ -114,7 +121,7 @@ let construct_proof_context gl =
         namespace = List.hd (String.split_on_char '\n' namespace);
         declarations = declarations;
         proof_name = proof_name;
-        funcs = hyp_funcs;
+        funcs = new_funcs(* hyp_funcs *);
         modules = [];
         types = [];
         all_vars = [];
