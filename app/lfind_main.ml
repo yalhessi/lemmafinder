@@ -30,26 +30,23 @@ let is_ml_generation_success ml_file p_ctxt: bool=
   )
   else true
 
-let construct_state_as_lemma p_ctxt =
-  let goal = p_ctxt.goal in
-  let goal_vars = Utils.get_vars_in_expr goal
-  in let hyps = p_ctxt.hypotheses
-  in let hyps_str = Utils.get_hyps hyps
-  in let all_vars = List.fold_left (fun acc (_, expr)->
-  List.append acc (Utils.get_vars_in_expr expr)) goal_vars hyps_str
-  in let var_set = Hashtbl.create (List.length all_vars)
-  in List.iter (fun v -> Hashtbl.replace var_set v "") all_vars;
+let construct_state_as_lemma (p_ctxt : ProofContext.proof_context) =
   let env = p_ctxt.env in
   let sigma = p_ctxt.sigma in
-  let conc = (Utils.get_exp_str env sigma goal)
+  let goal = p_ctxt.goal in
+  let hyps = p_ctxt.hypotheses in
+  let hyps_str = Utils.get_hyps hyps
+  in let conc = (Utils.get_exp_str env sigma goal)
   in let conc_sexp = Sexp.of_string (Utils.get_sexp_compatible_expr_str env sigma goal)
   in let _, conc_atoms = (Abstract_NoDup.collect_terms_no_dup [] [] conc_sexp)
   in let c_ctxt = {env = env; sigma = sigma}
   in let atom_type_table = (update_type_table conc_atoms c_ctxt (Hashtbl.create 100))
-  in let typs_from_conc = Hashtbl.fold (fun k v acc ->  if (Utils.contains v "Set") then k::acc else acc) atom_type_table []
-  in
+  in let typs_from_conc = Hashtbl.fold (fun k v acc ->  if (Utils.contains v "Set") then k::acc else acc) atom_type_table [] in
+  print_endline "typs_from_conc: ";
+  List.iter print_endline typs_from_conc;
+  
   let contanins_forall = ref false
-  in let hyps_str, vars, typs, var_typs, hyps_content =
+  in let hyps_str, _, typs, var_typs, hyps_content =
     List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str) (v, hyp) -> 
                       let var_str = (Names.Id.to_string v)
                       in let hyp_content =  (Utils.get_exp_str env sigma hyp)
@@ -89,7 +86,7 @@ let construct_state_as_lemma p_ctxt =
                           else
                           (
                             print_endline "There is a hypothesis that is neither Set or Prop";
-                            exit(0);
+                            (* exit(0); *)
                             acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str
                           )
                         )
@@ -99,21 +96,9 @@ let construct_state_as_lemma p_ctxt =
   in let typs = List.fold_left (fun acc v -> 
   let typ_name = v
     (* if String.equal v "bool," then "bool" else v  *)
-  in if (List.exists (String.equal typ_name) acc) then acc else typ_name::acc) typs typs_from_conc
-  in if List.length all_hyps == 0 then
-     (
-       let var_forall = List.fold_left (fun acc v -> acc ^ " " ^ v) "forall" vars
-       in if List.length vars > 0 then
-       !contanins_forall, (Consts.fmt "Lemma %s:  %s, %s.\nAdmitted." Consts.lfind_lemma var_forall conc), typs, var_typs, vars, hyps, hyps_content
-       else
-       !contanins_forall, (Consts.fmt "Lemma %s: %s.\nAdmitted." Consts.lfind_lemma conc), typs, var_typs, vars, hyps, hyps_content
-     )
-    else
-    (
-      let vars_all = ""
-        (* List.fold_left (fun acc v -> acc ^ " " ^ v)  "" vars *)
-      in !contanins_forall, (Consts.fmt "Lemma %s %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_all (String.concat " " all_hyps) conc), typs, var_typs, vars, hyps, hyps_content
-    )
+  in if (List.exists (String.equal typ_name) acc) then acc else typ_name::acc) typs typs_from_conc in
+  !contanins_forall, hyps, hyps_content
+
 
 let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
   Consts.start_time := int_of_float(Unix.time ());
@@ -129,15 +114,16 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
       begin
         Utils.env_setup ();
         let p_ctxt, c_ctxt = construct_proof_context gl in
-        let contanins_forall, curr_state_lemma, typs, var_typs, vars, hyps, hyps_str = construct_state_as_lemma p_ctxt
-        in print_endline curr_state_lemma;
+        let vars = p_ctxt.vars in
+        let typs = p_ctxt.types in
+        let contanins_forall, hyps, hyps_str = construct_state_as_lemma p_ctxt in
         Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
         Log.stats_summary_file := p_ctxt.dir ^ Consts.summary_log_file;
         let module_names =
           Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
         in
-        let p_ctxt = {p_ctxt with modules = module_names; types = typs; hypotheses = hyps; all_vars = vars}
+        let p_ctxt = {p_ctxt with modules = module_names; types = typs; hypotheses = hyps; }
         (* If myth is chosen as the synthesizer, generate .ml file and check if it is parsable by myth *)
         in
         if String.equal synthesizer "myth" then
@@ -174,7 +160,7 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
           if contanins_forall then (print_endline ("Contains forall, and no example file provided. Quickchick does not work with forall"); exit(0);)
           else
           (
-            let op = GenerateExamples.generate_example p_ctxt typs module_names curr_state_lemma var_typs vars
+            let op = GenerateExamples.generate_example p_ctxt module_names  
             in print_endline (string_of_int (List.length op));
             let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
             in
@@ -195,6 +181,7 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
         in let generalized_terms, conjectures = abstraction p_ctxt c_ctxt
         in 
         (* create a coq file that has the current stuck state a prover can use *)
+        let curr_state_lemma = ProofContext.get_curr_state_lemma p_ctxt in
         let curr_state_lemma_file = Consts.fmt "%s/%s.v" p_ctxt.dir Consts.lfind_lemma
         in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n %s"
                          Consts.lfind_declare_module

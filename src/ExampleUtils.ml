@@ -28,7 +28,8 @@ let evaluate_terms (generalized_terms : Sexp.t list list)
   let no_terms = List.length generalized_terms
   in let coq_term_examples, ml_term_example = List.fold_left (
                      fun (coq_acc, ml_acc) term -> 
-                        let coq_term_output, ml_term_output = (Evaluate.evaluate_coq_expr term coq_examples p_ctxt p_ctxt.vars (Hashtbl.create 0) None)
+                        let vars_str = List.map Names.Id.to_string p_ctxt.vars in
+                        let coq_term_output, ml_term_output = (Evaluate.evaluate_coq_expr term coq_examples p_ctxt vars_str (Hashtbl.create 0) None)
                         in LogUtils.write_list_to_log coq_term_output ("Coq output of " ^ (Sexp.string_of_sexpr term));
                         if String.equal !Consts.synthesizer "myth" then
                         (

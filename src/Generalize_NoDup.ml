@@ -129,7 +129,8 @@ let get_all_conjectures generalizations
   let counter = ref 0
   in let generalized_conjecture_strings = 
               List.map (fun (g, sigma, vars, hyps) ->
-                  let gvars = (get_variables_in_expr g [] p_ctxt.vars sigma)
+                  let vars_str = List.map (Names.Id.to_string) p_ctxt.vars in
+                  let gvars = (get_variables_in_expr g [] vars_str sigma)
                   in let var_str = (List.fold_left (fun acc v -> 
                                           acc ^ 
                                           (
@@ -153,7 +154,7 @@ let get_all_conjectures generalizations
                       conjecture_name="";
                       body=conjecture_body;
                       body_sexp=g;
-                      lfind_vars=vars;
+                      lfind_vars=vars_str;
                       all_expr_type_table = expr_type_table;
                       atom_type_table = atom_type_table;
                       hyps = hyps;

@@ -1,8 +1,10 @@
 type proof_context = 
   {
+    env: Environ.env;
+    sigma: Evd.evar_map;
     hypotheses : EConstr.named_context;
     goal : EConstr.t;
-    vars : string list;
+    vars : Names.variable list;
     samples :  string list list;
     fname: string;
     dir: string;
@@ -12,12 +14,10 @@ type proof_context =
     proof_name: string;
     funcs: Constr.t list;
     modules: string list;
-    types: string list;
+    types: EConstr.t list;
     theorem : string;
-    all_vars: string list;
+    all_vars: Names.variable list;
     original_dir: string;
-    env: Environ.env;
-    sigma: Evd.evar_map;
   }
 
 type coq_context = 
@@ -78,17 +78,74 @@ let get_theorem proof_name dir fname =
                       else acc
                     ) "" content
 
+let get_proof_name () =
+  let pstate = match Vernacstate.Proof_global.get_pstate () with Some ps -> ps | _ -> (raise (Invalid_argument "proof state"))
+  in let pdata = Proof.data (Proof_global.get_proof pstate) in
+  (Names.Id.to_string (pdata.name))
+
+let is_type s = 
+  match Sorts.family s with
+  | InType -> true
+  | _ -> false
+  
+let get_vars env sigma hyps  =
+  let var_hyps = List.filter (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) -> 
+    let (sigma', s) = Typing.sort_of env sigma y in
+    Sorts.is_set s || is_type s
+  | _ -> raise(Failure "Unsupported assumption") ) hyps in
+  List.map (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) ->  x.binder_name
+  | _ -> raise(Failure "Unsupported assumption")) var_hyps
+
+let get_var_types env sigma hyps  =
+  let var_hyps = List.filter (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) -> 
+    let (sigma', s) = Typing.sort_of env sigma y in
+    Sorts.is_set s || is_type s
+  | _ -> raise(Failure "Unsupported assumption") ) hyps in
+  List.map (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) ->  (x.binder_name, y)
+  | _ -> raise(Failure "Unsupported assumption")) var_hyps
+
+let get_types env sigma hyps  =
+  let var_hyps = List.filter (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) -> 
+    let (sigma', s) = Typing.sort_of env sigma y in
+    Sorts.is_set s || is_type s
+  | _ -> raise(Failure "Unsupported assumption") ) hyps in
+  List.map (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) -> y
+  | _ -> raise(Failure "Unsupported assumption")) var_hyps |> Utils.dedup_list
+
+
+let get_curr_state_lemma p_ctxt : string = 
+  let lemma = Consts.lfind_lemma in
+  let vars = List.map Names.Id.to_string p_ctxt.vars in
+  let vars_str = "forall " ^ String.concat " " vars in
+  let conc = (Utils.get_exp_str p_ctxt.env p_ctxt.sigma p_ctxt.goal) in
+  let hyps = p_ctxt.hypotheses in
+  let hyps_str = List.map (fun hyp -> match hyp with 
+    | Context.Named.Declaration.LocalAssum(x, y) -> 
+      "(" ^ Names.Id.to_string (x.binder_name) ^ ":" ^ (Utils.get_exp_str p_ctxt.env p_ctxt.sigma y) ^ ")"
+    | _ -> raise(Failure "Unsupported assumption")) hyps |> String.concat " "  in
+  if List.length hyps = 0 then
+    Consts.fmt "Lemma %s:%s.\nAdmitted." Consts.lfind_lemma conc
+  else
+    Consts.fmt "Lemma %s %s:%s.\nAdmitted." Consts.lfind_lemma hyps_str conc
+  
 let construct_proof_context gl =
-    let pstate = match Vernacstate.Proof_global.get_pstate () with Some ps -> ps | _ -> (raise (Invalid_argument "proof state"))
-    in let pdata = Proof.data (Proof_global.get_proof pstate)
-    in let proof_name = (Names.Id.to_string (pdata.name))
-    in let env = Proofview.Goal.env gl in
+    let env = Proofview.Goal.env gl in
     let sigma = Proofview.Goal.sigma gl in
+    let hyps = Proofview.Goal.hyps gl |> List.rev (* hyps are in opposite order of coqide *) in
+    List.iter (fun hyp -> match hyp with 
+    | Context.Named.Declaration.LocalAssum(x, y) -> print_endline (Utils.get_sexp_compatible_expr_str env sigma y);
+    | _ -> ()
+    ) hyps;
     let goal = Proofview.Goal.concl gl in
-    let hyps = Proofview.Goal.hyps gl in
-    let c_ctxt = {env = env; sigma = sigma}
-    in let vars = Utils.get_vars_in_expr goal
-    in let goal_funcs = Utils.new_get_funcs_in_econstr env sigma goal in
+    let vars = get_vars env sigma hyps in
+    let typs = get_types env sigma hyps in
+    let goal_funcs = Utils.new_get_funcs_in_econstr env sigma goal in
     let hyp_funcs = List.map (fun (_,h) -> Utils.new_get_funcs_in_econstr env sigma h) (Utils.get_hyps hyps) in
     let all_funcs = List.concat (goal_funcs :: hyp_funcs) in
     let paths = Loadpath.get_load_paths ()
@@ -100,8 +157,11 @@ let construct_proof_context gl =
     let full_context = Utils.get_str_of_pp (Prettyp.print_full_context env sigma)
     in let f_name = get_fname full_context
     in let declarations = get_declarations lfind_dir f_name
+    in let proof_name = get_proof_name ()
     in let theorem = get_theorem proof_name lfind_dir f_name 
     in let p_ctxt = {
+        env = env;
+        sigma = sigma;
         theorem = theorem;
         hypotheses = hyps; 
         goal = goal; 
@@ -115,11 +175,10 @@ let construct_proof_context gl =
         proof_name = proof_name;
         funcs = all_funcs;
         modules = [];
-        types = [];
-        all_vars = [];
+        types = typs;
+        all_vars = vars;
         original_dir = dir;
-        env = env;
-        sigma = sigma;
        }
+    in let c_ctxt = {env = env; sigma = sigma} 
     in p_ctxt, c_ctxt
                   

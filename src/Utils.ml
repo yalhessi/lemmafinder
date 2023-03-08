@@ -80,6 +80,21 @@ let add_var acc var =
   let var_exists = List.exists (fun e -> String.equal e var) acc
   in if var_exists then acc else (var :: acc)
 
+let rec new_get_vars_in_constr env sigma constr = 
+  print_endline ("getting vars from: " ^ (get_constr_str env sigma constr));
+  match Constr.kind constr with
+  | Var(v) -> [constr]
+  | Cast(ty1,ck,ty2) -> new_get_vars_in_constr env sigma ty1 @ new_get_vars_in_constr env sigma ty2
+  | Prod(na, ty, c) -> new_get_vars_in_constr env sigma ty @ new_get_vars_in_constr env sigma c 
+  | Lambda(na,ty,c) -> new_get_vars_in_constr env sigma ty @ new_get_vars_in_constr env sigma c
+  | LetIn (na,b,ty,c) -> new_get_vars_in_constr env sigma b @ new_get_vars_in_constr env sigma ty @ new_get_vars_in_constr env sigma c
+  | App(f,args) -> new_get_vars_in_constr env sigma f @ List.concat (List.map (fun arg -> new_get_vars_in_constr env sigma arg) (Array.to_list args))
+  | Case(ci, p, c, bl) -> new_get_vars_in_constr env sigma c @ List.concat (List.map (fun e -> new_get_vars_in_constr env sigma e) (Array.to_list bl))
+  | Rel(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Const(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> []
+
+let new_get_vars_in_econstr env sigma econstr = 
+  econstr_to_constr econstr |> new_get_vars_in_constr env sigma |> dedup_list
+
 let get_vars_in_expr expr =
   let constr_goal = (econstr_to_constr expr)
   in let rec aux constr_goal (vars : string list) =

@@ -114,10 +114,11 @@ let abstract (p_ctxt : proof_context)
   LogUtils.write_tbl_to_log expr_type_table "Terms Type table";
   LogUtils.write_tbl_to_log atom_type_table "Atoms Type table";
   
+  let vars_str = List.map Names.Id.to_string p_ctxt.vars in
   let all_terms = if with_hyp 
                         then List.tl (List.append conc_terms (List.tl hypo_terms))
                         else List.tl (conc_terms)
-  in let all_terms = add_heuristic_atoms atoms all_terms atom_type_table p_ctxt.vars
+  in let all_terms = add_heuristic_atoms atoms all_terms atom_type_table vars_str
   in
   let terms = get_generalizable_terms all_terms expr_type_table atom_type_table
   in Log.debug (Consts.fmt "Size of terms list %d\n and Terms from the goal [%s]\n" (List.length terms) (List.fold_left (fun acc e -> acc ^ ";" ^ ((string_of_sexpr e))) "" terms));

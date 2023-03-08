@@ -263,10 +263,11 @@ let synthesize_lemmas
   let synthesizer = !Consts.synthesizer
   in let input_examples = if String.equal synthesizer "myth" then ml_examples else coq_examples
   in Log.debug (Consts.fmt "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term));
-  let all_vars = List.append p_ctxt.vars conjecture.lfind_vars
+  let vars_str = List.map Names.Id.to_string p_ctxt.vars in
+  let all_vars = List.append vars_str conjecture.lfind_vars
   in let coq_output_examples, ml_output_examples = (Evaluate.evaluate_coq_expr curr_synth_term coq_examples p_ctxt all_vars conjecture.sigma (Some conjecture))
   in 
-  let vars_for_synthesis = get_vars_for_synthesis conjecture curr_synth_term p_ctxt.vars all_vars
+  let vars_for_synthesis = get_vars_for_synthesis conjecture curr_synth_term vars_str all_vars
   in
   let output_examples = 
   if String.equal synthesizer "myth" then
@@ -283,7 +284,8 @@ let synthesize_lemmas
   in let synthesized_conjectures, enumerated_exprs = if expr_found then synthesized_conjectures, enumerated_exprs else
   (
   Log.debug (Consts.fmt "the equal synthesis term is %s" (Sexp.string_of_sexpr curr_synth_term));
-  let vars_for_synthesis = get_vars_for_equal_synthesis conjecture curr_synth_term p_ctxt.vars all_vars
+  let vars_str = List.map Names.Id.to_string p_ctxt.vars in
+  let vars_for_synthesis = get_vars_for_equal_synthesis conjecture curr_synth_term vars_str all_vars
   in 
   LogUtils.write_list_to_log vars_for_synthesis "equal vars for synthesis";
   let equal_synthesized_conjectures, equal_enumerated_exprs = enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt input_examples output_examples synth_count true
