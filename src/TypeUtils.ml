@@ -84,7 +84,11 @@ let rec get_return_type acc fun_type =
   | [] -> acc
 
 
-let derive_typ_quickchick typ_name : string= 
+let derive_typ_quickchick (p_ctxt : ProofContext.proof_context) typ_name : string= 
+  let file_name = Consts.fmt "%s/show_%s.v" p_ctxt.dir typ_name in
+  if Sys.file_exists file_name then
+    String.concat "\n" (FileUtils.read_file file_name |> List.rev)
+  else
   Consts.fmt ("Derive Show for %s.\n
               Derive Arbitrary for %s.\n
               Instance Dec_Eq_%s : Dec_Eq %s.\n

@@ -47,7 +47,7 @@ let generate_example p_ctxt typs modules current_lemma var_typs vars =
   in let quickchick_import = Consts.quickchick_import
   in let qc_include = Consts.fmt ("QCInclude \"%s/\".\nQCInclude \".\".") p_ctxt.dir
   
-  in let typ_derive = List.fold_left (fun acc t -> acc ^ (TypeUtils.derive_typ_quickchick t)) "" typs
+  in let typ_derive = List.fold_left (fun acc t -> acc ^ (TypeUtils.derive_typ_quickchick p_ctxt t)) "" typs
 
   in let typs_parameter_print = List.fold_left (fun acc t -> match acc with | "" -> t | _ -> acc ^ " -> " ^ t)  "" typs
   in let start_index = ((String.index (List.hd (var_typs)) ':')+1)
