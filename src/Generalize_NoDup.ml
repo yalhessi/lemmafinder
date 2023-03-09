@@ -154,7 +154,7 @@ let get_all_conjectures generalizations
                       conjecture_name="";
                       body=conjecture_body;
                       body_sexp=g;
-                      lfind_vars=vars_str;
+                      lfind_vars=vars;
                       all_expr_type_table = expr_type_table;
                       atom_type_table = atom_type_table;
                       hyps = hyps;
