@@ -138,10 +138,6 @@ let construct_proof_context gl =
     let env = Proofview.Goal.env gl in
     let sigma = Proofview.Goal.sigma gl in
     let hyps = Proofview.Goal.hyps gl |> List.rev (* hyps are in opposite order of coqide *) in
-    List.iter (fun hyp -> match hyp with 
-    | Context.Named.Declaration.LocalAssum(x, y) -> print_endline (Utils.get_sexp_compatible_expr_str env sigma y);
-    | _ -> ()
-    ) hyps;
     let goal = Proofview.Goal.concl gl in
     let vars = get_vars env sigma hyps in
     let typs = get_types env sigma hyps in

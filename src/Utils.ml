@@ -134,7 +134,6 @@ let rec new_get_funcs_in_constr env sigma constr =
   | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> []
   
 let new_get_funcs_in_econstr env sigma econstr = 
-  print_endline (get_sexp_compatible_expr_str env sigma econstr);
   econstr_to_constr econstr |> new_get_funcs_in_constr env sigma |> dedup_list 
   
 let get_funcs_in_expr expr funcs=

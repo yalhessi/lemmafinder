@@ -42,9 +42,6 @@ let construct_state_as_lemma (p_ctxt : ProofContext.proof_context) =
   in let c_ctxt = {env = env; sigma = sigma}
   in let atom_type_table = (update_type_table conc_atoms c_ctxt (Hashtbl.create 100))
   in let typs_from_conc = Hashtbl.fold (fun k v acc ->  if (Utils.contains v "Set") then k::acc else acc) atom_type_table [] in
-  print_endline "typs_from_conc: ";
-  List.iter print_endline typs_from_conc;
-  
   let contanins_forall = ref false
   in let hyps_str, _, typs, var_typs, hyps_content =
     List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str) (v, hyp) -> 
