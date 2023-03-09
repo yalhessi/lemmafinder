@@ -30,73 +30,6 @@ let is_ml_generation_success ml_file p_ctxt: bool=
   )
   else true
 
-let construct_state_as_lemma (p_ctxt : ProofContext.proof_context) =
-  let env = p_ctxt.env in
-  let sigma = p_ctxt.sigma in
-  let goal = p_ctxt.goal in
-  let hyps = p_ctxt.hypotheses in
-  let hyps_str = Utils.get_hyps hyps
-  in let conc = (Utils.get_exp_str env sigma goal)
-  in let conc_sexp = Sexp.of_string (Utils.get_sexp_compatible_expr_str env sigma goal)
-  in let _, conc_atoms = (Abstract_NoDup.collect_terms_no_dup [] [] conc_sexp)
-  in let c_ctxt = {env = env; sigma = sigma}
-  in let atom_type_table = (update_type_table conc_atoms c_ctxt (Hashtbl.create 100))
-  in let typs_from_conc = Hashtbl.fold (fun k v acc ->  if (Utils.contains v "Set") then k::acc else acc) atom_type_table [] in
-  let contanins_forall = ref false
-  in let hyps_str, _, typs, var_typs, hyps_content =
-    List.fold_left (fun (acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str) (v, hyp) -> 
-                      let var_str = (Names.Id.to_string v)
-                      in let hyp_content =  (Utils.get_exp_str env sigma hyp)
-                      in let hyp_str = (Consts.fmt "(%s:%s)" var_str hyp_content)
-                      in
-                      let hyp_type = try TypeUtils.get_type_of_atom env sigma hyp_content
-                                     with _ -> 
-                                     (
-                                       
-                                       if Utils.contains hyp_content "forall _" then 
-                                        (
-                                          (* coq represents -> relation with forall _, quickchick can handle those since the quantifier is not nested *)
-                                         "Prop"
-                                        )
-                                       else
-                                       if Utils.contains hyp_content "forall" 
-                                        then (print_endline "Hypotheses contains forall, Quickchick might not work!"; contanins_forall := true; "Prop")
-                                        else ""
-                                     ) 
-                      in
-                      let hyp_type = try TypeUtils.get_return_type "" (of_string ("(" ^ hyp_type ^ ")")) 
-                                         with  _ -> hyp_type
-                      in
-                      if Utils.contains hyp_type "Prop" then
-                        (hyp_str::acc_H), acc_V, acc_typs, acc_var_typs, (("(" ^ hyp_content ^ ")") :: acc_hyps_str)
-                      else
-                        (
-                          if Utils.contains hyp_type "Set" then
-                          (
-                            let typ_exists = List.fold_left (fun acc t -> acc || (String.equal t hyp_content)) false acc_typs
-                            in let updated_typ = match typ_exists with
-                            | true -> acc_typs
-                            | false -> (hyp_content::acc_typs)
-                          in 
-                            acc_H, (var_str::acc_V), updated_typ, (hyp_str::acc_var_typs), acc_hyps_str
-                          )
-                          else
-                          (
-                            print_endline "There is a hypothesis that is neither Set or Prop";
-                            (* exit(0); *)
-                            acc_H, acc_V, acc_typs, acc_var_typs, acc_hyps_str
-                          )
-                        )
-                 ) ([],[],[],[],[]) hyps_str
-  in
-  let all_hyps = List.append var_typs hyps_str
-  in let typs = List.fold_left (fun acc v -> 
-  let typ_name = v
-    (* if String.equal v "bool," then "bool" else v  *)
-  in if (List.exists (String.equal typ_name) acc) then acc else typ_name::acc) typs typs_from_conc in
-  !contanins_forall, hyps, hyps_content
-
-
 let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
   Consts.start_time := int_of_float(Unix.time ());
   Log.is_debug := debug;
@@ -113,16 +46,11 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
         let p_ctxt, c_ctxt = construct_proof_context gl in
         let vars = p_ctxt.vars in
         let typs = p_ctxt.types in
-        let contanins_forall, hyps, hyps_str = construct_state_as_lemma p_ctxt in
+        let contanins_forall = List.exists (Utils.forall_in_hyp) p_ctxt.hypotheses in
         Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
         Log.stats_summary_file := p_ctxt.dir ^ Consts.summary_log_file;
-        let module_names =
-          Utils.get_modules (p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ ".v")
-        in
-        let p_ctxt = {p_ctxt with modules = module_names; types = typs; hypotheses = hyps; }
         (* If myth is chosen as the synthesizer, generate .ml file and check if it is parsable by myth *)
-        in
         if String.equal synthesizer "myth" then
         (
           let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
@@ -157,7 +85,7 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
           if contanins_forall then (print_endline ("Contains forall, and no example file provided. Quickchick does not work with forall"); exit(0);)
           else
           (
-            let op = GenerateExamples.generate_example p_ctxt module_names  
+            let op = GenerateExamples.generate_example p_ctxt   
             in print_endline (string_of_int (List.length op));
             let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
             in

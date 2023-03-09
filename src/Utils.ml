@@ -76,6 +76,12 @@ let string_of_sexp_list elem =
 
 let econstr_to_constr x = EConstr.to_constr Evd.empty x
 
+let forall_in_hyp hyp =
+  match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) -> Constr.isProd(econstr_to_constr y) (* forall *)
+  | _ -> raise (Failure "Unsupported hypothesis type")
+
+
 let add_var acc var =
   let var_exists = List.exists (fun e -> String.equal e var) acc
   in if var_exists then acc else (var :: acc)

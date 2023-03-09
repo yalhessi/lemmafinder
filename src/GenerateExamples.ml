@@ -35,11 +35,12 @@ let print n nstr=
 in let extract_file_name = Consts.fmt ("%s/%s") p_ctxt.dir "extract.ml"
 in FileUtils.write_to_file extract_file_name lfind_content
 
-let generate_example (p_ctxt : ProofContext.proof_context) modules =
+let generate_example (p_ctxt : ProofContext.proof_context) =
   let env = p_ctxt.env in
   let sigma = p_ctxt.sigma in
   let hyps = p_ctxt.hypotheses in
   let current_lemma = ProofContext.get_curr_state_lemma p_ctxt in
+  let modules = p_ctxt.modules in
   let vars = List.map Names.Id.to_string p_ctxt.all_vars in
   lfind_extract_examples p_ctxt;
   let typs = List.map (fun t -> Utils.get_econstr_str env sigma t) p_ctxt.types in
