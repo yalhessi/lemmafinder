@@ -5,6 +5,7 @@ type proof_context =
     hypotheses : EConstr.named_context;
     goal : EConstr.t;
     vars : Names.variable list;
+    var_types : (Names.variable * EConstr.t) list;
     samples :  string list list;
     fname: string;
     dir: string;
@@ -140,6 +141,7 @@ let construct_proof_context gl =
     let hyps = Proofview.Goal.hyps gl |> List.rev (* hyps are in opposite order of coqide *) in
     let goal = Proofview.Goal.concl gl in
     let vars = get_vars env sigma hyps in
+    let var_types = get_var_types env sigma hyps in
     let typs = get_types env sigma hyps in
     let goal_funcs = Utils.new_get_funcs_in_econstr env sigma goal in
     let hyp_funcs = List.map (fun (_,h) -> Utils.new_get_funcs_in_econstr env sigma h) (Utils.get_hyps hyps) in
@@ -166,6 +168,7 @@ let construct_proof_context gl =
         full_context = full_context;
         fname = f_name;
         vars = vars;
+        var_types = var_types;
         namespace = List.hd (String.split_on_char '\n' namespace);
         declarations = declarations;
         proof_name = proof_name;

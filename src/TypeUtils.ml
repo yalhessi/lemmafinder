@@ -83,8 +83,20 @@ let rec get_return_type acc fun_type =
                           in get_return_type head_acc tl
   | [] -> acc
 
+let get_type_name env sigma (typ : EConstr.t) : string =
+  match Constr.kind (Utils.econstr_to_constr typ) with
+  | Ind (_, _) -> Utils.get_econstr_str env sigma typ
+  | App(f, args) -> Utils.get_constr_str env sigma f
+  | _ -> raise (Failure "Unexpected type")
 
-let derive_typ_quickchick (p_ctxt : ProofContext.proof_context) typ_name : string= 
+let derive_typ_quickchick (p_ctxt : ProofContext.proof_context) (typ : EConstr.t) : string= 
+  let typ_constr = Utils.econstr_to_constr typ in
+  if Constr.isSort(typ_constr) || Constr.isVar(typ_constr) then ""
+  else if not (Constr.isApp(typ_constr)) && not(Constr.isInd(typ_constr)) then
+    raise (Failure "Unexpected type")
+  else
+  let typ_name = get_type_name p_ctxt.env p_ctxt.sigma typ in
+  print_endline ("Deriving QuickChick for " ^ typ_name);
   let file_name = Consts.fmt "%s/show_%s.v" p_ctxt.dir typ_name in
   if Sys.file_exists file_name then
     String.concat "\n" (FileUtils.read_file file_name |> List.rev)
