@@ -29,7 +29,14 @@ let get_econstr_str env sigma expr : string =
   (get_str_of_pp (Printer.pr_goal_concl_style_env env sigma expr))
   
 let get_constr_str env sigma expr : string =
-  (get_str_of_pp (Printer.pr_constr_goal_style_env env sigma expr))
+  (get_str_of_pp (Printer.safe_pr_constr_env env sigma expr))
+
+let get_func_full_str f : string =
+  if not(Constr.isApp f) then (get_constr_str Environ.empty_env Evd.empty f)
+  else
+  let (f, args) = Constr.destApp f in
+  let (name,_) = Constr.destConst f in
+  "(@" ^ (Names.Constant.modpath name |> Names.ModPath.to_string) ^ "." ^ (Names.Constant.label name |> Names.Label.to_string) ^ " " ^ String.concat " " (List.map (get_constr_str Environ.empty_env Evd.empty) (Array.to_list args)) ^ ")"
   
 let get_sexp_compatible_expr_str env sigma expr : string = 
   "(" ^ (get_exp_str env sigma expr) ^ ")"
@@ -134,7 +141,13 @@ let rec new_get_funcs_in_constr env sigma constr =
   | Prod(na, ty, c) -> new_get_funcs_in_constr env sigma ty @ new_get_funcs_in_constr env sigma c 
   | Lambda(na,ty,c) -> new_get_funcs_in_constr env sigma ty @ new_get_funcs_in_constr env sigma c
   | LetIn (na,b,ty,c) -> new_get_funcs_in_constr env sigma b @ new_get_funcs_in_constr env sigma ty @ new_get_funcs_in_constr env sigma c
-  | App(f,args) -> new_get_funcs_in_constr env sigma f @ List.concat (List.map (fun arg -> new_get_funcs_in_constr env sigma arg) (Array.to_list args))
+  | App(f,args) -> 
+    if (Constr.isConst f) && Array.exists (Constr.isVar) args 
+    then
+      [Constr.mkApp(f, Array.sub args 0 1)] @ List.concat (List.map (fun arg -> new_get_funcs_in_constr env sigma arg) (Array.to_list args))
+      (* polymorphic functions *)
+    else
+      new_get_funcs_in_constr env sigma f @ List.concat (List.map (fun arg -> new_get_funcs_in_constr env sigma arg) (Array.to_list args))
   | Const(c,u) -> (* needed for zero-arg defintions *) [constr]
   | Case(ci, p, c, bl) -> new_get_funcs_in_constr env sigma c @ List.concat (List.map (fun e -> new_get_funcs_in_constr env sigma e) (Array.to_list bl))
   | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> []
@@ -199,6 +212,9 @@ let slice_list (start_i: int) (end_i: int) (lst: 'a list) =
                                   in index + 1, n_acc
                                  ) lst (0,[])
   in slice
+
+let vars_with_types_to_str (vars_with_types : (string * string) list) : string =
+  String.concat " " (List.map (fun (var, ty) -> "(" ^ var ^ " : " ^ ty ^ ")") vars_with_types)
 
 let cpu_count () = 
   try 

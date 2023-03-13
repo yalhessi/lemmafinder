@@ -96,7 +96,6 @@ let derive_typ_quickchick (p_ctxt : ProofContext.proof_context) (typ : EConstr.t
     raise (Failure "Unexpected type")
   else
   let typ_name = get_type_name p_ctxt.env p_ctxt.sigma typ in
-  print_endline ("Deriving QuickChick for " ^ typ_name);
   let file_name = Consts.fmt "%s/show_%s.v" p_ctxt.dir typ_name in
   if Sys.file_exists file_name then
     String.concat "\n" (FileUtils.read_file file_name |> List.rev)

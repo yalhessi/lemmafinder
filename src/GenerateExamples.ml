@@ -17,11 +17,8 @@ let findi (f : (int -> 'a -> bool)) (l : 'a list) : int*'a =
 
 let get_first_printable p_ctxt : (int * (Names.Id.t * EConstr.t)) =
   let {env; sigma; hypotheses; var_types; _} : ProofContext.proof_context = p_ctxt in
-  List.iter (fun (var, typ) -> print_endline ((Names.Id.to_string var) ^ (string_of_bool (Constr.isSort (Utils.econstr_to_constr typ))))) var_types;
   let typs = List.map (fun (_, typ) -> Utils.econstr_to_constr typ) var_types in
   let (i,first_non_var) = findi (fun i typ -> not(Constr.isSort typ)) typs in
-  print_endline "Printing first non-var";
-  print_endline (string_of_int i);
   (i, List.nth var_types i)
     
 let construct_data_collection p_ctxt = 
@@ -102,8 +99,7 @@ in let parameter_print = get_print_signature p_ctxt
   in let typ_quickchick_content = Consts.fmt ("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n") Consts.lfind_declare_module import_file module_imports current_lemma quickchick_import 
   qc_include Consts.def_qc_num_examples typ_derive
   in let notations_content = get_notations p_ctxt 
-in print_endline "notations_content"; print_endline notations_content; 
- let example_print_content = Consts.fmt("%s\n%s%s")  Consts.string_scope parameter_print Consts.extract_print
+  in let example_print_content = Consts.fmt("%s\n%s%s")  Consts.string_scope parameter_print Consts.extract_print
   in let collect_content = construct_data_collection p_ctxt
   in let content = typ_quickchick_content ^ notations_content ^ example_print_content ^ collect_content ^ "QuickChick collect_data.\n" ^ Consts.vernac_success
   in FileUtils.write_to_file example_file content;

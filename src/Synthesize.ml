@@ -3,12 +3,6 @@ open ProofContext
 open Stats
 open Consts
 
-
-let term_contains_gen_var term gen_vars =
-  List.exists (fun gvar -> 
-                   Utils.contains (Sexp.string_of_sexpr term) gvar
-              ) gen_vars
-
 let add_synthesis_term acc gen_vars term type_tbl topconj =
   let term_type = try (Hashtbl.find type_tbl (Sexp.string_of_sexpr term)) with _ -> ""
   in let return_type = try TypeUtils.get_return_type "" (Sexp.of_string term_type) with _ -> term_type
@@ -22,9 +16,6 @@ let add_synthesis_term acc gen_vars term type_tbl topconj =
           in if exists 
              then acc, false
              else 
-                  (* if term_contains_gen_var term gen_vars
-                  then acc, false
-                  else *)
                   (
                   if Sexp.equal [Expr term] topconj
                   then acc, false
@@ -115,25 +106,13 @@ match conjecture with
                             in get_variables_except_expr tl expr head_vars vars lfind_vars)
 | [] -> conj_vars
 
-let get_quantified_var var_types =
-  let normalized_vars = Hashtbl.create (Hashtbl.length var_types)
-  in let count = ref 0
-  in (Hashtbl.fold (fun k v (acc, acc_vars) ->
-                               let new_var = Sexp.get_normalized_var_name !count
-                               in count := !count + 1;
-                               Hashtbl.add normalized_vars k new_var;
-                               if String.equal k synthesis_op
-                               then acc, acc_vars
-                               else acc ^ " " ^ "(" ^ new_var ^ " : " ^ v ^ ")", (List.append acc_vars [k])
-                  ) var_types ("", [])), normalized_vars
-
 let get_synthesis_conjecture is_equal_conj op_type curr_synth_term conjecture var_types counter synthesized_expr =
   Log.debug (Consts.fmt "synth term is %s" (Sexp.string_of_sexpr curr_synth_term));
   Log.debug (Consts.fmt "synthesized expression is %s" synthesized_expr);
   let synthesis_body = if not is_equal_conj then
                        (Sexp.of_string (Sexp.replace_sub_sexp conjecture.body_sexp curr_synth_term synthesized_expr))
                        else
-                       (Sexp.of_string (Consts.fmt "(@eq %s (%s) (%s))"  op_type (Sexp.string_of_sexpr curr_synth_term) synthesized_expr))
+                       (Sexp.of_string (Consts.fmt "(@eq (%s) (%s) (%s))"  op_type (Sexp.string_of_sexpr curr_synth_term) synthesized_expr))
   in
   let var_strs, norm_vars, normalized_vars = Sexp.normalize_sexp synthesis_body var_types
   in
@@ -147,7 +126,7 @@ let get_synthesis_conjecture is_equal_conj op_type curr_synth_term conjecture va
   else 
     conjecture.conjecture_name ^ "synth"
   in let synth_conj_name = LatticeUtils.gen_conjecture_name conj_prefix counter
-  in let synth_conj = synth_conj_name ^ " " ^ ": forall " ^ var_strs ^ ", " ^ replaced_conj
+  in let synth_conj = synth_conj_name ^ " " ^ ": forall " ^ (Utils.vars_with_types_to_str var_strs) ^ ", " ^ replaced_conj
   in Log.debug (Consts.fmt "replaced conjecture is %s" synth_conj);
   let synthesis_conjecture = {
                                   sigma = conjecture.sigma;
@@ -193,7 +172,7 @@ let filter_provable_conjectures valid_conjectures p_ctxt original_conjecture =
 
 let get_vars_for_equal_synthesis conjecture curr_synth_term vars all_vars=
   let vars_for_synthesis = ExprUtils.get_variables_in_expr curr_synth_term [] all_vars
-  in vars_for_synthesis
+  in vars_for_synthesis |> List.rev
 
 let get_vars_for_synthesis conjecture curr_synth_term vars all_vars = 
   let vars_for_synthesis = (get_variables_except_expr conjecture.body_sexp curr_synth_term [] vars conjecture.lfind_vars)
@@ -201,7 +180,7 @@ let get_vars_for_synthesis conjecture curr_synth_term vars all_vars =
                               (* the case when we make the entire conjecture a hole *)
                               ExprUtils.get_variables_in_expr conjecture.body_sexp [] all_vars
                             else vars_for_synthesis
-  in vars_for_synthesis
+  in vars_for_synthesis |> List.rev
 
 let enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt ml_examples output_examples synth_count is_equal_conj = 
   let var_types = ExprUtils.get_type_vars conjecture vars_for_synthesis

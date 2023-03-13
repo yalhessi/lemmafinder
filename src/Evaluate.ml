@@ -5,7 +5,7 @@ open ExtractToML
 let generate_eval_file p_ctxt eval_str : string =
   let lfind_file = p_ctxt.dir ^ "/lfind_eval.v"
   in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules
-  in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n%s\n%s\n%s"
+  in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n%s\n%s\n%s\n%s\n%s"
                    Consts.lfind_declare_module
                    p_ctxt.declarations
                    p_ctxt.namespace 
@@ -13,6 +13,8 @@ let generate_eval_file p_ctxt eval_str : string =
                    ""
                    (* module_imports *)
                    Consts.coq_printing_depth
+                   "Unset Printing Notations." 
+                   "Set Printing Implicit."
                    eval_str
   in FileUtils.write_to_file lfind_file content;
   lfind_file
@@ -44,7 +46,7 @@ let get_input_string vars example lfind_sigma =
                  ) "" vars
 
 let get_evaluate_str expr vars examples lfind_sigma (var_typs:(string, string) Hashtbl.t) =
-  let expr_vars = get_variables_in_expr expr [] vars
+  let expr_vars = get_variables_in_expr expr [] vars |> List.rev
   in let eval_def = get_eval_definition expr expr_vars var_typs
   in List.fold_left (fun acc example -> let input = get_input_string expr_vars example lfind_sigma
                                         in acc ^ get_compute_string input

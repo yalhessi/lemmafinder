@@ -24,7 +24,7 @@ type conjecture = {
   hyps : Sexp.t list list;
   cgs : string list;
   vars: string list;
-  vars_with_types: string;
+  vars_with_types: (string * string) list;
   normalized_var_map: (string, string) Hashtbl.t;
 }
 
