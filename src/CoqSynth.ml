@@ -5,7 +5,7 @@ let run p_ctxt conjecture_name examples params output_type=
   let coq_synth_path = Consts.coq_synthesizer_path
   in let coq_synth_output_path = p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ conjecture_name ^ "synthesis.txt"
   in 
-  let funcs = List.map Utils.get_func_full_str p_ctxt.funcs in
+  let funcs = List.map (Utils.get_func_full_str p_ctxt.sigma) p_ctxt.funcs in
   let funcs_str = String.concat "," funcs in
   let examples_op = String.concat " " examples
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.synthesizer_timeout

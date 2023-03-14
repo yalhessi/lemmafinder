@@ -13,7 +13,7 @@ type proof_context =
     namespace: string;
     declarations: string;
     proof_name: string;
-    funcs: Constr.t list;
+    funcs: EConstr.t list;
     modules: string list;
     types: EConstr.t list;
     theorem : string;

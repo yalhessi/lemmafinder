@@ -31,12 +31,12 @@ let get_econstr_str env sigma expr : string =
 let get_constr_str env sigma expr : string =
   (get_str_of_pp (Printer.safe_pr_constr_env env sigma expr))
 
-let get_func_full_str f : string =
-  if not(Constr.isApp f) then (get_constr_str Environ.empty_env Evd.empty f)
+let get_func_full_str sigma f : string =
+  if not(EConstr.isApp sigma f) then (get_econstr_str Environ.empty_env Evd.empty f)
   else
-  let (f, args) = Constr.destApp f in
-  let (name,_) = Constr.destConst f in
-  "(@" ^ (Names.Constant.modpath name |> Names.ModPath.to_string) ^ "." ^ (Names.Constant.label name |> Names.Label.to_string) ^ " " ^ String.concat " " (List.map (get_constr_str Environ.empty_env Evd.empty) (Array.to_list args)) ^ ")"
+  let (f, args) = EConstr.destApp sigma f in
+  let (name,_) = EConstr.destConst sigma f in
+  "(@" ^ (Names.Constant.modpath name |> Names.ModPath.to_string) ^ "." ^ (Names.Constant.label name |> Names.Label.to_string) ^ " " ^ String.concat " " (List.map (get_econstr_str Environ.empty_env Evd.empty) (Array.to_list args)) ^ ")"
   
 let get_sexp_compatible_expr_str env sigma expr : string = 
   "(" ^ (get_exp_str env sigma expr) ^ ")"
@@ -88,6 +88,16 @@ let forall_in_hyp hyp =
   | Context.Named.Declaration.LocalAssum(x, y) -> Constr.isProd(econstr_to_constr y) (* forall *)
   | _ -> raise (Failure "Unsupported hypothesis type")
 
+let get_type_of_constr env sigma constr = 
+  Retyping.get_type_of ~lax:false ~polyprop:false env sigma constr
+
+let is_type_type env sigma constr =
+  let typ = get_type_of_constr env sigma constr in
+  EConstr.isType sigma typ
+
+let is_type_var env sigma econstr =
+  EConstr.isVar sigma econstr && is_type_type env sigma econstr
+
 let rec get_vars_in_constr env sigma constr = 
   print_endline ("getting vars from: " ^ (get_constr_str env sigma constr));
   match Constr.kind constr with
@@ -103,7 +113,7 @@ let rec get_vars_in_constr env sigma constr =
 let get_vars_in_econstr env sigma econstr = 
   econstr_to_constr econstr |> get_vars_in_constr env sigma |> dedup_list
 
-let rec get_funcs_in_constr env sigma constr = 
+(* let rec get_funcs_in_constr env sigma constr = 
   (* let constr_goal = (econstr_to_constr expr) *)
   match Constr.kind constr with
   | Cast(ty1,ck,ty2) -> get_funcs_in_constr env sigma ty1 @ get_funcs_in_constr env sigma ty2
@@ -111,7 +121,7 @@ let rec get_funcs_in_constr env sigma constr =
   | Lambda(na,ty,c) -> get_funcs_in_constr env sigma ty @ get_funcs_in_constr env sigma c
   | LetIn (na,b,ty,c) -> get_funcs_in_constr env sigma b @ get_funcs_in_constr env sigma ty @ get_funcs_in_constr env sigma c
   | App(f,args) -> 
-    if (Constr.isConst f) && Array.exists (Constr.isVar) args 
+    if (Constr.isConst f) && Array.exists (is_type_var env sigma) args 
     then
       [Constr.mkApp(f, Array.sub args 0 1)] @ List.concat (List.map (fun arg -> get_funcs_in_constr env sigma arg) (Array.to_list args))
       (* polymorphic functions *)
@@ -119,10 +129,26 @@ let rec get_funcs_in_constr env sigma constr =
       get_funcs_in_constr env sigma f @ List.concat (List.map (fun arg -> get_funcs_in_constr env sigma arg) (Array.to_list args))
   | Const(c,u) -> (* needed for zero-arg defintions *) [constr]
   | Case(ci, p, c, bl) -> get_funcs_in_constr env sigma c @ List.concat (List.map (fun e -> get_funcs_in_constr env sigma e) (Array.to_list bl))
-  | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> []
+  | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> [] *)
   
-let get_funcs_in_econstr env sigma econstr = 
-  econstr_to_constr econstr |> get_funcs_in_constr env sigma |> dedup_list 
+let rec get_funcs_in_econstr env sigma econstr = 
+  match EConstr.kind sigma econstr with
+  | Cast(ty1,ck,ty2) -> get_funcs_in_econstr env sigma ty1 @ get_funcs_in_econstr env sigma ty2
+  | Prod(na, ty, c) -> get_funcs_in_econstr env sigma ty @ get_funcs_in_econstr env sigma c 
+  | Lambda(na,ty,c) -> get_funcs_in_econstr env sigma ty @ get_funcs_in_econstr env sigma c
+  | LetIn (na,b,ty,c) -> get_funcs_in_econstr env sigma b @ get_funcs_in_econstr env sigma ty @ get_funcs_in_econstr env sigma c
+  | App(f,args) -> 
+    if (EConstr.isConst sigma f) && Array.exists (is_type_var env sigma) args 
+    then
+      [EConstr.mkApp(f, Array.sub args 0 1)] @ List.concat (List.map (fun arg -> get_funcs_in_econstr env sigma arg) (Array.to_list args))
+      (* polymorphic functions *)
+    else
+      get_funcs_in_econstr env sigma f @ List.concat (List.map (fun arg -> get_funcs_in_econstr env sigma arg) (Array.to_list args))
+  | Const(c,u) -> (* needed for zero-arg defintions *) [econstr]
+  | Case(ci, p, c, bl) -> get_funcs_in_econstr env sigma c @ List.concat (List.map (fun e -> get_funcs_in_econstr env sigma e) (Array.to_list bl))
+  | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> []
+
+  (* econstr_to_constr econstr |> get_funcs_in_econstr env sigma |> dedup_list  *)
   
 let get_env_var env_var : string =
   let env = Unix.environment ()
