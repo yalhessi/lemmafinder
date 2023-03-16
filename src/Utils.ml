@@ -88,11 +88,14 @@ let forall_in_hyp hyp =
   | Context.Named.Declaration.LocalAssum(x, y) -> Constr.isProd(econstr_to_constr y) (* forall *)
   | _ -> raise (Failure "Unsupported hypothesis type")
 
-let get_type_of_constr env sigma constr = 
-  Retyping.get_type_of ~lax:false ~polyprop:false env sigma constr
+let get_sort_of_econstr env sigma econstr = 
+  Retyping.get_sort_of ~polyprop:false env sigma econstr
 
-let is_type_type env sigma constr =
-  let typ = get_type_of_constr env sigma constr in
+let get_type_of_econstr env sigma econstr = 
+  Retyping.get_type_of ~lax:false ~polyprop:false env sigma econstr
+
+let is_type_type env sigma econstr =
+  let typ = get_type_of_econstr env sigma econstr in
   EConstr.isType sigma typ
 
 let is_type_var env sigma econstr =
