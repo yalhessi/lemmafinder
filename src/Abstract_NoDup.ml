@@ -96,10 +96,9 @@ let abstract (p_ctxt : proof_context)
     Ouput: Tuple <generalized terms/expr, generalized conjectures>
   *)
   let with_hyp = false
-  in let recursive_funcs = p_ctxt.functions
-  in let hypo_sexps = List.map (fun hyp -> Sexp.of_string hyp) p_ctxt.hypotheses
+  in let hypo_sexps = List.map (fun hyp -> Sexp.of_string hyp) (Utils.get_hyps_strl p_ctxt.hypotheses p_ctxt.env p_ctxt.sigma)
   in
-  let conc_sexp = Sexp.of_string p_ctxt.goal
+  let conc_sexp = Sexp.of_string (ProofContext.goal_to_string p_ctxt.env p_ctxt.sigma p_ctxt.goal)
   in let conc_terms, conc_atoms = collect_terms_no_dup [] [] conc_sexp
   in let hypo_terms, hyp_atoms = List.fold_left 
                                   (fun (hyp_terms,hyp_atoms) hypo_sexp -> 
@@ -115,10 +114,11 @@ let abstract (p_ctxt : proof_context)
   LogUtils.write_tbl_to_log expr_type_table "Terms Type table";
   LogUtils.write_tbl_to_log atom_type_table "Atoms Type table";
   
+  let vars_str = List.map Names.Id.to_string p_ctxt.vars in
   let all_terms = if with_hyp 
                         then List.tl (List.append conc_terms (List.tl hypo_terms))
                         else List.tl (conc_terms)
-  in let all_terms = add_heuristic_atoms atoms all_terms atom_type_table p_ctxt.vars
+  in let all_terms = add_heuristic_atoms atoms all_terms atom_type_table vars_str
   in
   let terms = get_generalizable_terms all_terms expr_type_table atom_type_table
   in Log.debug (Consts.fmt "Size of terms list %d\n and Terms from the goal [%s]\n" (List.length terms) (List.fold_left (fun acc e -> acc ^ ";" ^ ((string_of_sexpr e))) "" terms));
