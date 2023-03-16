@@ -55,7 +55,7 @@ let get_invalid_hyps (p_ctxt: proof_context)
                               hyps = [];
                               cgs = [];
                               vars = [];
-                              vars_with_types = "";
+                              vars_with_types = [];
                               normalized_var_map = Hashtbl.create 0;
                            }
             in let is_valid, _ = Valid.check_validity s_hyp_c p_ctxt
@@ -67,7 +67,7 @@ let get_invalid_hyps (p_ctxt: proof_context)
 
 let construct_hyp_goal_conj invalid_hyps c =
   let hyp_goal = List.fold_left (fun acc h -> (Sexp.normalize_sexp_vars h c.normalized_var_map) ^ " -> " ^ acc) "" invalid_hyps
-  in let hyp_goal = "forall " ^ c.vars_with_types ^ ", " ^ hyp_goal ^ " " ^ (Sexp.string_of_sexpr c.body_sexp)
+  in let hyp_goal = "forall " ^ (Utils.vars_with_types_to_str c.vars_with_types) ^ ", " ^ hyp_goal ^ " " ^ (Sexp.string_of_sexpr c.body_sexp)
   in
   let hyp_conj = {c with
                       conjecture_str= c.conjecture_name ^"_hyp: " ^ hyp_goal;

@@ -39,6 +39,7 @@ let extract_ml_examples () =
     full_context = "";
     fname = "rev_append";
     vars = [];
+    var_types = [];
     namespace = "test";
     declarations = "";
     proof_name = "";

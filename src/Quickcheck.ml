@@ -9,6 +9,10 @@ let output_code (op: string list)
   let last_line = try List.hd (List.rev op)
                   with _ -> Log.write_to_log (String.concat "\n" op) !Log.error_log_file; ""
   in Log.debug (Consts.fmt "last line is : %s" last_line);
+  if Utils.contains last_line "ocamlbuild" then
+    (Log.write_to_log (String.concat "\n" op) !Log.error_log_file; false, [])
+  else
+
   let is_contains = Utils.contains last_line "Passed"
   in if is_contains then true, []
   else

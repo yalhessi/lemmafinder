@@ -106,14 +106,10 @@ let generalize_exprL (exprL: Sexp.t list list)
              (goal, sigma, [], hypotheses) exprL
 
 let get_var_type t =
-  let return_type = try (TypeUtils.get_return_type "" (of_string t)) with _ -> t
-  in
-  if String.equal return_type ""
-      then return_type
-      else ":" ^ return_type
-
+  try (TypeUtils.get_return_type "" (of_string t)) with _ -> t
+  
 let get_conjecture (gen: string) sigma var_str counter: string =
-  let conjecture_str = ": forall " ^ var_str
+  let conjecture_str = ": forall " ^ (Utils.vars_with_types_to_str var_str)
   in
   conjecture_str ^ " , " ^ gen
 
@@ -131,20 +127,11 @@ let get_all_conjectures generalizations
               List.map (fun (g, sigma, vars, hyps) ->
                   let vars_str = List.map (Names.Id.to_string) p_ctxt.vars in
                   let gvars = (get_variables_in_expr g [] vars_str sigma)
-                  in let var_str = (List.fold_left (fun acc v -> 
-                                          acc ^ 
-                                          (
-                                            try 
-                                                        " (" 
-                                                        ^ v 
-                                                        ^":"
-                                                        ^ (Hashtbl.find atom_type_table v) 
-                                                        ^ ")"
-                                            with _ -> 
-                                            (let _, t = Hashtbl.find sigma v
-                                            in "("^ v ^ (get_var_type t) ^")")
-                                          )
-                                          ) "" gvars)
+                  in let var_str = List.map (fun v -> 
+                    try (v, (Hashtbl.find atom_type_table v))
+        with _ -> 
+        (let _, t = Hashtbl.find sigma v
+        in (v, get_var_type t))) gvars 
                   in
                   let conjecture_body = (get_conjecture (string_of_sexpr g) sigma var_str counter)
                   in

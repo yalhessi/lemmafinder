@@ -188,12 +188,18 @@ in let rec aux (i:int) (acc, orig_vars) = function
       with _ -> begin
                   try
                   let v = Hashtbl.find orig_var_types tag
-                  in let new_var = get_normalized_var_name !count
+                  in 
+                  if String.equal v "Type"
+                  then (
+                    Hashtbl.add normalized_var_map tag tag;
+                    aux i (acc @ [(tag, v)], List.append orig_vars [tag])tl
+                  )else
+                  let new_var = get_normalized_var_name !count
                   in count := !count + 1;
                   Hashtbl.add normalized_var_map tag new_var;
                   let new_acc = if String.equal tag Consts.synthesis_op
                                 then acc, orig_vars
-                                else acc ^ " " ^ "(" ^ new_var ^ " : " ^ v ^ ")", List.append orig_vars [tag]
+                                else acc @ [(new_var, v)], List.append orig_vars [tag]
                   in aux i new_acc tl
                   with _ -> aux i (acc, orig_vars) tl
                 end
@@ -203,7 +209,7 @@ in let rec aux (i:int) (acc, orig_vars) = function
     in aux i (head_acc, head_orig_vars) tl
 | [] -> acc, orig_vars
 in
-let vars_str, orig_vars = aux 0 ("",[]) s
+let vars_str, orig_vars = aux 0 ([],[]) s
 in vars_str, orig_vars, normalized_var_map
 
 let normalize_sexp_vars s normalized_vars =

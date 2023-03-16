@@ -3,8 +3,8 @@ Instance show_list {T} `{_ : Show T} : Show (list T) :=
 {| show := 
      let fix aux l :=
        match l with
-       | nil => "nil"
-       | cons x xs => "(cons " ++ show x ++ " " ++ aux xs ++ ")"
+       | nil => "@nil nat"
+       | cons x xs => "@cons nat " ++ show x ++ " (" ++ aux xs ++ ")"
        end
       in aux
 |}.

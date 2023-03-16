@@ -29,7 +29,14 @@ let get_econstr_str env sigma expr : string =
   (get_str_of_pp (Printer.pr_goal_concl_style_env env sigma expr))
   
 let get_constr_str env sigma expr : string =
-  (get_str_of_pp (Printer.pr_constr_goal_style_env env sigma expr))
+  (get_str_of_pp (Printer.safe_pr_constr_env env sigma expr))
+
+let get_func_full_str sigma f : string =
+  if not(EConstr.isApp sigma f) then (get_econstr_str Environ.empty_env Evd.empty f)
+  else
+  let (f, args) = EConstr.destApp sigma f in
+  let (name,_) = EConstr.destConst sigma f in
+  "(@" ^ (Names.Constant.modpath name |> Names.ModPath.to_string) ^ "." ^ (Names.Constant.label name |> Names.Label.to_string) ^ " " ^ String.concat " " (List.map (get_econstr_str Environ.empty_env Evd.empty) (Array.to_list args)) ^ ")"
   
 let get_sexp_compatible_expr_str env sigma expr : string = 
   "(" ^ (get_exp_str env sigma expr) ^ ")"
@@ -81,92 +88,71 @@ let forall_in_hyp hyp =
   | Context.Named.Declaration.LocalAssum(x, y) -> Constr.isProd(econstr_to_constr y) (* forall *)
   | _ -> raise (Failure "Unsupported hypothesis type")
 
+let get_sort_of_econstr env sigma econstr = 
+  Retyping.get_sort_of ~polyprop:false env sigma econstr
 
-let add_var acc var =
-  let var_exists = List.exists (fun e -> String.equal e var) acc
-  in if var_exists then acc else (var :: acc)
+let get_type_of_econstr env sigma econstr = 
+  Retyping.get_type_of ~lax:false ~polyprop:false env sigma econstr
 
-let rec new_get_vars_in_constr env sigma constr = 
+let is_type_type env sigma econstr =
+  let typ = get_type_of_econstr env sigma econstr in
+  EConstr.isType sigma typ
+
+let is_type_var env sigma econstr =
+  EConstr.isVar sigma econstr && is_type_type env sigma econstr
+
+let rec get_vars_in_constr env sigma constr = 
   print_endline ("getting vars from: " ^ (get_constr_str env sigma constr));
   match Constr.kind constr with
   | Var(v) -> [constr]
-  | Cast(ty1,ck,ty2) -> new_get_vars_in_constr env sigma ty1 @ new_get_vars_in_constr env sigma ty2
-  | Prod(na, ty, c) -> new_get_vars_in_constr env sigma ty @ new_get_vars_in_constr env sigma c 
-  | Lambda(na,ty,c) -> new_get_vars_in_constr env sigma ty @ new_get_vars_in_constr env sigma c
-  | LetIn (na,b,ty,c) -> new_get_vars_in_constr env sigma b @ new_get_vars_in_constr env sigma ty @ new_get_vars_in_constr env sigma c
-  | App(f,args) -> new_get_vars_in_constr env sigma f @ List.concat (List.map (fun arg -> new_get_vars_in_constr env sigma arg) (Array.to_list args))
-  | Case(ci, p, c, bl) -> new_get_vars_in_constr env sigma c @ List.concat (List.map (fun e -> new_get_vars_in_constr env sigma e) (Array.to_list bl))
+  | Cast(ty1,ck,ty2) -> get_vars_in_constr env sigma ty1 @ get_vars_in_constr env sigma ty2
+  | Prod(na, ty, c) -> get_vars_in_constr env sigma ty @ get_vars_in_constr env sigma c 
+  | Lambda(na,ty,c) -> get_vars_in_constr env sigma ty @ get_vars_in_constr env sigma c
+  | LetIn (na,b,ty,c) -> get_vars_in_constr env sigma b @ get_vars_in_constr env sigma ty @ get_vars_in_constr env sigma c
+  | App(f,args) -> get_vars_in_constr env sigma f @ List.concat (List.map (fun arg -> get_vars_in_constr env sigma arg) (Array.to_list args))
+  | Case(ci, p, c, bl) -> get_vars_in_constr env sigma c @ List.concat (List.map (fun e -> get_vars_in_constr env sigma e) (Array.to_list bl))
   | Rel(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Const(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> []
 
-let new_get_vars_in_econstr env sigma econstr = 
-  econstr_to_constr econstr |> new_get_vars_in_constr env sigma |> dedup_list
+let get_vars_in_econstr env sigma econstr = 
+  econstr_to_constr econstr |> get_vars_in_constr env sigma |> dedup_list
 
-let get_vars_in_expr expr =
-  let constr_goal = (econstr_to_constr expr)
-  in let rec aux constr_goal (vars : string list) =
-      match Constr.kind constr_goal with
-      | Var v -> add_var vars (Names.Id.to_string v)
-      | Cast (ty1,ck,ty2) ->  let ty1_vars = aux ty1 vars
-                              in aux ty2 ty1_vars
-      | Prod (na,ty,c)    ->  let ty_vars = aux ty vars
-                              in aux c ty_vars
-      | Lambda (na,ty,c)  ->  let ty_vars = aux ty vars
-                              in aux c ty_vars
-      | LetIn (na,b,ty,c) ->  let ty_vars = aux ty vars
-                              in aux c ty_vars
-      (* | Const (c,u) -> print_endline (Names.Constant.to_string c); vars *)
-      | App (f,args)      ->
-      let f_vars = aux f vars
-                              in let args_vars = (vars_of_constrarray args)
-                              in List.fold_left 
-                                  (fun acc v -> add_var acc v) f_vars args_vars
-      | Proj (p,c)        ->  aux c vars
-      | Case (ci,p,c,bl)  ->  aux c vars
-      | _ -> vars
-and vars_of_constrarray a : string list =
-    List.fold_left (fun acc elem -> List.append acc (aux elem acc)) [] (Array.to_list a)
-in aux constr_goal []
-
-let rec new_get_funcs_in_constr env sigma constr = 
+(* let rec get_funcs_in_constr env sigma constr = 
   (* let constr_goal = (econstr_to_constr expr) *)
   match Constr.kind constr with
-  | Cast(ty1,ck,ty2) -> new_get_funcs_in_constr env sigma ty1 @ new_get_funcs_in_constr env sigma ty2
-  | Prod(na, ty, c) -> new_get_funcs_in_constr env sigma ty @ new_get_funcs_in_constr env sigma c 
-  | Lambda(na,ty,c) -> new_get_funcs_in_constr env sigma ty @ new_get_funcs_in_constr env sigma c
-  | LetIn (na,b,ty,c) -> new_get_funcs_in_constr env sigma b @ new_get_funcs_in_constr env sigma ty @ new_get_funcs_in_constr env sigma c
-  | App(f,args) -> new_get_funcs_in_constr env sigma f @ List.concat (List.map (fun arg -> new_get_funcs_in_constr env sigma arg) (Array.to_list args))
+  | Cast(ty1,ck,ty2) -> get_funcs_in_constr env sigma ty1 @ get_funcs_in_constr env sigma ty2
+  | Prod(na, ty, c) -> get_funcs_in_constr env sigma ty @ get_funcs_in_constr env sigma c 
+  | Lambda(na,ty,c) -> get_funcs_in_constr env sigma ty @ get_funcs_in_constr env sigma c
+  | LetIn (na,b,ty,c) -> get_funcs_in_constr env sigma b @ get_funcs_in_constr env sigma ty @ get_funcs_in_constr env sigma c
+  | App(f,args) -> 
+    if (Constr.isConst f) && Array.exists (is_type_var env sigma) args 
+    then
+      [Constr.mkApp(f, Array.sub args 0 1)] @ List.concat (List.map (fun arg -> get_funcs_in_constr env sigma arg) (Array.to_list args))
+      (* polymorphic functions *)
+    else
+      get_funcs_in_constr env sigma f @ List.concat (List.map (fun arg -> get_funcs_in_constr env sigma arg) (Array.to_list args))
   | Const(c,u) -> (* needed for zero-arg defintions *) [constr]
-  | Case(ci, p, c, bl) -> new_get_funcs_in_constr env sigma c @ List.concat (List.map (fun e -> new_get_funcs_in_constr env sigma e) (Array.to_list bl))
+  | Case(ci, p, c, bl) -> get_funcs_in_constr env sigma c @ List.concat (List.map (fun e -> get_funcs_in_constr env sigma e) (Array.to_list bl))
+  | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> [] *)
+  
+let rec get_funcs_in_econstr env sigma econstr = 
+  match EConstr.kind sigma econstr with
+  | Cast(ty1,ck,ty2) -> get_funcs_in_econstr env sigma ty1 @ get_funcs_in_econstr env sigma ty2
+  | Prod(na, ty, c) -> get_funcs_in_econstr env sigma ty @ get_funcs_in_econstr env sigma c 
+  | Lambda(na,ty,c) -> get_funcs_in_econstr env sigma ty @ get_funcs_in_econstr env sigma c
+  | LetIn (na,b,ty,c) -> get_funcs_in_econstr env sigma b @ get_funcs_in_econstr env sigma ty @ get_funcs_in_econstr env sigma c
+  | App(f,args) -> 
+    if (EConstr.isConst sigma f) && Array.exists (is_type_var env sigma) args 
+    then
+      [EConstr.mkApp(f, Array.sub args 0 1)] @ List.concat (List.map (fun arg -> get_funcs_in_econstr env sigma arg) (Array.to_list args))
+      (* polymorphic functions *)
+    else
+      get_funcs_in_econstr env sigma f @ List.concat (List.map (fun arg -> get_funcs_in_econstr env sigma arg) (Array.to_list args))
+  | Const(c,u) -> (* needed for zero-arg defintions *) [econstr]
+  | Case(ci, p, c, bl) -> get_funcs_in_econstr env sigma c @ List.concat (List.map (fun e -> get_funcs_in_econstr env sigma e) (Array.to_list bl))
   | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> []
-  
-let new_get_funcs_in_econstr env sigma econstr = 
-  econstr_to_constr econstr |> new_get_funcs_in_constr env sigma |> dedup_list 
-  
-let get_funcs_in_expr expr funcs=
-  let constr_goal = (econstr_to_constr expr)
-  in let rec aux constr_goal (funcs : string list) =
-      match Constr.kind constr_goal with
-      | Cast (ty1,ck,ty2) ->  let ty1_vars = aux ty1 funcs
-                              in aux ty2 ty1_vars
-      | Prod (na,ty,c)    ->  let ty_vars = aux ty funcs
-                              in aux c ty_vars
-      | Lambda (na,ty,c)  ->  let ty_vars = aux ty funcs
-                              in aux c ty_vars
-      | LetIn (na,b,ty,c) ->  let ty_vars = aux ty funcs
-                              in aux c ty_vars
-      | Const (c,u) -> add_var funcs (Names.Constant.to_string c)
-      | App (f,args)      ->
-      let f_vars = aux f funcs
-                              in let args_vars = (vars_of_constrarray args)
-                              in List.fold_left 
-                                  (fun acc v -> add_var acc v) f_vars args_vars
-      | Proj (p,c)        ->  aux c funcs
-      | Case (ci,p,c,bl)  ->  aux c funcs
-      | _ -> funcs
-and vars_of_constrarray a : string list =
-    List.fold_left (fun acc elem -> List.append acc (aux elem acc)) [] (Array.to_list a)
-in aux constr_goal funcs
 
+  (* econstr_to_constr econstr |> get_funcs_in_econstr env sigma |> dedup_list  *)
+  
 let get_env_var env_var : string =
   let env = Unix.environment ()
   in Array.fold_left (fun path p -> let p_list = Array.of_list(String.split_on_char '=' p)
@@ -199,6 +185,9 @@ let slice_list (start_i: int) (end_i: int) (lst: 'a list) =
                                   in index + 1, n_acc
                                  ) lst (0,[])
   in slice
+
+let vars_with_types_to_str (vars_with_types : (string * string) list) : string =
+  String.concat " " (List.map (fun (var, ty) -> "(" ^ var ^ " : " ^ ty ^ ")") vars_with_types)
 
 let cpu_count () = 
   try 
