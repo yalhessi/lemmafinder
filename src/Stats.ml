@@ -154,7 +154,7 @@ let valid_lemmas_to_string valid_lemmas =
     List.fold_left (fun acc (synthesized_expr, lemma) -> 
                             acc
                             ^
-                            fmt "\t\t\t Myth Term : %s\n" synthesized_expr
+                            fmt "\t\t\t Synthesizer Term : %s\n" synthesized_expr
                             ^
                             fmt "\t\t\t Lemma : %s\n" lemma.conjecture_str
                    ) "" valid_lemmas
@@ -164,7 +164,7 @@ let synthstat_to_string synth_stat =
     ^
     fmt "\t\t Synthesis Term : %s\n" synth_stat.synthesis_term
     ^
-    fmt "\t\t # Myth Enumerated Terms : %d\n" (List.length synth_stat.enumerated_exprs)
+    fmt "\t\t # Synthesizer Enumerated Terms : %d\n" (List.length synth_stat.enumerated_exprs)
     ^
     fmt "\t\t # Valid Synthesized Lemmas : %d\n" (List.length synth_stat.valid_lemmas)
     ^

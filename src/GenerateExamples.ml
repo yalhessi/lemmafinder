@@ -80,14 +80,12 @@ let generate_example (p_ctxt : ProofContext.proof_context) =
   let sigma = p_ctxt.sigma in
   let hyps = p_ctxt.hypotheses in
   let current_lemma = ProofContext.get_curr_state_lemma p_ctxt in
-  let modules = p_ctxt.modules in
   let example_file = Consts.fmt ("%s/%s") p_ctxt.dir "lfind_quickchick_generator.v"
   in
   let import_file =
   Consts.fmt "%s\nFrom %s Require Import %s." (Consts.lfind_declare_module) (p_ctxt.namespace) (p_ctxt.fname)  
 
   in let module_imports = p_ctxt.declarations
-  (* List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" modules *)
   in let quickchick_import = Consts.quickchick_import
   in let qc_include = Consts.fmt ("QCInclude \"%s/\".\nQCInclude \".\".") p_ctxt.dir
   

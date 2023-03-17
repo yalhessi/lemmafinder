@@ -1,7 +1,5 @@
 open Goptions
 
-let hello () = print_endline "Hello, world!"
-
 let enable_quickchick = ref true
 
 let _ =

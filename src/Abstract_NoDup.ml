@@ -24,11 +24,11 @@ let rec collect_terms_no_dup (acc: (Sexp.t list) list)
                          )
   | [] -> acc, atoms
 
-let get_type_table (terms: (Sexp.t list) list) (c_ctx: coq_context) 
+let get_type_table (terms: (Sexp.t list) list) (p_ctx: proof_context) 
                    : (string, string) Hashtbl.t=
   let type_tbl = Hashtbl.create (List.length terms)
   in List.iter (fun term -> let typ = 
-                                    try TypeUtils.get_type_of_exp c_ctx.env c_ctx.sigma term 
+                                    try TypeUtils.get_type_of_exp p_ctx.env p_ctx.sigma term 
                                     with _ -> 
                                     (if Utils.contains (Sexp.string_of_sexpr term) "else"then "bool"
                                     else
@@ -36,12 +36,6 @@ let get_type_table (terms: (Sexp.t list) list) (c_ctx: coq_context)
                             in Hashtbl.replace type_tbl (string_of_sexpr term) typ
                )
                terms; type_tbl
-
-let powerset_to_string (p_set: (Sexp.t list) list list) : string = 
-  List.fold_left (fun (acc: string) (elem: (Sexp.t list) list) 
-                      -> let elem_str = "[" ^ (List.fold_left (fun accl e -> (string_of_sexpr e) ^ ";" ^ accl) "" elem) ^ "]"
-                          in acc ^ "\n" ^ elem_str
-                  ) "" p_set
 
 let get_generalizable_terms (all_terms: Sexp.t list list)
                             (expr_type_table: (string, string) Hashtbl.t)
@@ -89,7 +83,6 @@ let add_heuristic_atoms (all_atoms: string list)
         ) current_terms all_atoms
 
 let abstract (p_ctxt : proof_context) 
-             (c_ctxt : coq_context) 
              : Sexp.t list list * conjecture list =
   (* 
     Input: proof and coq context
@@ -108,8 +101,8 @@ let abstract (p_ctxt : proof_context)
   in let atoms = if with_hyp
                     then List.append conc_atoms hyp_atoms
                     else conc_atoms
-  in let expr_type_table = get_type_table (List.append conc_terms hypo_terms) c_ctxt
-  in let atom_type_table = (update_type_table atoms c_ctxt (Hashtbl.create 100))
+  in let expr_type_table = get_type_table (List.append conc_terms hypo_terms) p_ctxt
+  in let atom_type_table = (update_type_table atoms p_ctxt (Hashtbl.create 100))
   in
   LogUtils.write_tbl_to_log expr_type_table "Terms Type table";
   LogUtils.write_tbl_to_log atom_type_table "Atoms Type table";

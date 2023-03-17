@@ -1,34 +1,8 @@
-open Constr
-open Context
-open Proofview.Notations
 open Lfindalgo
-open Sexp
 open ProofContext
-open Loadpath
-open Loc
-open Names
 open LatticeUtils
 
-
 exception Invalid_Examples of string
-exception Invalid_MLFile of string
-exception NotFound_MLFile of string
-exception Rewrite_Fail of string
-exception Myth_Fail of string
-module SS = Set.Make(String);;
-
-
-let is_ml_generation_success ml_file p_ctxt: bool= 
-  if not (Sys.file_exists ml_file) then 
-  (
-    print_endline("Generating ML version of the .v file");
-    print_endline(ml_file);
-    let op = GenerateMLFile.generate_ml_file p_ctxt
-    in print_endline (string_of_int (List.length op));
-    let is_succ = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
-    in is_succ
-  )
-  else true
 
 let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
   Consts.start_time := int_of_float(Unix.time ());
@@ -43,38 +17,13 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
     else
       begin
         Utils.env_setup ();
-        let p_ctxt, c_ctxt = construct_proof_context gl in
+        let p_ctxt = construct_proof_context gl in
         let vars = p_ctxt.vars in
         let typs = p_ctxt.types in
         let contanins_forall = List.exists (Utils.forall_in_hyp) p_ctxt.hypotheses in
         Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
         Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
         Log.stats_summary_file := p_ctxt.dir ^ Consts.summary_log_file;
-        (* If myth is chosen as the synthesizer, generate .ml file and check if it is parsable by myth *)
-        if String.equal synthesizer "myth" then
-        (
-          let ml_file = Consts.fmt "%s/%s_lfind_orig.ml" p_ctxt.dir p_ctxt.fname
-          in 
-          (
-          let is_success = is_ml_generation_success ml_file p_ctxt
-          in
-          if not is_success then raise (Invalid_MLFile "Failed Generating .ml of the .v file") else 
-          (
-            if not (Sys.file_exists ml_file) then raise (NotFound_MLFile ".ml file of .v not found")
-            else
-            (* Now call the library to rewrite the ast *)
-            let run_op = GenerateMLFile.run p_ctxt.dir (p_ctxt.fname^"_lfind_orig") p_ctxt.fname
-            in let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "rewrite_success") ) false run_op
-            in if not is_success then raise (Rewrite_Fail "AST rewriting of .ml file failed!") else
-            (
-              let run_op = Myth.run_parse p_ctxt (p_ctxt.fname^"_wsynth")
-              in let is_exception = List.fold_left (fun acc l -> acc || (Utils.contains l "exception") ) false run_op
-              in if is_exception then raise (Myth_Fail "Myth failed to parse .ml file!") else
-              Feedback.msg_info (Pp.str "lemmafinder_ml_generation_success");
-            )
-          )        
-          );
-        );
         
         (* if example file exists use it, else generate examples *)
         let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
@@ -96,14 +45,9 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
         
         let coq_examples = Examples.dedup_examples (FileUtils.read_file example_file)
         in LogUtils.write_tbl_list_to_log coq_examples "Coq Examples";
-        let ml_examples = if String.equal synthesizer "myth" then
-        (
-          Examples.get_ml_examples coq_examples p_ctxt
-        ) else coq_examples
-        in LogUtils.write_tbl_list_to_log ml_examples "ML Examples";
         let op = FileUtils.run_cmd "export is_lfind=true"
         in let abstraction = Abstract_NoDup.abstract
-        in let generalized_terms, conjectures = abstraction p_ctxt c_ctxt
+        in let generalized_terms, conjectures = abstraction p_ctxt
         in 
         (* create a coq file that has the current stuck state a prover can use *)
         let curr_state_lemma = ProofContext.get_curr_state_lemma p_ctxt in
@@ -118,7 +62,7 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
         Consts.lfind_lemma_content := content;
 
         (* get ml and coq version of the output of generalized terms *)
-        let coq_examples, ml_examples = (ExampleUtils.evaluate_terms generalized_terms coq_examples ml_examples p_ctxt)
+        let coq_examples = ExampleUtils.evaluate_terms generalized_terms coq_examples p_ctxt
         in 
         List.iter (fun c -> LogUtils.write_tbl_to_log c "COQE") coq_examples;
         
@@ -141,7 +85,7 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
           if elapsed_time < 5100 then
           (print_endline c.conjecture_name;
           Log.debug (Consts.fmt "Cache size is %d\n" (Hashtbl.length !cached_lemmas));
-          (Synthesize.synthesize cached_exprs cached_lemmas p_ctxt ml_examples coq_examples c);)
+          (Synthesize.synthesize cached_exprs cached_lemmas p_ctxt coq_examples c);)
           else ()
         )
         invalid_conjectures ;

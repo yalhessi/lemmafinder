@@ -4,13 +4,7 @@ open ProofContext
 open String
 open Utils
 
-
 exception Failure of string
-
-type goal = {
-    hypos : string list;
-    conc : string ;
-}
 
 type conjecture = {
   sigma : (string, Sexp.t list * string) Hashtbl.t;
@@ -40,32 +34,19 @@ let sort_by_size (terml : Sexp.t list list) :Sexp.t list list =
     *)
     List.sort (fun a b -> (Sexp.size b) - (Sexp.size a)) terml
 
-let update_type_table (atoms : string list) c_ctx type_tbl = 
+let update_type_table (atoms : string list) p_ctx type_tbl = 
     List.iter (fun a -> 
                     (* We may want to skip atoms that do not have a proper type *)
                     try 
-                    (let typ = TypeUtils.get_type_of_atom c_ctx.env c_ctx.sigma a
+                    (let typ = TypeUtils.get_type_of_atom p_ctx.env p_ctx.sigma a
                     in Hashtbl.replace type_tbl (a) typ)
                     with _ -> ();
               ) atoms; type_tbl
-
-let add_variable (variables: string list ) (var: string): string list = 
-    let var_exists = List.exists (fun curr_var -> String.equal curr_var var) variables
-    in if var_exists then variables
-        else (var :: variables)
-
-let rec index_of (x: Sexp.t list) (lst: Sexp.t list list) =
-    match lst with
-    | [] -> raise (Failure "Not Found")
-    | h :: t -> if Sexp.equal x h then 0 else 1 + index_of x t
 
 let rec sets = function
   | []    -> [[]]
   | x::xs -> let ls = sets xs in
                List.map (fun l -> x::l) ls @ ls
-
-let conjs_to_string (conjectures: conjecture list) : string =
-    List.fold_left (fun acc conj -> acc ^ conj.conjecture_str ^ "\n") "" conjectures
 
 let construct_implications (conc: string) (hyps: Sexp.t list list) : string =
     List.fold_left (fun acc hyp -> "(" ^ (Sexp.string_of_sexpr hyp) ^  "->" ^ acc ^ ")") conc hyps

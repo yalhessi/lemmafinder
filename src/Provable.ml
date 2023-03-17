@@ -3,13 +3,11 @@ open ProofContext
 
 let generate_lfind_file p_ctxt conjecture c_name =
   let lfind_file = p_ctxt.dir ^ "/lfind" ^ c_name ^ ".v"
-  in let module_imports = List.fold_left (fun acc m -> acc ^ (m ^"\n")) "" p_ctxt.modules
-  in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n%s\nLemma %s.\nAdmitted.\n"
+  in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\nLemma %s.\nAdmitted.\n"
                    Consts.lfind_declare_module
                    p_ctxt.declarations
                    p_ctxt.namespace
                    p_ctxt.fname
-                   module_imports
                    conjecture
   in FileUtils.write_to_file lfind_file content; ()
 

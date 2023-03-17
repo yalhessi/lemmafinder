@@ -9,9 +9,9 @@ let run p_ctxt conjecture_name examples params output_type=
   let funcs_str = String.concat "," funcs in
   let examples_op = String.concat " " examples
   in let timeout_cmd = Consts.fmt "timeout  %s" Consts.synthesizer_timeout
-  in let coq_synth_cmd = Consts.fmt  "%s --logical-dir=%s --physical-dir='%s' --module=%s --type='%s' --params='%s' --extra-exprs='%s' --examples='%s' --num-terms=%d > %s" coq_synth_path p_ctxt.namespace p_ctxt.original_dir p_ctxt.fname output_type params funcs_str examples_op Consts.myth_batch_size coq_synth_output_path
+  in let coq_synth_cmd = Consts.fmt  "%s --logical-dir=%s --physical-dir='%s' --module=%s --type='%s' --params='%s' --extra-exprs='%s' --examples='%s' --num-terms=%d > %s" coq_synth_path p_ctxt.namespace p_ctxt.original_dir p_ctxt.fname output_type params funcs_str examples_op Consts.synth_batch_size coq_synth_output_path
   in Log.debug (Consts.fmt "CoqSynth Command is %s\n"  (Consts.fmt "%s %s" timeout_cmd  coq_synth_cmd));
-  let run_myth = run_cmd (Consts.fmt "%s %s" timeout_cmd  coq_synth_cmd)
+  let run_synth = run_cmd (Consts.fmt "%s %s" timeout_cmd  coq_synth_cmd)
   in (List.rev (read_file coq_synth_output_path))
 
 let enumerate_expressions (p_cxt: proof_context)
@@ -33,5 +33,5 @@ let enumerate_expressions (p_cxt: proof_context)
                               acc ^ v ^ ":" ^ ((Hashtbl.find var_types v)) ^ ",", ind+1
                             )
                           ) ("",0) vars
-  in let myth_op = run p_cxt conjecture_name examples input_vars output_type
-in myth_op
+  in let synth_op = run p_cxt conjecture_name examples input_vars output_type
+in synth_op

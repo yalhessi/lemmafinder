@@ -18,10 +18,6 @@ let coq_printing_depth = "Set Printing Depth 1000."
 
 let fmt = Printf.sprintf
 
-let extract_nat = "Extract Inductive nat => nat [ \"(O)\" \"S\" ]."
-
-let extract_list = "Extract Inductive list => list [ \"Nil\" \"Cons\" ]."
-
 let lfind_lemma = "lfind_state"
 
 let quickchick_import = "From QuickChick Require Import QuickChick."
@@ -30,11 +26,7 @@ let string_scope = "Open Scope string_scope.\n"
 
 let extract_print = "Extract Constant print => \"Extract.print\".\n"
 
-let require_extraction = "\nRequire Coq.extraction.Extraction.\nExtraction Language OCaml.\n"
-
 let vernac_success = "Success."
-
-let extraction_import = "Require Import Extraction."
 
 let def_qc_num_examples = "Extract Constant defNumTests => \"50\"."
 
@@ -42,21 +34,15 @@ let prover = "PROVERBOT"
 
 let synthesizer = ref ""
 
-let rewriter = "REWRITE"
-
 let prover_path = ref ""
 
 let synthesizer_path = ref ""
 
 let coq_synthesizer_path = "coq_synth"
 
-let rewriter_path = ref ""
-
-let coq_of_ocaml_path = ref ""
-
 let lfind_path = ref ""
 
-let myth_batch_size = 6
+let synth_batch_size = 6
 
 let time_to_category_1 = ref 0
 

@@ -14,17 +14,10 @@ type proof_context =
     declarations: string;
     proof_name: string;
     funcs: EConstr.t list;
-    modules: string list;
     types: EConstr.t list;
     theorem : string;
     all_vars: Names.variable list;
     original_dir: string;
-  }
-
-type coq_context = 
-  {
-    env : Environ.env;
-    sigma : Evd.evar_map;
   }
 
 let hyps_to_string_list env sigma hyps = 
@@ -200,11 +193,9 @@ let construct_proof_context gl =
         declarations = declarations;
         proof_name = proof_name;
         funcs = all_funcs;
-        modules = Utils.get_modules (lfind_dir ^ "/" ^ f_name ^ ".v");
         types = typs;
         all_vars = vars;
         original_dir = dir;
-       }
-    in let c_ctxt = {env = env; sigma = sigma} 
-    in p_ctxt, c_ctxt
+       } in
+    p_ctxt
                   

@@ -53,36 +53,6 @@ let new_acc, _ = (add_synthesis_term acc gen_vars [Atom var] type_tbl topconj)
    We pick terms based on the size. 
    Add the largest expression that can be replaced for synthesis. 
 *)
-let rec get_terms_to_synthesize (acc : Sexp.t list list)
-                                (conjecture: Sexp.t list)
-                                (gen_vars: string list)
-                                (type_tbl: (string, string) Hashtbl.t)
-                                (topconj: Sexp.t list)
-                                (add_atoms: bool)
-                                : Sexp.t list list =
-  match conjecture with
-  | (Atom a) :: tl -> if add_atoms then
-                      (
-                        let new_acc, is_added = (add_synthesis_term acc gen_vars [Atom a] type_tbl topconj)
-                        in get_terms_to_synthesize new_acc tl gen_vars type_tbl topconj add_atoms
-                      ) 
-                      else
-                        get_terms_to_synthesize acc tl gen_vars type_tbl topconj add_atoms
-  | [Expr [Atom _; Atom _; (Expr head); Atom var]] -> let new_acc, _ = (add_synthesis_term acc gen_vars [Atom var] type_tbl topconj)
-  in let new_acc, _ = (add_synthesis_term new_acc gen_vars head type_tbl topconj)
-  in new_acc
-  | (Expr head) :: tl ->
-                         (
-                          let new_acc, is_added = (add_synthesis_term acc gen_vars head type_tbl topconj)
-                          in if is_added then
-                          get_terms_to_synthesize new_acc tl gen_vars type_tbl topconj add_atoms
-                          else 
-                          (
-                            let head_terms = get_terms_to_synthesize new_acc head gen_vars type_tbl topconj add_atoms
-                            in get_terms_to_synthesize head_terms tl gen_vars type_tbl topconj add_atoms
-                          )
-                         )
-  | [] -> acc
 
 let add_conj_vars conj_vars vars lfind_vars var =
 let is_exists_in_vars = List.exists (fun v -> String.equal v var) vars
@@ -182,7 +152,7 @@ let get_vars_for_synthesis conjecture curr_synth_term vars all_vars =
                             else vars_for_synthesis
   in vars_for_synthesis |> List.rev
 
-let enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt ml_examples output_examples synth_count is_equal_conj = 
+let enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt input_examples output_examples synth_count is_equal_conj = 
   let var_types = ExprUtils.get_type_vars conjecture vars_for_synthesis
   in
   let subst_synthesis_term = ExprUtils.subst_lfind_vars_in_expr curr_synth_term conjecture.sigma
@@ -193,22 +163,12 @@ let enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt m
   in 
   let output_type = ( try TypeUtils.get_return_type "" (Sexp.of_string output_type) with _ -> output_type)
   in Hashtbl.add var_types synthesis_op output_type;
-  let myth_examples = Examples.gen_synthesis_examples ml_examples output_examples vars_for_synthesis conjecture.sigma
-  in LogUtils.write_list_to_log myth_examples (!Consts.synthesizer ^ " examples");
+  let synth_examples = Examples.gen_synthesis_examples input_examples output_examples vars_for_synthesis conjecture.sigma
+  in LogUtils.write_list_to_log synth_examples (!Consts.synthesizer ^ " examples");
   
   let vars_for_synthesis = List.append vars_for_synthesis [synthesis_op]
   in let conjecture_name = (conjecture.conjecture_name ^ string_of_int(Utils.next_val synth_count ())) in
-  let enumerated_exprs = if String.equal !Consts.synthesizer "myth" then
-    (
-      let enumerated_myth_exprs = Myth.enumerate_expressions p_ctxt conjecture_name  myth_examples var_types vars_for_synthesis true
-      in 
-      let start_i = 0 
-      in let end_i = start_i + Consts.myth_batch_size
-      in let top_k = Utils.slice_list start_i end_i enumerated_myth_exprs
-      in CoqofOcaml.get_coq_exprs top_k p_ctxt conjecture_name
-    ) else (
-      CoqSynth.enumerate_expressions p_ctxt conjecture_name myth_examples var_types vars_for_synthesis output_type
-    )
+  let enumerated_exprs = CoqSynth.enumerate_expressions p_ctxt conjecture_name synth_examples var_types vars_for_synthesis output_type
   in
   let counter = ref 0
   in let synthesized_conjectures = List.map (get_synthesis_conjecture is_equal_conj output_type curr_synth_term conjecture var_types (Utils.next_val counter))enumerated_exprs
@@ -232,27 +192,19 @@ let get_filtered_conjectures conjectures p_ctxt conjecture cached_lemmas =
 let synthesize_lemmas 
                       (synth_count: int ref)
                       (conjecture: conjecture)
-                      (ml_examples: (string, string) Hashtbl.t list)
-                      (coq_examples: (string, string) Hashtbl.t list)
+                      (input_examples: (string, string) Hashtbl.t list)
                       (p_ctxt: proof_context)
                       (cached_lemmas: (string, bool) Hashtbl.t ref)
                       (cached_exprs: (string, bool) Hashtbl.t ref)
                       (curr_synth_term: Sexp.t list)
                       : synthesis_stat =
   let synthesizer = !Consts.synthesizer
-  in let input_examples = if String.equal synthesizer "myth" then ml_examples else coq_examples
   in Log.debug (Consts.fmt "Synth term is %s\n" (Sexp.string_of_sexpr curr_synth_term));
   let vars_str = List.map Names.Id.to_string p_ctxt.vars in
   let all_vars = List.append vars_str conjecture.lfind_vars
-  in let coq_output_examples, ml_output_examples = (Evaluate.evaluate_coq_expr curr_synth_term coq_examples p_ctxt all_vars conjecture.sigma (Some conjecture))
+  in let output_examples = Evaluate.evaluate_coq_expr curr_synth_term input_examples p_ctxt all_vars conjecture.sigma (Some conjecture)
   in 
   let vars_for_synthesis = get_vars_for_synthesis conjecture curr_synth_term vars_str all_vars
-  in
-  let output_examples = 
-  if String.equal synthesizer "myth" then
-    ml_output_examples
-  else 
-    coq_output_examples
   in
   let synthesized_conjectures, enumerated_exprs = enumerate_conjectures conjecture curr_synth_term vars_for_synthesis p_ctxt input_examples output_examples synth_count false
 
@@ -336,7 +288,7 @@ let synthesize_lemmas
                       }
   in synth_stat
 
-let synthesize cached_exprs cached_lemmas p_ctxt ml_examples coq_examples conjecture =
+let synthesize cached_exprs cached_lemmas p_ctxt coq_examples conjecture =
   Log.debug(Consts.fmt "Synthesizing for conjecture %s\n" conjecture.conjecture_str);
   Log.debug(Consts.fmt "#Coq Input Examples %d\n" (List.length coq_examples));
   (
@@ -349,7 +301,7 @@ let synthesize cached_exprs cached_lemmas p_ctxt ml_examples coq_examples conjec
     in Log.debug (Consts.fmt "Size of synth terms is %d" (List.length synth_terms));
     let sorted_synth_terms = LatticeUtils.sort_by_size synth_terms
     in let synth_count = ref (0) 
-    in let synth_stats = List.map (synthesize_lemmas synth_count conjecture ml_examples coq_examples p_ctxt cached_lemmas cached_exprs) sorted_synth_terms
+    in let synth_stats = List.map (synthesize_lemmas synth_count conjecture coq_examples p_ctxt cached_lemmas cached_exprs) sorted_synth_terms
     in
     let gen_stat = {
                       conjecture = conjecture;
