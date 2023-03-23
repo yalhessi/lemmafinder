@@ -45,9 +45,11 @@ let check_validity (conjecture: conjecture)
 
 let validity_stats conjectures p_ctxt =
     let n_cores = (Utils.cpu_count () / 2)
-    in Parmap.parmap ~ncores:n_cores
+    in Parmap.parmapi ~ncores:n_cores
                        (
-                          fun c -> let is_valid, cgs = check_validity c p_ctxt 
+                          fun i c -> 
+                            Unix.sleepf ((float_of_int i) *. 0.01); (* tmp fix for quickchick naming collision *)
+                            let is_valid, cgs = check_validity c p_ctxt 
                           in let g_stat = {
                                              conjecture = c;
                                              is_valid =is_valid;
