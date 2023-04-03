@@ -48,7 +48,6 @@ let validity_stats conjectures p_ctxt =
     in Parmap.parmapi ~ncores:n_cores
                        (
                           fun i c -> 
-                            Unix.sleepf (float_of_int (i * 1)); (* tmp fix for quickchick naming collision *)
                             let is_valid, cgs = check_validity c p_ctxt 
                           in let g_stat = {
                                              conjecture = c;
