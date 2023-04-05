@@ -5,6 +5,11 @@ open Lfindalgo
    - Utils
    - FileUtils
    - Consts *)
+  
+(* Helper function to strip white space (from original Utils.ml file)*)
+let strip_space str = 
+  let str = Str.replace_first (Str.regexp "^ +") "" str in 
+  Str.replace_first (Str.regexp " +$") "" str
 
 (* Helper function to get the index of a line *)
 let get_index str list =
@@ -31,7 +36,7 @@ let parse_results results =
   | [] -> -1
   | line :: remaining ->
     if Utils.contains line "#Synthesized Lemmas not disprovable" 
-      then let elem = String.split_on_char ':' line in int_of_string (Utils.strip (List.nth elem 1))
+      then let elem = String.split_on_char ':' line in int_of_string (strip_space (List.nth elem 1))
       else iterate remaining
   in let syn_lemmas = iterate results in
   let c1_lemmas, c2_lemmas, c3_lemmas = get_category_counts results in
