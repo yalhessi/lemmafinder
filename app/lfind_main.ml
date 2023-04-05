@@ -31,8 +31,8 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
         if not (Sys.file_exists example_file) && (List.length vars) > 0 then 
         (
           print_endline "Example file not found, generating";
-          if contanins_forall then (print_endline ("Contains forall, and no example file provided. Quickchick does not work with forall"); exit(0);)
-          else
+          if contanins_forall then (print_endline ("Contains forall, and no example file provided. Quickchick does not work with forall");)
+          else ();
           (
             let op = GenerateExamples.generate_example p_ctxt   
             in print_endline (string_of_int (List.length op));

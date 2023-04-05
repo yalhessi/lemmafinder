@@ -142,18 +142,21 @@ let get_types env sigma hyps  =
 
 let get_curr_state_lemma p_ctxt : string = 
   let lemma = Consts.lfind_lemma in
-  let vars = List.map Names.Id.to_string p_ctxt.vars in
-  let vars_str = "forall " ^ String.concat " " vars in
   let conc = (Utils.get_exp_str p_ctxt.env p_ctxt.sigma p_ctxt.goal) in
-  let hyps = p_ctxt.hypotheses in
-  let hyps_str = List.map (fun hyp -> match hyp with 
+  let vars = List.filter (fun hyp -> 
+    match hyp with
+    | Context.Named.Declaration.LocalAssum(x, y) -> 
+      let (sigma', s) = Typing.sort_of p_ctxt.env p_ctxt.sigma y in
+      Sorts.is_set s || is_type s
+    | _ -> raise(Failure "Unsupported assumption")) p_ctxt.hypotheses in
+  let vars_str = List.map (fun hyp -> match hyp with 
     | Context.Named.Declaration.LocalAssum(x, y) -> 
       "(" ^ Names.Id.to_string (x.binder_name) ^ ":" ^ (Utils.get_exp_str p_ctxt.env p_ctxt.sigma y) ^ ")"
-    | _ -> raise(Failure "Unsupported assumption")) hyps |> String.concat " "  in
-  if List.length hyps = 0 then
+    | _ -> raise(Failure "Unsupported assumption")) vars |> String.concat " "  in
+  if List.length vars = 0 then
     Consts.fmt "Lemma %s:%s.\nAdmitted." Consts.lfind_lemma conc
   else
-    Consts.fmt "Lemma %s %s:%s.\nAdmitted." Consts.lfind_lemma hyps_str conc
+    Consts.fmt "Lemma %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_str conc 
   
 let construct_proof_context gl =
     let env = Proofview.Goal.env gl in
