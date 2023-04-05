@@ -79,7 +79,7 @@ let generate_example (p_ctxt : ProofContext.proof_context) =
   let env = p_ctxt.env in
   let sigma = p_ctxt.sigma in
   let hyps = p_ctxt.hypotheses in
-  let current_lemma = ProofContext.get_curr_state_lemma p_ctxt in
+  let current_lemma = ProofContext.get_curr_state_lemma p_ctxt ~keep_hyps:false in
   let example_file = Consts.fmt ("%s/%s") p_ctxt.dir "lfind_quickchick_generator.v"
   in
   let import_file =
