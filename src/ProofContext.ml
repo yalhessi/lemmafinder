@@ -140,12 +140,13 @@ let get_types_in_hyps env sigma hyps =
 let get_types env sigma hyps  =
   get_types_in_hyps env sigma hyps |> Utils.dedup_list
 
-let get_curr_state_lemma p_ctxt : string = 
+let get_curr_state_lemma ?(keep_hyps=true) p_ctxt : string = 
   let lemma = Consts.lfind_lemma in
   let conc = (Utils.get_exp_str p_ctxt.env p_ctxt.sigma p_ctxt.goal) in
   let vars = List.filter (fun hyp -> 
     match hyp with
     | Context.Named.Declaration.LocalAssum(x, y) -> 
+      keep_hyps ||
       let (sigma', s) = Typing.sort_of p_ctxt.env p_ctxt.sigma y in
       Sorts.is_set s || is_type s
     | _ -> raise(Failure "Unsupported assumption")) p_ctxt.hypotheses in
