@@ -85,6 +85,9 @@ def get_stuck_state(fname):
         print(e)
     return ""
 
+def clean_quickchick_tmp_dir():
+    shutil.rmtree('dir_path')
+
 def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, example_dir, debug, run_till_cat_1, no_resume, synthesizer, lfind_decl):
     counter = 0
     all_lemmas = 0
@@ -225,6 +228,7 @@ def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, e
                         print(f"error processing this {e}")
                 else:
                     print(" ")
+                clean_quickchick_tmp_dir()
             write_lemmafinder_content(os.path.join(destination_folder, file_name),content)
     
     # Write errors to csv file
