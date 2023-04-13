@@ -45,6 +45,8 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
         
         let coq_examples = Examples.dedup_examples (FileUtils.read_file example_file)
         in LogUtils.write_tbl_list_to_log coq_examples "Coq Examples";
+        if List.length coq_examples = 0 then raise (Invalid_Examples "No examples found!") else ();
+        (* get the current state of the proof *)
         let op = FileUtils.run_cmd "export is_lfind=true"
         in let abstraction = Abstract_NoDup.abstract
         in let generalized_terms, conjectures = abstraction p_ctxt
