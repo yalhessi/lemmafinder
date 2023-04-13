@@ -19,10 +19,10 @@ let get_str_of_pp pp_expr : string=
     Pp.string_of_ppcmds pp_expr
 
 let get_exp_str env sigma expr : string =
-  (get_str_of_pp (Printer.pr_goal_concl_style_env env sigma expr))
+  (get_str_of_pp (Printer.pr_econstr_env  env sigma expr))
 
 let get_econstr_str env sigma expr : string =
-  (get_str_of_pp (Printer.pr_goal_concl_style_env env sigma expr))
+  (get_str_of_pp (Printer.pr_econstr_env  env sigma expr))
   
 let get_constr_str env sigma expr : string =
   (get_str_of_pp (Printer.safe_pr_constr_env env sigma expr))
@@ -108,7 +108,9 @@ let rec get_funcs_in_econstr env sigma econstr =
     else
       get_funcs_in_econstr env sigma f @ List.concat (List.map (fun arg -> get_funcs_in_econstr env sigma arg) (Array.to_list args))
   | Const(c,u) -> (* needed for zero-arg defintions *) [econstr]
-  | Case(ci, p, c, bl) -> get_funcs_in_econstr env sigma c @ List.concat (List.map (fun e -> get_funcs_in_econstr env sigma e) (Array.to_list bl))
+  | Case(ci, u, params, p, iv, c, brs) -> 
+    let bl = Array.map (fun (b, ty) -> ty) brs in
+    get_funcs_in_econstr env sigma c @ List.concat (List.map (fun e -> get_funcs_in_econstr env sigma e) (Array.to_list bl))
   | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) -> []
   
 let get_env_var env_var : string =

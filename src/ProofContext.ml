@@ -76,9 +76,8 @@ let get_theorem proof_name dir fname =
                     ) "" content
 
 let get_proof_name () =
-  let pstate = match Vernacstate.Proof_global.get_pstate () with Some ps -> ps | _ -> (raise (Invalid_argument "proof state"))
-  in let pdata = Proof.data (Proof_global.get_proof pstate) in
-  (Names.Id.to_string (pdata.name))
+  let pname = Vernacstate.Declare.get_current_proof_name () in
+  (Names.Id.to_string (pname))
 
 let is_type s = 
   not (Sorts.is_set s || Sorts.is_prop s || Sorts.is_sprop s || Sorts.is_small s)

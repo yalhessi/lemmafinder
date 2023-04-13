@@ -6,7 +6,7 @@ let _ =
   let gdopt=
     { optdepr=false;
       optkey=["Lfind";"QuickChick"];
-      optname="Use QuickChick";
+      (* optname="Use QuickChick"; *)
       optread=(fun () -> !enable_quickchick);
       optwrite=(fun b -> enable_quickchick := b)}
   in
@@ -18,7 +18,7 @@ let _ =
   let gdopt=
     { optdepr=false;
       optkey=["Lfind";"Proverbot"];
-      optname="Use Proverbot";
+      (* optname="Use Proverbot"; *)
       optread=(fun () -> !enable_proverbot);
       optwrite=(fun b -> enable_proverbot := b)}
   in

@@ -13,7 +13,7 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
     print_endline("The synthesizer used is " ^ !Consts.synthesizer);
     let is_running = Utils.get_env_var "is_lfind"
     in 
-    if String.equal is_running "true" then Tacticals.New.tclZEROMSG (Pp.str ("LFind is already running! Aborting"))
+    if String.equal is_running "true" then Tacticals.tclZEROMSG (Pp.str ("LFind is already running! Aborting"))
     else
       begin
         Utils.env_setup ();
@@ -95,6 +95,6 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
         Stats.summarize !Stats.global_stat curr_state_lemma;
         Log.debug ("COMPLETED LFIND SYNTHESIZER");
 
-        Tacticals.New.tclZEROMSG (Pp.str ("LFIND Successful."))
+        Tacticals.tclZEROMSG (Pp.str ("LFIND Successful."))
       end
   end

@@ -18,7 +18,8 @@ let rec fold (sigma : Evd.evar_map) (f : 'a -> Evd.econstr -> 'a) (acc: 'a) (eco
   | App(f,args) -> 
     let acc'' = fold' acc' f in
     Array.fold_left fold' acc'' args
-  | Case(ci, p, c, bl) -> 
+  | Case(ci, u, params, p, iv, c, brs) -> 
     let acc'' = fold' acc' c in
+    let bl = Array.map (fun (na, b) -> b) brs in
     Array.fold_left fold' acc'' bl
   | Rel(_) | Var(_) | Meta(_) | Evar(_) | Sort(_)  | Ind(_,_) | Construct(_,_) | Fix(_,_) | CoFix(_,_) | Proj(_,_) | Int(_) | Float(_) | Const(_,_) -> acc'
