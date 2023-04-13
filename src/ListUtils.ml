@@ -12,3 +12,10 @@ let findi (f : (int -> 'a -> bool)) (l : 'a list) : int*'a =
     | x :: _ when f n x -> (n, x)
     | _ :: l -> findi' (n + 1) l
   in findi' 0 l
+
+let[@tail_mod_cons] rec filter_map f = function
+  | [] -> []
+  | x :: l ->
+      match f x with
+      | None -> filter_map f l
+      | Some v -> v :: filter_map f l

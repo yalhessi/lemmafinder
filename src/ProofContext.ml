@@ -1,3 +1,6 @@
+open ListUtils
+open EConstrUtils
+
 type proof_context = 
   {
     env: Environ.env;
@@ -83,25 +86,28 @@ let is_type s =
 let rec is_eventually_type sigma t =
   EConstr.isType sigma t || (match EConstr.kind sigma t with | Prod(_, _, t') -> is_eventually_type sigma t' | _ -> false)
 
-let get_vars env sigma hyps  =
-  let var_hyps = List.filter (fun hyp -> match hyp with
-  | Context.Named.Declaration.LocalAssum(x, y) -> 
-    let (sigma', s) = Typing.sort_of env sigma y in
-    Sorts.is_set s || is_type s
-  | _ -> raise(Failure "Unsupported assumption") ) hyps in
-  List.map (fun hyp -> match hyp with
-  | Context.Named.Declaration.LocalAssum(x, y) ->  x.binder_name
-  | _ -> raise(Failure "Unsupported assumption")) var_hyps
 
-let get_var_types env sigma hyps  =
-  let var_hyps = List.filter (fun hyp -> match hyp with
+let id_in_econstr env sigma id econstr =
+  print_endline ("checking id" ^ Names.Id.to_string id ^ " in econstr " ^ (Utils.get_sexp_compatible_expr_str env sigma econstr));
+  let res = EConstrUtils.fold sigma (fun seen term -> 
+    print_endline ("term: " ^ (Utils.get_sexp_compatible_expr_str env sigma term));
+    if seen then true else (EConstr.isVarId sigma id term)) false econstr
+  in print_endline ("result: " ^ (string_of_bool res));
+  res
+
+let get_vars var_types =
+  List.map (fun (x, _) -> x) var_types
+
+let get_var_types env sigma hyps goal  =
+  (* variables are hypotheses with type Set or Type *)
+  ListUtils.filter_map (fun hyp -> match hyp with
   | Context.Named.Declaration.LocalAssum(x, y) -> 
     let (sigma', s) = Typing.sort_of env sigma y in
-    Sorts.is_set s || is_type s
-  | _ -> raise(Failure "Unsupported assumption") ) hyps in
-  List.map (fun hyp -> match hyp with
-  | Context.Named.Declaration.LocalAssum(x, y) ->  (x.binder_name, y)
-  | _ -> raise(Failure "Unsupported assumption")) var_hyps
+    if (Sorts.is_set s || is_type s) && (id_in_econstr env sigma x.binder_name goal)
+    then Some (x.binder_name, y)
+    else None
+  | _ -> raise(Failure "Unsupported assumption")
+  ) hyps
 
 let rec get_constructors_of_type acc env sigma econstr =
   if List.mem econstr acc then acc
@@ -141,20 +147,12 @@ let get_types env sigma hyps  =
   get_types_in_hyps env sigma hyps |> Utils.dedup_list
 
 let get_curr_state_lemma ?(keep_hyps=true) p_ctxt : string = 
+  let {var_types; goal; sigma; env; _} = p_ctxt in
   let lemma = Consts.lfind_lemma in
-  let conc = (Utils.get_exp_str p_ctxt.env p_ctxt.sigma p_ctxt.goal) in
-  let vars = List.filter (fun hyp -> 
-    match hyp with
-    | Context.Named.Declaration.LocalAssum(x, y) -> 
-      keep_hyps ||
-      let (sigma', s) = Typing.sort_of p_ctxt.env p_ctxt.sigma y in
-      Sorts.is_set s || is_type s
-    | _ -> raise(Failure "Unsupported assumption")) p_ctxt.hypotheses in
-  let vars_str = List.map (fun hyp -> match hyp with 
-    | Context.Named.Declaration.LocalAssum(x, y) -> 
-      "(" ^ Names.Id.to_string (x.binder_name) ^ ":" ^ (Utils.get_exp_str p_ctxt.env p_ctxt.sigma y) ^ ")"
-    | _ -> raise(Failure "Unsupported assumption")) vars |> String.concat " "  in
-  if List.length vars = 0 then
+  let conc = Utils.get_exp_str env sigma goal in
+  let vars_str = List.map (fun (v, t) -> 
+      "(" ^ Names.Id.to_string (v) ^ ":" ^ (Utils.get_exp_str p_ctxt.env p_ctxt.sigma t) ^ ")") var_types |> String.concat " "  in
+  if List.length var_types = 0 then
     Consts.fmt "Lemma %s:%s.\nAdmitted." Consts.lfind_lemma conc
   else
     Consts.fmt "Lemma %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_str conc 
@@ -164,8 +162,8 @@ let construct_proof_context gl =
     let sigma = Proofview.Goal.sigma gl in
     let hyps = Proofview.Goal.hyps gl |> List.rev (* hyps are in opposite order of coqide *) in
     let goal = Proofview.Goal.concl gl in
-    let vars = get_vars env sigma hyps in
-    let var_types = get_var_types env sigma hyps in
+    let var_types = get_var_types env sigma hyps goal in
+    let vars = get_vars var_types in
     let typs = get_types env sigma hyps in
     let goal_funcs = Utils.get_funcs_in_econstr env sigma goal in
     let hyp_funcs = List.map (fun (_,h) -> Utils.get_funcs_in_econstr env sigma h) (Utils.get_hyps hyps) in
