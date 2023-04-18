@@ -86,7 +86,7 @@ def get_stuck_state(fname):
     return ""
 
 def clean_quickchick_tmp_dir():
-    shutil.rmtree('dir_path')
+    shutil.rmtree('/tmp/QuickChick')
 
 def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, example_dir, debug, run_till_cat_1, no_resume, synthesizer, lfind_decl):
     counter = 0
