@@ -13,7 +13,8 @@ let test_prover_path = "prover path set" >:: (fun _ -> assert_bool "Prover path 
 let tests = "toy test suite" >::: [
   test_lfind_path;
   test_prover_path;
-  EndtoEnd.test ();
+  GeneralizationTest.test();
+  (* EndtoEnd.test (); *)
 ]
 
 (* Runs the tests *)
