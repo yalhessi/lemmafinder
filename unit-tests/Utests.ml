@@ -10,7 +10,7 @@ let test_lfind_path = "lfind path set" >:: (fun _ -> assert_bool "LFind path is 
 let test_prover_path = "prover path set" >:: (fun _ -> assert_bool "Prover path is not set." (not (String.equal (Utils.get_env_var Consts.prover)"")))
 
 (* Lists of tests to run within a test object *)
-let tests = "toy test suite" >::: [
+let tests = "various unit tests" >::: [
   test_lfind_path;
   test_prover_path;
   GeneralizationTest.test();
