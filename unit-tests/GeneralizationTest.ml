@@ -63,7 +63,7 @@ let type_table_content =
     ("append (rev x) (Cons n Nil)", "(forall (_ : lst) (_ : lst), lst)");
     ("x","lst");
     ("rev (append (rev x) (Cons n Nil))", "(forall _ : lst, lst)");
-    ("rev ==> forall _ : lst", "lst")
+    ("rev", "forall _ : lst, lst")
   ]
 let type_table = 
   let tt = Hashtbl.create 20 in

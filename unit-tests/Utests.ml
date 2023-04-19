@@ -14,6 +14,7 @@ let tests = "toy test suite" >::: [
   test_lfind_path;
   test_prover_path;
   GeneralizationTest.test();
+  ConjectureGenerationTest.test();
   (* EndtoEnd.test (); *)
 ]
 

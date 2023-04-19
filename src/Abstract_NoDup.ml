@@ -121,7 +121,7 @@ let abstract (p_ctxt : proof_context)
   in
   let all_type_table = Hashtbl.fold (fun k v acc -> Hashtbl.add acc k v; acc ) atom_type_table expr_type_table
   in let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set all_type_table conc_sexp hypo_sexps
-  in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table expr_type_table p_ctxt)
+  in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table expr_type_table p_ctxt.vars)
   in
   Log.debug (Consts.fmt "Generalizations: \n%s\n" (List.fold_left (fun acc c -> acc ^ (LatticeUtils.construct_implications c.conjecture_str c.hyps) ^ "\n") "" conjectures));
   terms, conjectures
