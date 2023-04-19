@@ -10,8 +10,9 @@ Then run the following commands:
 ## Tests Currently Include:
 - LFIND path is set
 - Prover path is set
-- End to end test (using LFind as user would) for `list_rev.ml`(calling `lfind` within theorem `rev_rev` in place of lemma `rev_append`)
-  - Determine success of test by if the number of synthesized lemmas match _exactly_ (might want to weaken this test depending on running time)
-- **_todo_** : potentially more end to end tests (might not be necessary)
-  - _potentially_  include better failure messages for end to end test, although once the unit tests are included for the incrementaly behavior this wouldn't really be necessary
-- **_todo_** : once code is modularized and clean-up incorporate unit tests within the body of `lfind` to incrementally test behavior
+- End to end test (using LFind as user would) for `list_rev.v`(calling `lfind` within theorem `rev_rev` in place of lemma `rev_append`)
+  - Commented out because it is not a unit test
+- Generalization test (with `Generalize_NoDup.construct_all_generalizations` as the function being tested)
+  - Uses `motivating_example/list_rev.v` to get the inputs and expected outputs from the function
+- Conjecture creation test (with `Generalize_NoDup.get_all_conjectures` as the function being tested)
+  - Uses `motivating_example/list_rev.v` to get the inputs and expected outputs from the function
