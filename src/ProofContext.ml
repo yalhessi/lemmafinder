@@ -164,6 +164,15 @@ let get_curr_state_lemma ?(keep_hyps=true) p_ctxt : string =
   let {var_types; goal; sigma; env; _} = p_ctxt in
   let lemma = Consts.lfind_lemma in
   let conc = Utils.get_exp_str env sigma goal in
+  let var_types =   ListUtils.filter_map (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) -> 
+    let (sigma', s) = Typing.sort_of env sigma y in
+    if (keep_hyps || Sorts.is_set s || is_type s)
+    then Some (x.binder_name, y)
+    else None
+  | _ -> raise(Failure "Unsupported assumption")
+  ) p_ctxt.hypotheses in
+
   let vars_str = List.map (fun (v, t) -> 
       "(" ^ Names.Id.to_string (v) ^ ":" ^ (Utils.get_exp_str p_ctxt.env p_ctxt.sigma t) ^ ")") var_types |> String.concat " "  in
   if List.length var_types = 0 then
