@@ -1,3 +1,6 @@
+open ListUtils
+open EConstrUtils
+
 type proof_context = 
   {
     env: Environ.env;
@@ -83,25 +86,34 @@ let is_type s =
 let rec is_eventually_type sigma t =
   EConstr.isType sigma t || (match EConstr.kind sigma t with | Prod(_, _, t') -> is_eventually_type sigma t' | _ -> false)
 
-let get_vars env sigma hyps  =
-  let var_hyps = List.filter (fun hyp -> match hyp with
-  | Context.Named.Declaration.LocalAssum(x, y) -> 
-    let (sigma', s) = Typing.sort_of env sigma y in
-    Sorts.is_set s || is_type s
-  | _ -> raise(Failure "Unsupported assumption") ) hyps in
-  List.map (fun hyp -> match hyp with
-  | Context.Named.Declaration.LocalAssum(x, y) ->  x.binder_name
-  | _ -> raise(Failure "Unsupported assumption")) var_hyps
 
-let get_var_types env sigma hyps  =
-  let var_hyps = List.filter (fun hyp -> match hyp with
+let id_in_econstr env sigma id econstr =
+  EConstrUtils.fold sigma (fun seen term -> 
+    seen || (EConstr.isVarId sigma id term)) false econstr
+
+let get_all_vars env sigma hyps = 
+  ListUtils.filter_map (fun hyp -> match hyp with
   | Context.Named.Declaration.LocalAssum(x, y) -> 
     let (sigma', s) = Typing.sort_of env sigma y in
-    Sorts.is_set s || is_type s
-  | _ -> raise(Failure "Unsupported assumption") ) hyps in
-  List.map (fun hyp -> match hyp with
-  | Context.Named.Declaration.LocalAssum(x, y) ->  (x.binder_name, y)
-  | _ -> raise(Failure "Unsupported assumption")) var_hyps
+    if (Sorts.is_set s || is_type s)
+    then Some (x.binder_name)
+    else None
+  | _ -> raise(Failure "Unsupported assumption")
+  ) hyps
+
+let get_vars var_types =
+  List.map (fun (x, _) -> x) var_types
+
+let get_var_types env sigma hyps goal  =
+  (* variables are hypotheses with type Set or Type *)
+  ListUtils.filter_map (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) -> 
+    let (sigma', s) = Typing.sort_of env sigma y in
+    if (Sorts.is_set s || is_type s) && (id_in_econstr env sigma x.binder_name goal)
+    then Some (x.binder_name, y)
+    else None
+  | _ -> raise(Failure "Unsupported assumption")
+  ) hyps
 
 let rec get_constructors_of_type acc env sigma econstr =
   if List.mem econstr acc then acc
@@ -112,7 +124,7 @@ let rec get_constructors_of_type acc env sigma econstr =
       (fun acc c -> get_constructors_of_type acc env sigma c)
       new_acc (Array.to_list args)
   else if EConstr.isInd sigma econstr then
-    let new_acc = econstr :: acc in
+    let new_acc = acc @ [econstr] in
     let ind = EConstr.to_constr sigma econstr |> Constr.destInd in
     let constrs =
       Inductiveops.type_of_constructors env ind
@@ -128,33 +140,42 @@ let rec get_constructors_of_type acc env sigma econstr =
   else acc
   
 let get_types_in_hyps env sigma hyps = 
-  let hyp_types = List.map (fun hyp -> match hyp with
-  | Context.Named.Declaration.LocalAssum(x, y) -> y
-  | _ -> raise(Failure "Unsupported assumption")) hyps |> Utils.dedup_list in
-  let hyp_types = List.filter (fun t ->     
-    let (sigma', s) = Typing.sort_of env sigma t in
-    Sorts.is_set s || is_type s) hyp_types in
-  List.fold_left (fun acc hyp -> 
-    get_constructors_of_type [] env sigma hyp ) [] hyp_types
+  ListUtils.filter_map (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) -> 
+    let (sigma', s) = Typing.sort_of env sigma y in
+    if Sorts.is_set s || is_type s then Some y else None
+  | _ -> raise(Failure "Unsupported assumption")) hyps
 
-let get_types env sigma hyps  =
-  get_types_in_hyps env sigma hyps |> Utils.dedup_list
+let get_types_in_econstr env sigma econstr = 
+  EConstrUtils.fold sigma (fun acc term -> 
+    if EConstr.isApp sigma term then
+      let typ = Utils.get_type_of_econstr env sigma term in
+      let (sigma', s) = Typing.sort_of env sigma typ in
+      if Sorts.is_set s || is_type s then typ :: acc else acc
+    else acc) [] econstr
+
+let get_types env sigma hyps goal =
+  (get_types_in_hyps env sigma hyps) @ (get_types_in_econstr env sigma goal) 
+  |> Utils.dedup_list 
+  |> List.fold_left (fun acc hyp -> 
+    get_constructors_of_type acc env sigma hyp) []
 
 let get_curr_state_lemma ?(keep_hyps=true) p_ctxt : string = 
+  let {var_types; goal; sigma; env; _} = p_ctxt in
   let lemma = Consts.lfind_lemma in
-  let conc = (Utils.get_exp_str p_ctxt.env p_ctxt.sigma p_ctxt.goal) in
-  let vars = List.filter (fun hyp -> 
-    match hyp with
-    | Context.Named.Declaration.LocalAssum(x, y) -> 
-      keep_hyps ||
-      let (sigma', s) = Typing.sort_of p_ctxt.env p_ctxt.sigma y in
-      Sorts.is_set s || is_type s
-    | _ -> raise(Failure "Unsupported assumption")) p_ctxt.hypotheses in
-  let vars_str = List.map (fun hyp -> match hyp with 
-    | Context.Named.Declaration.LocalAssum(x, y) -> 
-      "(" ^ Names.Id.to_string (x.binder_name) ^ ":" ^ (Utils.get_exp_str p_ctxt.env p_ctxt.sigma y) ^ ")"
-    | _ -> raise(Failure "Unsupported assumption")) vars |> String.concat " "  in
-  if List.length vars = 0 then
+  let conc = Utils.get_exp_str env sigma goal in
+  let var_types =   ListUtils.filter_map (fun hyp -> match hyp with
+  | Context.Named.Declaration.LocalAssum(x, y) -> 
+    let (sigma', s) = Typing.sort_of env sigma y in
+    if (keep_hyps || Sorts.is_set s || is_type s)
+    then Some (x.binder_name, y)
+    else None
+  | _ -> raise(Failure "Unsupported assumption")
+  ) p_ctxt.hypotheses in
+
+  let vars_str = List.map (fun (v, t) -> 
+      "(" ^ Names.Id.to_string (v) ^ ":" ^ (Utils.get_exp_str p_ctxt.env p_ctxt.sigma t) ^ ")") var_types |> String.concat " "  in
+  if List.length var_types = 0 then
     Consts.fmt "Lemma %s:%s.\nAdmitted." Consts.lfind_lemma conc
   else
     Consts.fmt "Lemma %s %s:%s.\nAdmitted." Consts.lfind_lemma vars_str conc 
@@ -164,9 +185,10 @@ let construct_proof_context gl =
     let sigma = Proofview.Goal.sigma gl in
     let hyps = Proofview.Goal.hyps gl |> List.rev (* hyps are in opposite order of coqide *) in
     let goal = Proofview.Goal.concl gl in
-    let vars = get_vars env sigma hyps in
-    let var_types = get_var_types env sigma hyps in
-    let typs = get_types env sigma hyps in
+    let var_types = get_var_types env sigma hyps goal in
+    let vars = get_vars var_types in
+    let all_vars = get_all_vars env sigma hyps in
+    let typs = get_types env sigma hyps goal in
     let goal_funcs = Utils.get_funcs_in_econstr env sigma goal in
     let hyp_funcs = List.map (fun (_,h) -> Utils.get_funcs_in_econstr env sigma h) (Utils.get_hyps hyps) in
     let all_funcs = List.concat (goal_funcs :: hyp_funcs) in
@@ -198,7 +220,7 @@ let construct_proof_context gl =
         proof_name = proof_name;
         funcs = all_funcs;
         types = typs;
-        all_vars = vars;
+        all_vars = all_vars;
         original_dir = dir;
        } in
     p_ctxt
