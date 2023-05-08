@@ -109,7 +109,7 @@ let get_var_types env sigma hyps goal  =
   ListUtils.filter_map (fun hyp -> match hyp with
   | Context.Named.Declaration.LocalAssum(x, y) -> 
     let (sigma', s) = Typing.sort_of env sigma y in
-    if (Sorts.is_set s || is_type s) && (id_in_econstr env sigma x.binder_name goal)
+    if (Sorts.is_set s || is_type s) (* We want to consider cases where we want examples for variables not in goal *)
     then Some (x.binder_name, y)
     else None
   | _ -> raise(Failure "Unsupported assumption")

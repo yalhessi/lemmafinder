@@ -6,7 +6,8 @@ let generate_lfind_file (p_ctxt: proof_context)
                         (conjecture: string)
                         (name: string) : string =
   let lfind_file = p_ctxt.dir ^ "/lfind" ^ name ^ ".v"
-  in let typ_derive = List.fold_left (fun acc t -> acc ^ (TypeUtils.derive_typ_quickchick p_ctxt t)) "" p_ctxt.types
+  (* Add new line between type derivation to avoid errors *)
+  in let typ_derive = List.fold_left (fun acc t -> acc ^ (TypeUtils.derive_typ_quickchick p_ctxt t) ^ "\n") "" p_ctxt.types
   in let content = Consts.fmt "%s%s\n%s\nFrom %s Require Import %s.\n%s\nLemma %s.\nAdmitted.\nQuickChick %s.\n"
                    Consts.lfind_declare_module
                    p_ctxt.declarations 

@@ -36,9 +36,14 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
           (
             let op = GenerateExamples.generate_example p_ctxt   
             in print_endline (string_of_int (List.length op));
-            let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
-            in
-            if not is_success then raise (Invalid_Examples "Quickchick failed to generate examples!") else 
+            (* 1st check that Quickchick was able to run without error *)
+            let ran_successfully = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
+            (* Then we want to check if Quickchick actually succeeded or if counterexamples were found *)
+            (* Quickchick failure message that is printed: *** Failed after _ tests and _ shrinks. *)
+            in let quickchick_success = List.fold_left (fun acc l -> acc || (Utils.contains l "+++ Passed 50 tests") ) false op
+            in 
+            if not ran_successfully then raise (Invalid_Examples "Quickchick failed to run successfully!") else 
+            (* if not quickchick_success then raise (Invalid_Examples "Current proof state incorrect (without hypotheses or in general!") else  *)
             Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
           )
         );
