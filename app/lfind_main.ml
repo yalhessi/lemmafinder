@@ -72,9 +72,8 @@ let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
         let coq_examples = ExampleUtils.evaluate_terms generalized_terms coq_examples p_ctxt
         in 
         List.iter (fun c -> LogUtils.write_tbl_to_log c "COQE") coq_examples;
-        
-        let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
-        in
+
+        let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt) in
         let hyp_conjectures = Hypotheses.conjectures_with_hyp invalid_conjectures p_ctxt
         in 
         let hypo_valid_conjectures, _ = (Valid.split_as_true_and_false hyp_conjectures p_ctxt)

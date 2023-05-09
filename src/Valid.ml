@@ -44,7 +44,7 @@ let check_validity (conjecture: conjecture)
   else let fixed_cgs = fix_cgs conjecture cgs in
   is_valid, fixed_cgs
 
-let validity_stats conjectures p_ctxt =
+(* let validity_stats conjectures p_ctxt =
     let n_cores = (Utils.cpu_count () / 2)
     in Parmap.parmapi ~ncores:n_cores
                        (
@@ -59,7 +59,24 @@ let validity_stats conjectures p_ctxt =
                                              cgs = cgs
                                           }
                           in g_stat
-                       ) (Parmap.L conjectures)
+                       ) (Parmap.L conjectures) *)
+
+(* Remove the multi-core implementation to try to prevent segmentation faults *)
+let validity_stats conjectures p_ctxt =
+List.map
+(
+  fun c -> 
+    let is_valid, cgs = check_validity c p_ctxt 
+  in let g_stat = {
+                      conjecture = c;
+                      is_valid =is_valid;
+                      is_provable = false;
+                      is_prover_provable = false;
+                      synthesis_stats=[];
+                      cgs = cgs
+                  }
+  in g_stat
+) (conjectures)
 
 let helpful_lemma_stats stats p_ctxt = 
   let n_cores = (Utils.cpu_count () / 2)

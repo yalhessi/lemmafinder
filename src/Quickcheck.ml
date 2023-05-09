@@ -40,8 +40,10 @@ let output_code (op: string list)
 
 let run (fname: string) (namespace: string) (dir: string)
         : bool * string list =
-  if !Opts.enable_quickchick then
-    (output_code (quickcheck fname namespace dir))
+  if !Opts.enable_quickchick 
+    then 
+    (let results = quickcheck fname namespace dir in
+      output_code results)
   else
     (false, [])
   
