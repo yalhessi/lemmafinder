@@ -124,15 +124,14 @@ let rec get_constructors_of_type acc env sigma econstr =
       (fun acc c -> get_constructors_of_type acc env sigma c)
       new_acc (Array.to_list args)
   else if EConstr.isInd sigma econstr then
-    let new_acc = acc @ [econstr] in
     let ind = EConstr.to_constr sigma econstr |> Constr.destInd in
     let constrs =
       Inductiveops.type_of_constructors env ind
       |> Array.to_list |> List.map EConstr.of_constr
     in
-    List.fold_left
+    (List.fold_left
       (fun acc c -> get_constructors_of_type acc env sigma c)
-      new_acc constrs
+      [econstr] constrs) @ acc
   else if EConstr.isProd sigma econstr then
     let _, a1, a2 = EConstr.destProd sigma econstr in
     let new_acc = get_constructors_of_type acc env sigma a1 in
