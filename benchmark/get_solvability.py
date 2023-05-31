@@ -1,3 +1,4 @@
+import glob
 import os
 from enum import Enum
 
@@ -48,7 +49,8 @@ def read_run_results(prelude, benchmark):
   for subdir in subdirs:
     total += 1
     if not os.path.isfile(os.path.join(prelude, subdir, 'lfind_summary_log.txt')):
-      if os.path.isfile(os.path.join(prelude, subdir, 'lfind_quickchick_generator.v')):
+      if not glob.glob(prelude + '/' + subdir + '/examples*'):
+      # if os.path.isfile(os.path.join(prelude, subdir, 'lfind_quickchick_generator.v')):
         results[subdir] = Result(ResultOption.fail, FailureOptions.example)
         examples += 1
       else:
