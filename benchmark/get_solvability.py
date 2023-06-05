@@ -7,6 +7,8 @@ empty_match_str = '''Provable and Useful in Completing Stuck Goal (Category 1)
 Useful in Completing Stuck Goal (Category 2)
 
 Valid Lemmas (Category 3)
+
+
 '''
 
 cat_1_str = "Provable and Useful in Completing Stuck Goal (Category 1)"
@@ -15,6 +17,7 @@ cat_3_str = "Valid Lemmas (Category 3)"
 
 class FailureOptions(Enum):
   example = 'Failed Example Generation'
+  quickchick = 'Failed QuickChick'
   other = 'Other Failure'
 
 class ResultOption(Enum):
@@ -44,24 +47,31 @@ def read_run_results(prelude, benchmark):
   run = 0
   success = 0
   examples = 0
+  quickchick = 0
   empty_match = 0
 
   for subdir in subdirs:
     total += 1
     if not os.path.isfile(os.path.join(prelude, subdir, 'lfind_summary_log.txt')):
       if not glob.glob(prelude + '/' + subdir + '/examples*'):
-      # if os.path.isfile(os.path.join(prelude, subdir, 'lfind_quickchick_generator.v')):
+        print(f'{subdir} failed due to example generation')
         results[subdir] = Result(ResultOption.fail, FailureOptions.example)
         examples += 1
+      elif os.path.isfile(os.path.join(prelude, subdir, 'lfind_quickchick_generator.v')):
+        # print(f'{subdir} failed due to quickchick')
+        results[subdir] = Result(ResultOption.fail, FailureOptions.quickchick)
+        quickchick += 1
       else:
         results[subdir] = Result(ResultOption.fail, FailureOptions.other)
     else:
       run += 1
       context = open(os.path.join(prelude, subdir, 'lfind_summary_log.txt')).read()
       # parsed_context = split_context(context)
-      if empty_match_str in context:
+      if context.endswith(empty_match_str):
+        # print(f'{subdir} return empty match')
         empty_match += 1
         # print("empty match")
+
         # total -= 1
         # success -= 1
         pass
@@ -74,6 +84,7 @@ def read_run_results(prelude, benchmark):
 
 
   print(f'{examples} runs failed due to example generation')
+  print(f'{quickchick} runs failed due to quickchick')
   print(f'{run}/{total} runs completed')
   print(f'{empty_match}/{total} runs return empty match')
   print(f'{success}/{total} runs successfully')

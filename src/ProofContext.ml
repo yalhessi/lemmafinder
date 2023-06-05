@@ -157,7 +157,7 @@ let get_types env sigma hyps goal =
   (get_types_in_hyps env sigma hyps) @ (get_types_in_econstr env sigma goal) 
   |> Utils.dedup_list 
   |> List.fold_left (fun acc hyp -> 
-    get_constructors_of_type acc env sigma hyp) []
+    get_constructors_of_type acc env sigma hyp) [] |> Utils.dedup_list
 
 let get_curr_state_lemma ?(keep_hyps=true) p_ctxt : string = 
   let {var_types; goal; sigma; env; _} = p_ctxt in
