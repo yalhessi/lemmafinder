@@ -116,7 +116,7 @@ let get_conjecture (gen: string) sigma var_str counter: string =
 let get_all_conjectures generalizations
                         (atom_type_table : (string, string) Hashtbl.t)
                         (expr_type_table : (string, string) Hashtbl.t)
-                        (p_ctxt : proof_context)
+                        (p_ctxt_vars : Names.variable list)
                         : conjecture list =
   (* 
     Input: Set of generalizations, type tables and proof context
@@ -125,7 +125,7 @@ let get_all_conjectures generalizations
   let counter = ref 0
   in let generalized_conjecture_strings = 
               List.map (fun (g, sigma, vars, hyps) ->
-                  let vars_str = List.map (Names.Id.to_string) p_ctxt.vars in
+                  let vars_str = List.map (Names.Id.to_string) p_ctxt_vars in
                   let gvars = (get_variables_in_expr g [] vars_str sigma)
                   in let var_str = List.map (fun v -> 
                     try (v, (Hashtbl.find atom_type_table v))
