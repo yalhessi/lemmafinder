@@ -32,7 +32,8 @@ let output_code (op: string list)
     (
       print_endline "QuickChick did not run successfully...";
       Log.write_to_log (String.concat "\n" op) !Log.error_log_file;
-      exit(0);
+      false, []
+      (* exit(0); *)
     )
   
 

@@ -135,7 +135,8 @@ def table_1_from_logs(all_logs):
     human_1 = []
     human_5 = []
     human_10 = []
-    stronger_1 = []
+    human_gt_10 = []
+    # stronger_1 = []
     summary = []
     if all_logs:
         bench_logs = all_logs
@@ -145,13 +146,14 @@ def table_1_from_logs(all_logs):
     bench_human_1 = 0
     bench_human_5 = 0
     bench_human_10 = 0
-    bench_stronger_1 = 0
+    bench_human_gt_10 = 0
+    # bench_stronger_1 = 0
     bench_sum = 0
     for log_obj in bench_logs:
         if log_obj.is_auto_provable:
             bench_cat_1 +=1
             bench_sum +=1
-        elif log_obj.matches_human: 
+        elif log_obj.matches_human:
             if log_obj.matched_lemma_loc == 1:
                 bench_human_1 += 1
                 bench_sum +=1
@@ -161,20 +163,27 @@ def table_1_from_logs(all_logs):
             elif log_obj.matched_lemma_loc > 5 and log_obj.matched_lemma_loc <= 10:
                 bench_human_10 += 1
                 bench_sum +=1
-        elif log_obj.is_stronger_than_human and log_obj.stronger_lemma_loc == 1:
-            bench_stronger_1 += 1
-            bench_sum +=1
+            else:
+                bench_human_gt_10 +=1
+                bench_sum +=1
+        else:
+            print(f'not matched: {log_obj.log_dir}')
+        # elif log_obj.is_stronger_than_human and log_obj.stronger_lemma_loc == 1:
+        #     bench_stronger_1 += 1
+        #     bench_sum +=1
     cat_1.append(bench_cat_1)
     human_1.append(bench_human_1)
     human_5.append(bench_human_5)
     human_10.append(bench_human_10)
-    stronger_1.append(bench_stronger_1)
+    human_gt_10.append(bench_human_gt_10)
+    # stronger_1.append(bench_stronger_1)
     summary.append(f"{bench_sum}/{len(bench_logs)}")
     data = [ ["# fully proven lemma and goal"] + cat_1,
              ["# else human match in top 1 "] + human_1,
              ["# else human match in top 5 "] + human_5,
              ["# else human match in top 10"] + human_10,
-             ["# else more general than human lemma in top 1"] + stronger_1,
+             ["# else human match > 10"] + human_gt_10,
+            #  ["# else more general than human lemma in top 1"] + stronger_1,
              ["Summary"] + summary
           ]
     return data
