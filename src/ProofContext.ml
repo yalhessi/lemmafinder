@@ -124,15 +124,14 @@ let rec get_constructors_of_type acc env sigma econstr =
       (fun acc c -> get_constructors_of_type acc env sigma c)
       new_acc (Array.to_list args)
   else if EConstr.isInd sigma econstr then
-    let new_acc = acc @ [econstr] in
     let ind = EConstr.to_constr sigma econstr |> Constr.destInd in
     let constrs =
       Inductiveops.type_of_constructors env ind
       |> Array.to_list |> List.map EConstr.of_constr
     in
-    List.fold_left
+    (List.fold_left
       (fun acc c -> get_constructors_of_type acc env sigma c)
-      new_acc constrs
+      [econstr] constrs) @ acc
   else if EConstr.isProd sigma econstr then
     let _, a1, a2 = EConstr.destProd sigma econstr in
     let new_acc = get_constructors_of_type acc env sigma a1 in
@@ -158,7 +157,7 @@ let get_types env sigma hyps goal =
   (get_types_in_hyps env sigma hyps) @ (get_types_in_econstr env sigma goal) 
   |> Utils.dedup_list 
   |> List.fold_left (fun acc hyp -> 
-    get_constructors_of_type acc env sigma hyp) []
+    get_constructors_of_type acc env sigma hyp) [] |> Utils.dedup_list
 
 let get_curr_state_lemma ?(keep_hyps=true) p_ctxt : string = 
   let {var_types; goal; sigma; env; _} = p_ctxt in

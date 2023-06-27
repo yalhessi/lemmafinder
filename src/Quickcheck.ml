@@ -27,11 +27,13 @@ let output_code (op: string list)
   in Log.debug (Consts.fmt "last line is : %s" last_line);
   if Utils.contains last_line "Passed" then true, []
   else if Utils.contains last_line "Failed" then false, (get_counter_example op)
+  else if Utils.contains last_line "QuickChecking conj" then false, [] (* most likely failure because of forall in hypothesis *)
   else
     (
       print_endline "QuickChick did not run successfully...";
       Log.write_to_log (String.concat "\n" op) !Log.error_log_file;
-      exit(0);
+      false, []
+      (* exit(0); *)
     )
   
 
