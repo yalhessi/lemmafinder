@@ -26,14 +26,21 @@ let split_as_provable_non_provable (conjectures: conjecture list)
                                    (p_ctxt : proof_context)
                                    : conjecture list * conjecture list =
   Proverbot.remove_current_search p_ctxt.dir;
-  let n_cores = (Utils.cpu_count () / 2)
+  (* let n_cores = (Utils.cpu_count () / 2)
   in let res = Parmap.parmap ~ncores:1 
                      (fun c -> 
                           let is_provable = check_provable c p_ctxt
                           in let time_to_p = int_of_float(Unix.time ()) - !Consts.start_time;
                           in is_provable, time_to_p, c
                      )
-                     (Parmap.L conjectures)
+                     (Parmap.L conjectures) *)
+  let res = List.map
+  (fun c -> 
+      let is_provable = check_provable c p_ctxt
+      in let time_to_p = int_of_float(Unix.time ()) - !Consts.start_time;
+      in is_provable, time_to_p, c
+  )
+  (conjectures)
   in List.fold_left (fun (true_conj, false_conj) (is_provabable, time_to_p, c) -> 
                           if is_provabable
                           then

@@ -1,6 +1,5 @@
-open ProofContext
 open FileUtils
-
+open ProofContext
 let run p_ctxt conjecture_name examples params output_type=
   let coq_synth_path = Consts.coq_synthesizer_path
   in let coq_synth_output_path = p_ctxt.dir ^ "/" ^ p_ctxt.fname ^ conjecture_name ^ "synthesis.txt"

@@ -1,3 +1,5 @@
+(* Kept the framework from original algorithm, these flags not used in algorithm *)
+
 open Goptions
 
 let enable_quickchick = ref true

@@ -9,3 +9,4 @@ benchmark/**/Makefile.conf
 **/*.vo
 **/*.vos
 **/*.vok
+**/LFindLoad.v

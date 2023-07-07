@@ -11,21 +11,18 @@ let get_parent_curr_dir dir =
 let remove_file fname : unit = 
   if Sys.file_exists fname then (Sys.remove fname) else ()
 
-let rec input_lines l ic : string list =
-  match input_line ic with
-  | line -> input_lines (line :: l) ic
-  | exception End_of_file -> List.rev l
-
-let run_cmd cmd =
-  Log.debug(Consts.fmt "%s\n" cmd);
-  try 
-  let inp =  Unix.open_process_in cmd
-  in let r = input_lines [] inp in
-  close_in inp; 
-  r
-  with
-  | _ -> []
-  
+let run_cmd command = 
+  Log.debug(Consts.fmt "%s\n" command);
+  let channel = Unix.open_process_in command in
+  let result = ref ([] : string list) in
+  let rec process_aux () =
+    let tmp = input_line channel in
+    result := tmp :: !result;
+    process_aux() in 
+  try process_aux ()
+  (* The stat is the exit status of the process *)
+  with End_of_file -> let stat = close_in channel in 
+  List.rev !result
 
 let rm_dir dir =
   let cmd = "rm -rf " ^ dir

@@ -96,7 +96,11 @@ let get_synthesis_conjecture is_equal_conj op_type curr_synth_term conjecture va
   else 
     conjecture.conjecture_name ^ "synth"
   in let synth_conj_name = LatticeUtils.gen_conjecture_name conj_prefix counter
-  in let synth_conj = synth_conj_name ^ " " ^ ": forall " ^ (Utils.vars_with_types_to_str var_strs) ^ ", " ^ replaced_conj
+  in let synth_conj = 
+    (* If there are no variables, then we don't need for all (or I guess any expression to begin with (could filter here)) *)
+    ( if (List.length var_strs > 0)
+    then (synth_conj_name ^ " " ^ ": forall " ^ (Utils.vars_with_types_to_str var_strs) ^ ", " ^ replaced_conj)
+    else (synth_conj_name ^ " " ^ ": " ^ replaced_conj) )
   in Log.debug (Consts.fmt "replaced conjecture is %s" synth_conj);
   let synthesis_conjecture = {
                                   sigma = conjecture.sigma;
@@ -122,7 +126,7 @@ let filter_cached_lemmas conjectures cached_lemmas =
       else (Hashtbl.replace cached_lemmas conj.body true; true)
   ) conjectures
 
-let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture =
+(* let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture =
   let n_cores = (Utils.cpu_count () / 2)
   in Parmap.parmap ~ncores:n_cores (fun (s, conj) ->
                       (
@@ -131,7 +135,19 @@ let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture 
                           in (s, conj, is_valid, cgs)
                          )
                       )
-                  ) (Parmap.L synthesized_conjectures)
+                  ) (Parmap.L synthesized_conjectures) *)
+
+(* Remove the multi-core usage to try to prevent segmentation faults *)
+let filter_valid_conjectures synthesized_conjectures p_ctxt original_conjecture =
+  List.map 
+  (fun (s, conj) ->
+                      (
+                        (
+                          let is_valid, cgs = Valid.check_validity conj p_ctxt
+                          in (s, conj, is_valid, cgs)
+                          )
+                      )
+                  ) (synthesized_conjectures) 
 
 
 let filter_provable_conjectures valid_conjectures p_ctxt original_conjecture =

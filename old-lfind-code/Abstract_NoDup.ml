@@ -98,12 +98,14 @@ let abstract (p_ctxt : proof_context)
                                         let terms, atoms = (collect_terms_no_dup [] [] hypo_sexp)
                                         in List.append hyp_terms terms, List.append atoms hyp_atoms
                                   ) ([],[]) hypo_sexps
-  in let atoms = if with_hyp
+  in 
+  let atoms = if with_hyp
                     then List.append conc_atoms hyp_atoms
                     else conc_atoms
   in let expr_type_table = get_type_table (List.append conc_terms hypo_terms) p_ctxt
   in let atom_type_table = (update_type_table atoms p_ctxt (Hashtbl.create 100))
   in
+
   LogUtils.write_tbl_to_log expr_type_table "Terms Type table";
   LogUtils.write_tbl_to_log atom_type_table "Atoms Type table";
   
@@ -112,16 +114,47 @@ let abstract (p_ctxt : proof_context)
                         then List.tl (List.append conc_terms (List.tl hypo_terms))
                         else List.tl (conc_terms)
   in let all_terms = add_heuristic_atoms atoms all_terms atom_type_table vars_str
-  in
+  in 
   let terms = get_generalizable_terms all_terms expr_type_table atom_type_table
   in Log.debug (Consts.fmt "Size of terms list %d\n and Terms from the goal [%s]\n" (List.length terms) (List.fold_left (fun acc e -> acc ^ ";" ^ ((string_of_sexpr e))) "" terms));
   (* Added empty generalization for synthesizing from stuck state. *)
   let generalization_set = (sets terms)
   in let hypo_implies_conc = p_ctxt.goal
-  in
-  let all_type_table = Hashtbl.fold (fun k v acc -> Hashtbl.add acc k v; acc ) atom_type_table expr_type_table
-  in let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set all_type_table conc_sexp hypo_sexps
-  in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table expr_type_table p_ctxt)
+  in let all_type_table = Hashtbl.fold (fun k v acc -> Hashtbl.add acc k v; acc ) atom_type_table expr_type_table in 
+
+  (* **************************************************************************************************************************** *)
+  (* Convert more robust type table to string version for sake of simple modification right now. *)
+  let new_typ_table = CoqAPI.get_types_and_terms_from_context p_ctxt in 
+  let new_func_typ_table = CoqAPI.get_functions_from_context p_ctxt in 
+  let my_gen_terms = CoqAPI.get_terms_to_generalize p_ctxt new_typ_table in
+  (* let new_str_type_table = Hashtbl.create (Hashtbl.length new_typ_table) in
+  Hashtbl.iter (fun x (y,_,_) -> Hashtbl.add new_str_type_table x (Utils.get_econstr_str p_ctxt.env p_ctxt.sigma y)) new_typ_table; *)
+  let str_gen_terms = List.map Sexp.string_of_sexpr terms in
+  let result_1 = List.fold_left (fun b x -> List.mem x str_gen_terms && b) true  my_gen_terms in
+  let result_2 = List.fold_left (fun b x -> List.mem x my_gen_terms && b) true  str_gen_terms in
+  if (result_2 && result_1)
+    then print_endline "same generalizable subterms"
+  else 
+    (
+      print_endline "original terms: ";
+      List.iter print_endline str_gen_terms;
+      print_endline "\nmy terms: ";
+      List.iter print_endline my_gen_terms
+    );
+  (* **************************************************************************************************************************** *)
+
+  (* Patch for the expr type table --> to get the correct polymorphic types for conjecture generation *)
+  let get_from_new x = let (typ,_,_) = (Hashtbl.find new_typ_table x) in CoqAPI.string_of_econstr p_ctxt typ in
+  let patched_expr_type_table = Hashtbl.copy expr_type_table in
+  Hashtbl.iter (fun x y -> if Hashtbl.mem new_typ_table x then Hashtbl.replace patched_expr_type_table x (get_from_new x) else ()) expr_type_table;
+  LogUtils.write_tbl_to_log patched_expr_type_table "Patched Expr Type table"; 
+
+  let patched_all_type_table = Hashtbl.fold (fun k v acc -> Hashtbl.add acc k v; acc ) atom_type_table patched_expr_type_table in 
+
+  let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set patched_all_type_table conc_sexp hypo_sexps
+  in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table patched_expr_type_table p_ctxt) 
+  (* let generalizations = Generalize_NoDup.construct_all_generalizations generalization_set all_type_table conc_sexp hypo_sexps
+  in let conjectures = (Generalize_NoDup.get_all_conjectures generalizations atom_type_table expr_type_table p_ctxt) *)
   in
   Log.debug (Consts.fmt "Generalizations: \n%s\n" (List.fold_left (fun acc c -> acc ^ (LatticeUtils.construct_implications c.conjecture_str c.hyps) ^ "\n") "" conjectures));
   terms, conjectures
