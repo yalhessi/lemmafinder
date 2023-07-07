@@ -73,4 +73,4 @@ let rank (context : LFContext.t) (conjectures : Conjecture.t list) : Conjecture.
       | (false,true) -> (one,conj_to_add::two,three)
       | _ -> (one,two,conj_to_add::three)
   ) ([],[],[]) conjectures in  
-  (List.rev r_one, List.rev r_two, List.rev r_three)
+  (r_one,r_two,r_three)
