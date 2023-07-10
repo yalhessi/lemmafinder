@@ -1,10 +1,10 @@
-LFIND (version two) - Coq Lemma Synthesis Plugin
+LFIND - Coq Lemma Synthesis Plugin
 ---------------------------
 
-<!-- <p align="center">
+<p align="center">
   <img src="docs/lfind.png" width="400"/>
   <br>
-</p> -->
+</p>
 
 ## Manual Installation
 
@@ -12,9 +12,9 @@ LFIND (version two) - Coq Lemma Synthesis Plugin
 
 These instructions were tested in macos and ubuntu.
 
-`git clone --recurse-submodules [need to update to correct link based on GitHub repo]`
+`git clone --recurse-submodules https://github.com/AishwaryaSivaraman/lemmafinder.git`
 
-Install the following software (not sure which ones are still necessary at the moment):
+Install the following software:
 
 - opam 2.0.7
     - Download https://github.com/ocaml/opam/releases/download/2.0.7/opam-2.0.7-x86_64-macos and run `sudo install <downloaded file> /usr/local/bin/opam`
@@ -56,7 +56,24 @@ We use proverbot to check if the synthesized or generalized lemma is provable or
 
 6. run `make download-weights`
 
+
+### Myth
+Myth is a Type-and-example-driven program synthesis engine. We use myth to synthesize expressions which are used in constructing useful lemmas.
+
+1. `git clone git@github.com:AishwaryaSivaraman/myth.git`
+
+2. make
+
+
+### AST-Rewriter
+Myth supports only a part of the ocaml syntax. We need a translator that takes in `.ml` file generated from Coq extraction to a format that is compatible/can parse with myth.
+
+1. `git clone git@github.com:AishwaryaSivaraman/astrewriter.git`
+
+2. dune build && dune install
+
 ### Coq-synth
+If using the coq-synth synthesizer backend instead of Myth and AST-Rewriter:
 
 1. `git clone git@github.com:qsctr/coq-synth.git`
 
@@ -67,6 +84,9 @@ In the folder that you run make or coqc export the following environment variabl
 
 ```
 export PROVERBOT=<path to proverbot folder>
+export MYTH=<path to myth folder>/synml.native
+export COQOFOCAML=/Users/<username>/.opam/4.07.1+flambda/bin/coq-of-ocaml
+export REWRITE=<path to ast_rewriter>/_build/default/bin/main.exe
 export LFIND=<path to lemma finder source>
 ```
 
@@ -77,7 +97,7 @@ Run `cd lemmafinder && opam config subst theories/LFindLoad.v && dune build && d
 
 ## Lemma Synthesis
 
-<!-- Synthesize a required helper lemma by invoking lfind as follows, making sure to only use *absolute* paths:
+Synthesize a required helper lemma by invoking lfind as follows, making sure to only use *absolute* paths:
 ```
 cd <path to lfind>
 cd benchmark/motivating_example && make && cd ../../
@@ -94,11 +114,10 @@ Top Lemmas:
 (cat 2) Lemma conj10eqsynthconj5 : forall  (lv0 : lst) (lv1 : lst), (@eq lst (rev (append (rev lv0) lv1)) (append (rev lv1) lv0))
 Runtime: 5.683333333333334 min
 -----------------------------------------------
-``` -->
-The `benchmark/run.py` may still work (because the tactic is still the same), but the parsing of the output will probably not work because the output lfind_summary_file.txt does not match the old one. 
+```
 
-<!-- <details>
-<summary><kbd>CLICK</kbd> for running lfind on a particular proof state.</summary> -->
+<details>
+<summary><kbd>CLICK</kbd> for running lfind on a particular proof state.</summary>
 
 ## Running lemma finder on a particular proof state
 <em> Note, the tool requires that the original project folder has run `make`</em>
@@ -113,7 +132,7 @@ Set Printing Implicit.
 ```
 
 In the proof where u are stuck, add `lfind.` tactic and run `make` again in the folder.
-Right now `lfind`, `lfind_coqsynth`, and `lfind_debug` all behave the same.
+If you want to obtain detailed debug logs for your run, use `lfind_debug` tactic instead.
 
 ### Example:
 1. cd `benchmark/bench_rev_append` && make.
@@ -122,15 +141,11 @@ This should first make the existing coq file.
 2. Uncomment `lfind` in line 47.
 
 3. Run `make`. If the setup is done correctly, this should run the lemma finder in ~30 min and at the end of the run you should see  `Error: LFIND Successful`. The output of this run is saved in `benchmark/_lfind_bench_rev_append`.
-You can find the results of the run in that folder under the file `lfind_summary_log.txt`. You can find a progress log at `lfind_progress_log.txt`; this file has each of the steps of lfind outlined with the results at each step. You can also find a log of the commands ran, which is titled `lfind_command_log.txt`.
+You can find the results of the run in `benchmark/_lfind_bench_rev_append/lfind_summary_log.txt`. You can find debug logs in `benchmark/_lfind_bench_rev_append/lfind_debug_log.txt`
 
-<!-- </details> -->
+</details>
 
-## Old Testing Script
-
-As mentioned above, the old testing script can still work to run tests, although the parsing of the results at the end will not. The `lfind_summary_log.txt` is formatted differently so the script will fail to correctly return formatted results.
-
-<!-- ## Evaluating lfind on a project
+## Evaluating lfind on a project
 
 1. Make the project
   1. If your project already has a Makefile, just run `make`.
@@ -177,7 +192,7 @@ This should run on the theorems that require helper lemma (logged in `lemmafinde
 cd <path to lfind>
 python benchmark/run.py --prelude=cd <path to lfind>/benchmark --log_dir=<path to lfind> --large --bench "clam, lia, fulladder, compiler"
 ```
-This command runs all benchmark locations and the output can be found in the log directory. -->
+This command runs all benchmark locations and the output can be found in the log directory.
 
 
 <details>
@@ -189,10 +204,10 @@ External dependencies are not fully supported via dune for Coq-plugins. See http
 After this workaround, make sure that library.cmxs is visible in the current loadpath.
 </details>
 
-<!-- ## Running OOPSLA-version of lfind
+## Running OOPSLA-version of lfind
 
 1. You can find the OOPSLA artifact VM [here](https://www.dropbox.com/sh/fkhl87holekyh0v/AAB5Zug7WXSf0OLpnZXXHNsUa?dl=0) with installation instructions.
 
 2. Further, you can find instructions to reproduce the results [here](https://docs.google.com/document/d/1C_A3wibNOLGsPv5Wytn_x3N3S6YpraK9kVPuWFYzZ9g/).
 
-Note that the VM works with a 15s timeout for Proverbot, which has a similar trend to the one reported in the paper with a 30s timeout. -->
+Note that the VM works with a 15s timeout for Proverbot, which has a similar trend to the one reported in the paper with a 30s timeout.
