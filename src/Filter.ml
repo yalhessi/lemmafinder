@@ -112,7 +112,7 @@ let check_if_conjecture_is_trivial (context : LFContext.t) (conj : Conjecture.t)
 let filtering (context : LFContext.t) (lemmas : Conjecture.t list) : Conjecture.t list * (int * int ) =
   let to_str = LFContext.e_str context in let lemma_length (x : Conjecture.t)  = String.length (to_str x.lemma) in
   (* Sort by length *)
-  let sorted = List.sort (fun a b-> (lemma_length a) - (lemma_length b)) lemmas in
+  let sorted = List.sort (fun a b-> (lemma_length b) - (lemma_length a)) lemmas in
   (* Remove any lemmas that are the goal state *)
   let remove_goal = List.filter (fun (x : Conjecture.t) -> String.equal (to_str x.lemma) (to_str context.goal) = false) sorted in
   (* Filtered by removing syntactically similar duplicates *)
@@ -120,5 +120,5 @@ let filtering (context : LFContext.t) (lemmas : Conjecture.t list) : Conjecture.
   (* Filter invalid lemmas via QuickChick *)
   let filtered_by_quickchick = List.filter (fun x -> fst (check_conjecture_with_quickchick context x)) filtered_by_syntactic_equivalence in
   (* Filter out lemmas using script from original algorithm *)
-  let filtered_by_script = filter_lemmas context (List.sort (fun a b-> (lemma_length a) - (lemma_length b)) filtered_by_quickchick) in 
+  let filtered_by_script = filter_lemmas context (List.sort (fun a b-> (lemma_length b) - (lemma_length a)) filtered_by_quickchick) in 
   filtered_by_script, (List.length filtered_by_syntactic_equivalence, List.length filtered_by_quickchick)

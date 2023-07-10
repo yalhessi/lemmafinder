@@ -45,6 +45,7 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         Utils.env_setup ();
         let context = LFContext.get gl in
         LogProgress.context context;
+        let commands_file = Consts.fmt "%s/lfind_command_log.txt" context.lfind_dir in
 
         let example_file = Consts.fmt "%s/examples_%s.txt" context.lfind_dir context.filename in
         if not (Sys.file_exists example_file) then 
@@ -68,6 +69,7 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         (* Determine the generalizations *)
         let generalized_variables, generalizations = Generalization.get_generalizations context in 
         LogProgress.generalization context generalized_variables generalizations; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
 
         (* Push the examples through the generalized terms as well -- state is mutated here, adding generalized examples to tables*)
         let _ = ExampleManagement.get_examples_for_generalizations context generalized_variables examples in (* string error occurs here *)
@@ -75,10 +77,12 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         (* Determine which generalizations are valid on their own *)
         let valid, invalid = Validity.check_generalizations context generalizations in
         LogProgress.vaidity_check context valid invalid; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
 
         (* Add implications to lemmas that were invalid *)
         let updated_invalid = Validity.add_implications context invalid in  
         LogProgress.implications context updated_invalid; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
 
         (* Again, determine if the implications are invalid or not *)
         let valid_implications, invalid_still = Validity.check_generalizations context updated_invalid in
@@ -88,15 +92,18 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         (* NOTE: change the "invalid_still" to include valid generalizations, if below threshold *)
         let sketches = Sketch.generate context invalid_still in
         LogProgress.sketches context sketches; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
 
         (* Create the distinct synthesis problems *)
         let synthesis_problems, problem_by_sketch = Synthesis.create_problems context sketches generalized_variables examples in
         LogProgress.synthesis context problem_by_sketch; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
 
         (* Run each synthesis problem *)
         let synthesizer = BlackBox.get_synthesizer context in
         let ran_synthesis_problems = BlackBox.run_synthesis context synthesizer synthesis_problems in
         LogProgress.ran_synthesis context ran_synthesis_problems; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
 
         (* Generate a list of all of the possible conjectures *)
         let candidate_lemmas_from_generalization = Conjecture.from_generalizations context (valid @ valid_implications) in
@@ -104,6 +111,7 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         let candidate_lemmas_from_synthesis = Conjecture.from_synthesis offset context ran_synthesis_problems sketches problem_by_sketch in
         let candidate_lemmas = candidate_lemmas_from_generalization @ candidate_lemmas_from_synthesis in
         LogProgress.candidate_lemmas context candidate_lemmas; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
 
         (* Filter out any redundant or invalid *)
         let filtered_candidate_lemmas, (duplicates, quickchick_filtered) = Filter.filtering context candidate_lemmas in 
@@ -122,6 +130,7 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
         let summary_file = Consts.fmt "%s/lfind_summary_log.txt" context.lfind_dir in
         let algorithm_log = Consts.fmt "%s/lfind_progress_log.txt" context.lfind_dir in
         Utils.write_to_file algorithm_log !Consts.progress; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
         let results =
           String.concat "\n"
           [
@@ -145,6 +154,8 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
           ] 
         in Utils.write_to_file summary_file results;
         let top_lemmas = print_results context (category_one @ category_two @ are_provable @ not_provable) in
-        Tacticals.New.tclZEROMSG (Pp.str ("LFIND Successful.\n" ^ top_lemmas ^  "\nResults of LFIND at: " ^ summary_file ^ "\nAlgorithm Progress of LFIND at: " ^ algorithm_log))
+        let msg = "LFIND Successful.\n" ^ top_lemmas ^  "\nResults of LFIND at: " ^ summary_file ^ 
+        "\nAlgorithm Progress of LFIND at: " ^ algorithm_log ^ "\nCommands ran listed at: " ^ commands_file in
+        Tacticals.New.tclZEROMSG (Pp.str msg)
       end
   end

@@ -50,3 +50,4 @@ let start_time = ref 0
 let clean_up = ref true
 let debug = ref true
 let progress = ref ""
+let commands = ref ""

@@ -66,6 +66,7 @@ let remove_file fname : unit =
   if Sys.file_exists fname then (Sys.remove fname) else ()
 
 let run_cmd command = 
+  Consts.commands := !Consts.commands ^ command ^ "\n\n";
   if !Consts.debug then print_endline (Consts.fmt "%s\n" command) else ();
   let channel = Unix.open_process_in command in
   let result = ref ([] : string list) in
