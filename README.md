@@ -1,5 +1,6 @@
 LFIND (version two) - Coq Lemma Synthesis Plugin
 ---------------------------
+Note: the original README can be found under `old-lfind-code`.
 
 <!-- <p align="center">
   <img src="docs/lfind.png" width="400"/>
