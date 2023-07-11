@@ -10,7 +10,7 @@ let same_problems (context : LFContext.t) (a : t) (b : t) : bool =
   let compare_types = String.equal (LFContext.e_str context a.output_type) (LFContext.e_str context b.output_type) in
   let compare_paired_list x y = 
     match (List.length x) == (List.length y) with
-    | true -> List.fold_left2 ( fun eq (x1,x2) (y1,y2) -> (String.equal x1 y1) && (String.equal x1 y1) && eq ) true x y
+    | true -> List.fold_left2 ( fun eq (x1,x2) (y1,y2) -> (String.equal x1 y1) && (String.equal x2 y2) && eq ) true x y
     | _ -> false in
   let compare_params = compare_paired_list a.params b.params in
   let compare_examples = compare_paired_list a.examples b.examples in
