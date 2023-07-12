@@ -18,14 +18,15 @@ let derive_type_properties_quickchick (context : LFContext.t) (typ : EConstr.t) 
       then ""
     else
       let typ_name = get_type_name context typ in
-      let file_name = Consts.fmt "%s/show_%s.v" context.lfind_dir typ_name in
+      let mod_typ_name = List.hd (String.split_on_char ' ' typ_name) in
+      let file_name = Consts.fmt "%s/show_%s.v" context.lfind_dir mod_typ_name in
       if Sys.file_exists file_name then String.concat "\n" (Utils.read_file file_name |> List.rev)
-      else
+      else (* This doesn't accurately define the needed information for polymorphic types *)
         Consts.fmt 
         ("Derive Show for %s.\n
         Derive Arbitrary for %s.\n
         Instance Dec_Eq_%s : Dec_Eq %s.\n
-        Proof. dec_eq. Qed.\n") typ_name typ_name typ_name (LFContext.e_str context typ)
+        Proof. dec_eq. Qed.\n") mod_typ_name mod_typ_name mod_typ_name (LFContext.e_str context typ)
 
 let set_nat_as_unknown_type (context : LFContext.t) : string =
   let unknown_type_var = List.filter (Hashtbl.mem context.types) (List.map Names.Id.to_string (LFContext.get_variable_list context)) in
