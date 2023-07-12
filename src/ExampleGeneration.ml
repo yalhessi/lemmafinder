@@ -77,6 +77,8 @@ let construct_data_collection (context : LFContext.t) : string =
     (List.filter (fun x -> not (Hashtbl.mem context.types x)) (List.map Names.Id.to_string (LFContext.get_variable_list context))) 
     |> String.concat "++ \"|\" ++" in
   let non_types = LFContext.non_type_variables context in
+  if (List.length non_types = 0) 
+    then raise (Failure "Case without variables in goal state not handled (triggered in ExampleGeneration.ml)") else ();
   let last_variable, others = break_off_last non_types in
   let func_signature = Consts.fmt ("Definition collect_data%s :=\n") variable_string
   in Consts.fmt ("%s let lfind_var := %s\n in let lfind_v := print %s lfind_var\n in lfind_state %s lfind_v.\n")
