@@ -29,6 +29,7 @@ let pp (context : LFContext.t) (generalization : t) : string =
       match var_type with
       | "" -> raise (Failure "Variable type not found (triggered in Generalization.ml)")
       | "Type" -> implicit_types := Consts.fmt "%s{%s} " !implicit_types var_str; acc
+      | "Set" -> implicit_types := Consts.fmt "%s{%s} " !implicit_types var_str; acc
       | _ -> ("(" ^ var_str ^ " : " ^ var_type ^ ")") :: acc
   ) generalization.variables [] in 
   let variables_str = String.concat " " variables_strings in

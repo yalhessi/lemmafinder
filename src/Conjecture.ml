@@ -16,7 +16,7 @@ let get_pretty_print_for_filter_script (context : LFContext.t) (conj : t) : stri
   Hashtbl.fold
   (
     fun var_str (typ,_,_) accum ->
-      if Constr.is_Type (EConstr.to_constr context.sigma typ) 
+      if (Constr.is_Type (EConstr.to_constr context.sigma typ) || Constr.is_Set (EConstr.to_constr context.sigma typ))
       then (implicit_types := !implicit_types ^ "{" ^ var_str ^ "} "; accum) 
       else accum @ [("(" ^ var_str ^ " : " ^ (LFContext.e_str context typ) ^ ")")]
   ) conj.variables [] in 
