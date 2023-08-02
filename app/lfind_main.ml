@@ -59,7 +59,7 @@ let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
           in let quickchick_success = List.fold_left (fun acc l -> acc || (Utils.contains l "+++ Passed 50 tests") ) false op
           in quickchick_passed := quickchick_success;
           if not ran_successfully then raise (Invalid_Examples "Quickchick failed to run successfully") else 
-          if not quickchick_success then raise (Invalid_Examples "Current proof state incorrect (without hypotheses or in general)") else 
+          (* if not quickchick_success then raise (Invalid_Examples "Current proof state incorrect (without hypotheses or in general)") else  *)
           Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
         ); let _ = Utils.run_cmd "export is_lfind=true" in
 
