@@ -192,3 +192,16 @@ let non_types_helper (types : (string, Evd.econstr * bool) Hashtbl.t) (vars : st
     try let (_,v,_) = Hashtbl.find tbl x in v
     with _ -> raise (Failure "Error in variables table for context (triggered in LFUtils.ml)") in
     List.map get_var strs
+
+let create_implication (antecedent : Constr.t) (result : Constr.t)=
+  let empty_binding = Context.anonR in Constr.mkProd (empty_binding, antecedent, result)
+
+let join_props_with_impl (sigma : Evd.evar_map) (props : EConstr.t list) : Constr.t option =
+  let rec aux = function
+  | [] -> None
+  | last :: [] -> Some (EConstr.to_constr sigma last)
+  | curr :: remaining -> 
+    match aux remaining with
+    | None -> Some (EConstr.to_constr sigma curr)
+    | Some clause -> Some (create_implication (EConstr.to_constr sigma curr) clause)
+  in aux props

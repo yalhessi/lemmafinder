@@ -103,3 +103,12 @@ let create_quickchick_file (context : LFContext.t) (name : string) (define_lemma
   let content = String.concat "\n" [coq_intro; quickchick_intro; define_lemma; "Admitted."; run_quickchick ] in
   Utils.write_to_file lfind_file content;
   lfind_file
+
+let filter_split (check : 'a -> bool) (lst : 'a list) : ('a list * 'a list) =
+  let rec iter tlist flist = function
+  | [] -> (tlist, flist)
+  | h :: remaining ->
+    match check h with
+    | true -> iter (h :: tlist) flist remaining
+    | false -> iter tlist (h :: flist) remaining
+  in iter [] [] lst

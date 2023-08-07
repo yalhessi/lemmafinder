@@ -7,42 +7,7 @@ let evaluate_example (hyp : EConstr.t) (context : LFContext.t) (generalization :
       hyp in
     let hyp_str_replace = LFContext.e_str context hyp_replace in
     (Consts.fmt "Definition generalized_hypothesis : %s." hyp_str_replace)
-  with _ -> ""
-
-let check_hypotheses (context : LFContext.t) (generalization : Generalization.t) : EConstr.t list =
-  let check_hypothesis (hypo : EConstr.t) : bool =
-    if Hashtbl.mem context.types (LFContext.e_str context hypo)
-    then false
-    else
-      (
-        let sub_expr = evaluate_example hypo context generalization in
-        if String.equal "" sub_expr 
-        then false
-        else 
-          (
-            let file = LFUtils.create_quickchick_file context "generalized_hypothesis" sub_expr in
-            let output = Evaluate.run_eval context.lfind_dir file context.namespace in
-            List.fold_left (fun acc l -> acc || (Utils.contains l "Failed") ) false output
-          )
-      ) in 
-  List.filter check_hypothesis
-  (List.map (fun hyp -> match hyp with Context.Named.Declaration.LocalAssum(_,y) -> y) generalization.hypotheses)
-
-let add_implications (context : LFContext.t) (generalizations : Generalization.t list) : Generalization.t list =
-  let per_generalization (generalization : Generalization.t) =
-    let required_hypotheses = check_hypotheses context generalization in
-    let conjunction_of_hyps = LFCoq.conjoin_props context.sigma required_hypotheses in
-    match conjunction_of_hyps with
-    | None -> [generalization]
-    | Some antecedent -> let empty_binding = Context.anonR in
-      let new_goal = Constr.mkProd (empty_binding, antecedent, (EConstr.to_constr context.sigma generalization.goal)) in
-      [
-        {generalization with 
-          goal = (EConstr.of_constr new_goal); 
-          label = generalization.label ^ "_imp"}; 
-        generalization
-      ]
-  in List.flatten (List.map per_generalization generalizations)
+  with _ -> raise (Failure "Error evaluating hypotheses with counterexample triggered in Validity.ml")
 
 (* assumes a counter example is returned --> copied from original lfind*)
 let gather_counterexamples (output : string list) : string list = 
@@ -112,3 +77,59 @@ let check_generalizations (context : LFContext.t) (generalizations : Generalizat
             )
         )
   in iterate [] [] generalizations
+
+let check_hypotheses (context : LFContext.t) (generalization : Generalization.t) (hypotheses : EConstr.t list) 
+: (EConstr.t list) * (EConstr.t list) =
+  let check_hypothesis (hypo : EConstr.t) : bool =
+    if Hashtbl.mem context.types (LFContext.e_str context hypo)
+    then false
+    else
+      (
+        let sub_expr = evaluate_example hypo context generalization in
+        if String.equal "" sub_expr 
+        then false
+        else 
+          (
+            let file = LFUtils.create_quickchick_file context "generalized_hypothesis" sub_expr in
+            let output = Evaluate.run_eval context.lfind_dir file context.namespace in
+            List.fold_left (fun acc l -> acc || (Utils.contains l "Failed") ) false output
+          )
+      ) in 
+  LFUtils.filter_split check_hypothesis hypotheses (* was just a List.filter*)
+
+(* let add_implications (context : LFContext.t) (generalizations : Generalization.t list) : Generalization.t list =
+  let per_generalization (generalization : Generalization.t) =
+    let required_hypotheses = check_hypotheses context generalization in
+    let conjunction_of_hyps = LFCoq.conjoin_props context.sigma required_hypotheses in
+    match conjunction_of_hyps with
+    | None -> [generalization]
+    | Some antecedent -> let empty_binding = Context.anonR in
+      let new_goal = Constr.mkProd (empty_binding, antecedent, (EConstr.to_constr context.sigma generalization.goal)) in
+      [
+        {generalization with 
+          goal = (EConstr.of_constr new_goal); 
+          label = generalization.label ^ "_imp"}; 
+        generalization
+      ]
+  in List.flatten (List.map per_generalization generalizations) *)
+
+let add_implications (context : LFContext.t) (generalizations : Generalization.t list) : Generalization.t list =
+  let per_generalization (generalization : Generalization.t) =
+    let updated = ref false in
+    let hyps = (List.map (fun hyp -> match hyp with Context.Named.Declaration.LocalAssum(_,y) -> y) generalization.hypotheses) in
+    let updated_label = generalization.label ^ "_imp" in
+    let rec iterate (g : Generalization.t) (updated_hyps : EConstr.t list) = 
+      let required_hypotheses, remaining_hyps = check_hypotheses context g updated_hyps in
+      let implication_of_hyps = LFCoq.join_props_with_impl context.sigma required_hypotheses in
+      match implication_of_hyps with
+      | None -> g
+      | Some antecedent -> updated := true;
+        let impl = LFCoq.create_implication antecedent (EConstr.to_constr context.sigma g.goal) in
+        let updated_gen = {g with goal = (EConstr.of_constr impl); label = updated_label} in
+        let valid, invalid = check_generalizations context [updated_gen] in
+        match invalid with
+        | [] -> updated_gen
+        | h :: t -> iterate h remaining_hyps in
+      let result = iterate generalization hyps in
+      if !updated then [generalization;result] else [result]
+  in List.flatten (List.map per_generalization generalizations) 

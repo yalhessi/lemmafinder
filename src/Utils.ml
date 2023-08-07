@@ -24,9 +24,10 @@ let get_func_str_with_mod (env : Environ.env) (sigma : Evd.evar_map) (func : ECo
     let ((ind,_),_) = EConstr.destInd sigma func in
     "@" ^ (Names.MutInd.modpath ind |> Names.ModPath.to_string) ^ "." ^ (Names.MutInd.label ind |> Names.Label.to_string)  
   with _ -> try 
-    let (((ind,_),_),_) = EConstr.destConstruct sigma func in
-    "@" ^ (Names.MutInd.modpath ind |> Names.ModPath.to_string) ^ "." ^ (Names.MutInd.label ind |> Names.Label.to_string) 
-  with _ -> raise (Failure ("fail to get full function path (triggered in Utils.ml) : " ^ get_econstr_str env sigma func))
+    let (((construct,_),_),_) = EConstr.destConstruct sigma func in
+    "@" ^ (Names.MutInd.modpath construct |> Names.ModPath.to_string) ^ "." ^ (Names.MutInd.label construct |> Names.Label.to_string) 
+  with _ -> print_endline "In Utils.ml, missing potential function because we don't have full path"; ""
+    (* raise (Failure ("Fail to get full function path (triggered in Utils.ml) : " ^ get_econstr_str env sigma func)) *)
   
 let get_env_var env_var : string =
   let env = Unix.environment ()
