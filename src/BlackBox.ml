@@ -43,13 +43,18 @@ let get_synthesizer (context : LFContext.t) : synthesizer =
   let extra_expr = get_extra_expressions context in
   { command; logical_dir; phyiscal_dir; coq_module; extra_expr }
 
+let get_full_output_type (context : LFContext.t) (typ : EConstr.t) : string =
+  match (Utils.get_func_str_with_mod context.env context.sigma typ) with 
+  | "" -> LFContext.e_str context typ
+  | typ_string -> typ_string
+
 let synthesis_command (context : LFContext.t) (s : synthesizer) (problem : Synthesis.t) : string * string =
   let synth_command = Consts.coq_synthesizer_path in
   let output_file = context.lfind_dir ^ "/" ^ context.filename ^ problem.label ^ "synthesis.txt" in
   let logical_dir = "--logical-dir=" ^ s.logical_dir in
   let phyiscal_dir = "--physical-dir=\"" ^ s.phyiscal_dir ^ "\"" in
   let coq_module = "--module=" ^ s.coq_module in
-  let output_type = "--type=\'" ^ (LFContext.e_str context problem.output_type) ^ "\'" in
+  let output_type = "--type=\'" ^ (get_full_output_type context problem.output_type) ^ "\'" in
   let params = "--params=\'" ^ (String.concat "," (List.map (fun (var,typ) -> var ^ ":" ^ typ) problem.params)) ^ "\'" in
   let extra_exprs = "--extra-exprs=\'" ^ (String.concat "," s.extra_expr) ^ "\'" in
   let examples = "--examples=\'" ^ (String.concat ";" (List.map (fun (inp,out) -> inp ^ "=" ^ out) problem.examples)) ^ "\'" in

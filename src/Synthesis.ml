@@ -34,13 +34,18 @@ let generate_examples (context : LFContext.t) (sketch : Sketch.t) (params : (str
       \nFailed on input: " ^ (Hashtbl.fold (fun x y acc -> acc ^ "\n" ^ x ^ " : " ^ y) ex "")))
   in List.map per_example original_examples
 
+let get_full_type (context : LFContext.t) (typ : EConstr.t) : string =
+  match (Utils.get_func_str_with_mod context.env context.sigma typ) with 
+  | "" -> LFContext.e_str context typ
+  | typ_string -> typ_string
+
 let get_query_params (context : LFContext.t) (sketch : Sketch.t) : (string * string) list =
   Hashtbl.fold
   (
     fun var_str (typ,var,term) accum -> 
       if Constr.is_Type (EConstr.to_constr context.sigma typ) 
       then (var_str,(LFContext.e_str context typ)) :: accum (* listing the types first *)
-      else accum @ [(var_str,(LFContext.e_str context typ))]
+      else accum @ [(var_str,(get_full_type context typ))]
   ) sketch.variables []
 
 let problem_from_sketch (context : LFContext.t) (sketch : Sketch.t) (generalized : (string, Evd.econstr * Names.variable * Evd.econstr) Hashtbl.t)
