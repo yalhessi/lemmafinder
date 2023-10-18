@@ -34,27 +34,13 @@ def parse_arguments() -> Tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser.add_argument('--summarize', default=False, action='store_true')
     parser.add_argument('--project', default=False, action='store_true')
     parser.add_argument('-b', '--bench', help='list of benchmarks or projects', type=str, required=True)
-    parser.add_argument('--file', help='file to run', type=str, required=False)
-    parser.add_argument('--location', help='location of helper lemma', type=str, nargs="*", required=False)
     return parser.parse_args(), parser
 
-def get_locations(folder, file=None, location=None):
-    if location:
-        location[1] = int(location[1])
-        print(location)
+def get_locations(folder):
     benchmark_file = os.path.join(folder, "lemmafinder_bench.txt")
     with open(benchmark_file, 'r') as j:
-     lemma_dict = json.loads(j.read())
-    if not file:
-        return lemma_dict, benchmark_file
-    elif file not in lemma_dict:
-        return {file: []}, benchmark_file
-    elif file in lemma_dict and not location:
-        return {file: lemma_dict[file]}, benchmark_file
-    elif location in lemma_dict[file]:
-        return {file: [location]}, benchmark_file
-    else:
-        return {file: []}, benchmark_file
+     lemma_dict = json.loads(j.read())    
+    return lemma_dict, benchmark_file
 
 def get_all_lemmas(folder):
     benchmark_file = os.path.join(folder, "lemmafinder_all_lemmas.txt")
@@ -100,8 +86,7 @@ def get_stuck_state(fname):
     return ""
 
 def clean_quickchick_tmp_dir():
-    if os.path.isdir('/tmp/QuickChick'):
-        shutil.rmtree('/tmp/QuickChick')
+    shutil.rmtree('/tmp/QuickChick')
 
 def run(source_folder, helper_lemma_dict, log_directory, all_lemmas_from_file, example_dir, debug, run_till_cat_1, no_resume, synthesizer, lfind_decl):
     counter = 0
@@ -459,7 +444,7 @@ def main() -> None:
     
     if args.getting_started:
         # run LFIND on the given repo
-        helper_lemma_dict, benchmark_file = get_locations(args.prelude, args.file, args.location)
+        helper_lemma_dict, benchmark_file = get_locations(args.prelude)
         all_lemmas_from_file = get_all_lemmas(args.prelude)
         os.makedirs(args.log_directory, exist_ok=True)
         run_till_cat1 = False
@@ -495,7 +480,7 @@ def main() -> None:
             base_dir = os.path.join(args.prelude, bench)            
             log_dir = os.path.join(args.log_directory, bench)
             example_dir = os.path.join(args.example_dir, bench)
-            helper_lemma_dict, benchmark_file = get_locations(base_dir, args.file, args.location)
+            helper_lemma_dict, benchmark_file = get_locations(base_dir)
             all_lemmas_from_file = get_all_lemmas(base_dir)
             os.makedirs(log_dir, exist_ok=True)
             if args.small:

@@ -1,100 +1,161 @@
 open Lfindalgo
-open ProofContext
-open LatticeUtils
 
 exception Invalid_Examples of string
 
-let lfind_tac (debug: bool) (synthesizer: string) : unit Proofview.tactic =
+let clean (context : LFContext.t) : unit =
+  match !Consts.clean_up with
+  | false -> ()
+  | true -> let dir = context.lfind_dir in
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/conj*") in 
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/lfind_conj*") in 
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/.lfind_conj*") in
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/lfind_generalized_*") in 
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/.lfind_generalized_**") in
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/lfind_eval*") in 
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/.lfind_eval*") in
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/lfind_proverbot_eval_*") in 
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/.lfind_proverbot_eval_*") in
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/lfind_quickchick*") in 
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/.lfind_quickchick*") in
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/search-report*") in 
+  let _ = Utils.run_cmd ("rm -rf " ^ dir ^ "/lfind_axiom_*") in  ()
+
+let print_results (context : LFContext.t) (lemmas : Conjecture.t list) : string =
+  let rec get_first_n n acc = function
+  | [] -> acc
+  | h :: t -> if n > 0 then (get_first_n (n-1) (acc @ [h]) t) else acc in
+  if List.length lemmas = 0 then "LFind generated no helper lemmas. \n"
+  else 
+    let num = if List.length lemmas > 5 then 5 else List.length lemmas in
+    let top = List.map (Conjecture.get_pretty_print context) (get_first_n num [] lemmas) in
+    "Top "^ string_of_int num ^" Lemmas from LFind:\n" ^ (String.concat "\n" top) ^ "\n"
+
+let lfind_tac (debug: bool) (clean_flag: bool) : unit Proofview.tactic =
   Consts.start_time := int_of_float(Unix.time ());
-  Log.is_debug := debug;
+  Consts.clean_up := clean_flag;
+  Consts.debug := debug; 
+  let quickchick_passed = ref false in
+
   Proofview.Goal.enter
   begin fun gl ->
-    Consts.synthesizer := synthesizer;
-    print_endline("The synthesizer used is " ^ !Consts.synthesizer);
-    let is_running = Utils.get_env_var "is_lfind"
-    in 
+    let is_running = Utils.get_env_var "is_lfind" in 
     if String.equal is_running "true" then Tacticals.New.tclZEROMSG (Pp.str ("LFind is already running! Aborting"))
     else
       begin
         Utils.env_setup ();
-        let p_ctxt = construct_proof_context gl in
-        let vars = p_ctxt.vars in
-        let typs = p_ctxt.types in
-        let contanins_forall = List.exists (Utils.forall_in_hyp) p_ctxt.hypotheses in
-        Log.stats_log_file := p_ctxt.dir ^ Consts.log_file;
-        Log.error_log_file := p_ctxt.dir ^ Consts.error_log_file;
-        Log.stats_summary_file := p_ctxt.dir ^ Consts.summary_log_file;
-        
-        (* if example file exists use it, else generate examples *)
-        let example_file = Consts.fmt "%s/examples_%s.txt" p_ctxt.dir p_ctxt.fname
-        in 
-        if not (Sys.file_exists example_file) && (List.length vars) > 0 then 
+        let context = LFContext.get gl in
+        LogProgress.context context;
+        let commands_file = Consts.fmt "%s/lfind_command_log.txt" context.lfind_dir in
+
+        let example_file = Consts.fmt "%s/examples_%s.txt" context.lfind_dir context.filename in
+        if not (Sys.file_exists example_file) then 
         (
           print_endline "Example file not found, generating";
-          if contanins_forall then (print_endline ("Contains forall, and no example file provided. Quickchick does not work with forall");)
-          else ();
-          (
-            let op = GenerateExamples.generate_example p_ctxt   
-            in print_endline (string_of_int (List.length op));
-            let is_success = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
-            in
-            if not is_success then raise (Invalid_Examples "Quickchick failed to generate examples!") else 
-            Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
-          )
-        );
-        
-        let coq_examples = Examples.dedup_examples (FileUtils.read_file example_file)
-        in LogUtils.write_tbl_list_to_log coq_examples "Coq Examples";
-        if List.length coq_examples = 0 then raise (Invalid_Examples "No examples found!") else ();
-        (* get the current state of the proof *)
-        let op = FileUtils.run_cmd "export is_lfind=true"
-        in let abstraction = Abstract_NoDup.abstract
-        in let generalized_terms, conjectures = abstraction p_ctxt
-        in 
-        (* create a coq file that has the current stuck state a prover can use *)
-        let curr_state_lemma = ProofContext.get_curr_state_lemma p_ctxt in
-        let curr_state_lemma_file = Consts.fmt "%s/%s.v" p_ctxt.dir Consts.lfind_lemma
-        in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n %s"
-                         Consts.lfind_declare_module
-                         p_ctxt.declarations
-                         p_ctxt.namespace
-                         p_ctxt.fname
-                         curr_state_lemma
-        in FileUtils.write_to_file curr_state_lemma_file content;
-        Consts.lfind_lemma_content := content;
+          let op = ExampleGeneration.run context in 
+          (* 1st check that Quickchick was able to run without error *)
+          let ran_successfully = List.fold_left (fun acc l -> acc || (Utils.contains l "lemmafinder_success") ) false op
+          (* Then we want to check if Quickchick actually succeeded or if counterexamples were found *)
+          (* Quickchick failure message that is printed: *** Failed after _ tests and _ shrinks. *)
+          in let quickchick_success = List.fold_left (fun acc l -> acc || (Utils.contains l "+++ Passed 50 tests") ) false op
+          in quickchick_passed := quickchick_success;
+          if not ran_successfully then raise (Invalid_Examples "Quickchick failed to run successfully") else 
+          (* if not quickchick_success then raise (Invalid_Examples "Current proof state incorrect (without hypotheses or in general)") else  *)
+          Feedback.msg_info (Pp.str "lemmafinder_example_generation_success")
+        ); let _ = Utils.run_cmd "export is_lfind=true" in
 
-        (* get ml and coq version of the output of generalized terms *)
-        let coq_examples = ExampleUtils.evaluate_terms generalized_terms coq_examples p_ctxt
-        in 
-        List.iter (fun c -> LogUtils.write_tbl_to_log c "COQE") coq_examples;
-        
-        let valid_conjectures, invalid_conjectures = (Valid.split_as_true_and_false conjectures p_ctxt)
-        in
-        let hyp_conjectures = Hypotheses.conjectures_with_hyp invalid_conjectures p_ctxt
-        in 
-        let hypo_valid_conjectures, _ = (Valid.split_as_true_and_false hyp_conjectures p_ctxt)
-        in
-        Log.debug (Consts.fmt "no of valid conjectures with hypotheses is %d" (List.length hypo_valid_conjectures));
-        let start_time_synth = Unix.time ()
-        in
-        let cached_lemmas = ref (Hashtbl.create 1000)
-        in let cached_exprs = ref (Hashtbl.create 1000)
-        in List.iter (
-          fun c ->
-          let curr_time = int_of_float(Unix.time ())
-          in let elapsed_time = curr_time - int_of_float(start_time_synth)
-          in print_endline (string_of_int elapsed_time);
-          if elapsed_time < 5100 then
-          (print_endline c.conjecture_name;
-          Log.debug (Consts.fmt "Cache size is %d\n" (Hashtbl.length !cached_lemmas));
-          (Synthesize.synthesize cached_exprs cached_lemmas p_ctxt coq_examples c);)
-          else ()
-        )
-        invalid_conjectures ;
-        Log.debug ("Completed Synthesis");
-        Stats.summarize !Stats.global_stat curr_state_lemma;
-        Log.debug ("COMPLETED LFIND SYNTHESIZER");
+        (* Gather the examples for the proof context *)
+        let examples = ExampleManagement.gather_examples example_file in
 
-        Tacticals.New.tclZEROMSG (Pp.str ("LFIND Successful."))
+        (* Determine the generalizations *)
+        let generalized_variables, generalizations = Generalization.get_generalizations context in 
+        LogProgress.generalization context generalized_variables generalizations; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
+
+        (* Push the examples through the generalized terms as well -- state is mutated here, adding generalized examples to tables*)
+        let _ = ExampleManagement.get_examples_for_generalizations context generalized_variables examples in (* string error occurs here *)
+
+        (* Determine which generalizations are valid on their own *)
+        let valid, invalid = Validity.check_generalizations context generalizations in
+        LogProgress.vaidity_check context valid invalid; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
+
+        (* Add implications to lemmas that were invalid *)
+        let updated_invalid = Validity.add_implications context invalid in  
+        LogProgress.implications context updated_invalid; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
+
+        (* Again, determine if the implications are invalid or not *)
+        let valid_implications, invalid_still = Validity.check_generalizations context updated_invalid in
+        LogProgress.vaidity_check context valid_implications invalid_still; clean context;
+
+        (* Create the different synthesis problems *)
+        (* NOTE: change the "invalid_still" to include valid generalizations, if below threshold *)
+        let sketches = Sketch.generate context invalid_still in
+        LogProgress.sketches context sketches; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
+
+        (* Create the distinct synthesis problems *)
+        let synthesis_problems, problem_by_sketch = Synthesis.create_problems context sketches generalized_variables examples in
+        LogProgress.synthesis context problem_by_sketch; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
+
+        (* Run each synthesis problem *)
+        let synthesizer = BlackBox.get_synthesizer context in
+        let ran_synthesis_problems = BlackBox.run_synthesis context synthesizer synthesis_problems in
+        LogProgress.ran_synthesis context ran_synthesis_problems; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
+
+        (* Generate a list of all of the possible conjectures *)
+        let candidate_lemmas_from_generalization = Conjecture.from_generalizations context (valid @ valid_implications) in
+        let offset = (List.length candidate_lemmas_from_generalization) + 1 in
+        let candidate_lemmas_from_synthesis = Conjecture.from_synthesis offset context ran_synthesis_problems sketches problem_by_sketch in
+        let candidate_lemmas = candidate_lemmas_from_generalization @ candidate_lemmas_from_synthesis in
+        LogProgress.candidate_lemmas context candidate_lemmas; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
+
+        (* Filter out any redundant or invalid *)
+        let filtered_candidate_lemmas, (duplicates, quickchick_filtered) = Filter.filtering context candidate_lemmas in 
+        LogProgress.filtering context filtered_candidate_lemmas (List.length candidate_lemmas) duplicates quickchick_filtered;
+        clean context;
+
+        (* Rank *)
+        let start_ranking = int_of_float(Unix.time ()) in
+        let (category_one,category_two,category_three) = Ranking.rank context filtered_candidate_lemmas in 
+        let are_provable = List.filter (fun (x : Conjecture.t) -> x.provable) category_three in
+        let not_provable = List.filter (fun (x : Conjecture.t) -> x.provable = false) category_three in
+        clean context;
+
+        (* Summarize results for user *)
+        let completed_at = int_of_float(Unix.time ()) in
+        let summary_file = Consts.fmt "%s/lfind_summary_log.txt" context.lfind_dir in
+        let algorithm_log = Consts.fmt "%s/lfind_progress_log.txt" context.lfind_dir in
+        Utils.write_to_file algorithm_log !Consts.progress; clean context;
+        Utils.write_to_file commands_file !Consts.commands;
+        let results =
+          String.concat "\n"
+          [
+            "LFind Results"; 
+            (Consts.fmt "LFind Directory: %s" context.lfind_dir);
+            (Consts.fmt "\nNumber of Lemmas: %d" (List.length candidate_lemmas));
+            (Consts.fmt "Number of Lemmas (after duplicates removed): %d" duplicates);
+            (Consts.fmt "Number of Lemmas (after QuickChick used to filter): %d" quickchick_filtered);
+            ("* Number of Candidate Lemmas: " ^ (string_of_int (List.length filtered_candidate_lemmas)));
+            ("\nTime until ranking: " ^ (string_of_int (start_ranking - !Consts.start_time)));
+            ("Time to complete: " ^ (string_of_int (completed_at - !Consts.start_time)) ^ "\n");
+            ("Stuck state true independent of hypotheses: " ^ (string_of_bool !quickchick_passed));
+            "\nCategory 1:";Consts.fmt "Count = %d" (List.length category_one); 
+            List.fold_left (fun acc x -> acc ^ "\n" ^ (Conjecture.get_pretty_print context x)) "" category_one;
+            "\nCategory 2:";Consts.fmt "Count = %d" (List.length category_two); 
+            List.fold_left (fun acc x -> acc ^ "\n" ^ (Conjecture.get_pretty_print context x)) "" category_two;
+            "\nCategory 3 (provable):";Consts.fmt "Count = %d" (List.length are_provable); 
+            List.fold_left (fun acc x -> acc ^ "\n" ^ (Conjecture.get_pretty_print context x)) "" are_provable;
+            "\nCategory 3 (not provable):";Consts.fmt "Count = %d" (List.length not_provable); 
+            List.fold_left (fun acc x -> acc ^ "\n" ^ (Conjecture.get_pretty_print context x)) "" not_provable;
+          ] 
+        in Utils.write_to_file summary_file results;
+        let top_lemmas = print_results context (category_one @ category_two @ are_provable @ not_provable) in
+        let msg = "LFIND Successful.\n" ^ top_lemmas ^  "\nResults of LFIND at: " ^ summary_file ^ 
+        "\nAlgorithm Progress of LFIND at: " ^ algorithm_log ^ "\nCommands ran listed at: " ^ commands_file in
+        Tacticals.New.tclZEROMSG (Pp.str msg)
       end
   end

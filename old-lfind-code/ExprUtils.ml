@@ -49,7 +49,8 @@ let get_type_vars (conjecture : conjecture) vars =
   in List.iter ( fun v -> let _, expr_type = try (Hashtbl.find conjecture.sigma v) 
                                           with _ -> [], ""
                                     in if String.equal "" expr_type
-                                      then Hashtbl.add type_tbl v (Hashtbl.find conjecture.atom_type_table v)
+                                      (* Add try catch to avoid Not_found error --> might need better default solution, current fix *)
+                                      then Hashtbl.add type_tbl v (try (Hashtbl.find conjecture.atom_type_table v)  with _ -> expr_type)
                                       else 
                                       Hashtbl.add type_tbl v (try TypeUtils.get_return_type "" (Sexp.of_string expr_type) with _ -> expr_type)
                 ) vars; type_tbl

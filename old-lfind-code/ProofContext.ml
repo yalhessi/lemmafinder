@@ -109,7 +109,7 @@ let get_var_types env sigma hyps goal  =
   ListUtils.filter_map (fun hyp -> match hyp with
   | Context.Named.Declaration.LocalAssum(x, y) -> 
     let (sigma', s) = Typing.sort_of env sigma y in
-    if (Sorts.is_set s || is_type s) && (id_in_econstr env sigma x.binder_name goal)
+    if (Sorts.is_set s || is_type s) (* We want to consider cases where we want examples for variables not in goal *)
     then Some (x.binder_name, y)
     else None
   | _ -> raise(Failure "Unsupported assumption")
@@ -124,14 +124,15 @@ let rec get_constructors_of_type acc env sigma econstr =
       (fun acc c -> get_constructors_of_type acc env sigma c)
       new_acc (Array.to_list args)
   else if EConstr.isInd sigma econstr then
+    let new_acc = acc @ [econstr] in
     let ind = EConstr.to_constr sigma econstr |> Constr.destInd in
     let constrs =
       Inductiveops.type_of_constructors env ind
       |> Array.to_list |> List.map EConstr.of_constr
     in
-    (List.fold_left
+    List.fold_left
       (fun acc c -> get_constructors_of_type acc env sigma c)
-      [econstr] constrs) @ acc
+      new_acc constrs
   else if EConstr.isProd sigma econstr then
     let _, a1, a2 = EConstr.destProd sigma econstr in
     let new_acc = get_constructors_of_type acc env sigma a1 in
@@ -157,7 +158,7 @@ let get_types env sigma hyps goal =
   (get_types_in_hyps env sigma hyps) @ (get_types_in_econstr env sigma goal) 
   |> Utils.dedup_list 
   |> List.fold_left (fun acc hyp -> 
-    get_constructors_of_type acc env sigma hyp) [] |> Utils.dedup_list
+    get_constructors_of_type acc env sigma hyp) []
 
 let get_curr_state_lemma ?(keep_hyps=true) p_ctxt : string = 
   let {var_types; goal; sigma; env; _} = p_ctxt in

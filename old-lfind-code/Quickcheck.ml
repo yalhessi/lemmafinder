@@ -25,22 +25,25 @@ let output_code (op: string list)
   let last_line = try List.hd (List.rev op)
                   with _ -> Log.write_to_log (String.concat "\n" op) !Log.error_log_file; ""
   in Log.debug (Consts.fmt "last line is : %s" last_line);
-  if Utils.contains last_line "Passed" then true, []
-  else if Utils.contains last_line "Failed" then false, (get_counter_example op)
-  else if Utils.contains last_line "QuickChecking conj" then false, [] (* most likely failure because of forall in hypothesis *)
+  (* This checks all of the operation output (incase last line is empty -- can optimize, simple fix right now) *)
+  let valid = List.fold_left (fun acc l -> acc || (Utils.contains l "Passed") ) false op in
+  let counterexample = List.fold_left (fun acc l -> acc || (Utils.contains l "Failed") ) false op in
+  if valid then true, []
+  else if counterexample then false, (get_counter_example op)
   else
     (
       print_endline "QuickChick did not run successfully...";
       Log.write_to_log (String.concat "\n" op) !Log.error_log_file;
-      false, []
-      (* exit(0); *)
+      exit(0);
     )
   
 
 let run (fname: string) (namespace: string) (dir: string)
         : bool * string list =
-  if !Opts.enable_quickchick then
-    (output_code (quickcheck fname namespace dir))
+  if !Opts.enable_quickchick 
+    then 
+    (let results = quickcheck fname namespace dir in
+      output_code results)
   else
     (false, [])
   

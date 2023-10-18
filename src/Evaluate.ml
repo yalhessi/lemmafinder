@@ -1,88 +1,75 @@
-open ProofContext
-open ExprUtils
+let generate_eval_file (context : LFContext.t) (eval_str : string) : string =
+  let lfind_file = context.lfind_dir ^ "/lfind_eval.v"
+  in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n%s\n%s\n%s\n%s\n%s\n%s"
+    Consts.lfind_declare_module
+    context.declarations
+    context.namespace 
+    context.filename
+    ""
+    Consts.coq_printing_depth
+    "Unset Printing Notations." 
+    "Set Printing Implicit."
+    (LFUtils.set_nat_as_unknown_type context)
+    eval_str in Utils.write_to_file lfind_file content; lfind_file
 
-let generate_eval_file p_ctxt eval_str : string =
-  let lfind_file = p_ctxt.dir ^ "/lfind_eval.v"
-  in let content = Consts.fmt "%s%s\nFrom %s Require Import %s.\n%s\n%s\n%s\n%s\n%s"
-                   Consts.lfind_declare_module
-                   p_ctxt.declarations
-                   p_ctxt.namespace 
-                   p_ctxt.fname
-                   ""
-                   Consts.coq_printing_depth
-                   "Unset Printing Notations." 
-                   "Set Printing Implicit."
-                   eval_str
-  in FileUtils.write_to_file lfind_file content;
-  lfind_file
+let run_eval (dir : string) (fname : string) (namespace : string) : string list =
+  (* let cmd = "coqc -R " ^ dir ^ " " ^ namespace  ^ " " ^ fname *)
+  let cmd = "cd " ^ dir ^ " && coqc -R . " ^ namespace  ^ " " ^ fname
+  in try Utils.run_cmd cmd with _ -> [] 
 
-let run_eval dir fname namespace =
-  let cmd = "coqc -R " ^ dir ^ " " ^ namespace  ^ " " ^ fname
-  in try FileUtils.run_cmd cmd with _ -> []
+let get_evaluate_str (expr : string) (vars : string) (vars_list : string list) (example : (string, string) Hashtbl.t) : string =
+  let def = "Definition lfind_eval " ^ vars ^ " :=\n" ^ expr ^ ".\n" in
+  let example_input = 
+    List.map
+    (fun v -> try (Consts.fmt "(%s)" (Hashtbl.find example v)) with _ -> "")
+    vars_list in
+  let compute_string = "\nCompute lfind_eval " ^ (String.concat " " example_input) ^ ".\n" in
+  def ^ compute_string
 
-let get_eval_definition expr vars (var_typs:(string, string) Hashtbl.t)=
-  let var_string = match Hashtbl.length var_typs with
-                  | 0 -> List.fold_left (fun acc v -> acc ^ " " ^ v) "" vars 
-                  | _ -> List.fold_left (fun acc v -> acc ^ " " ^ "(" ^ v ^ " : " ^ ((Hashtbl.find var_typs v)) ^")") "" vars 
-  in let eval_def = "Definition lfind_eval " ^ var_string
-                    ^ ":=\n"
-                    ^ (Sexp.string_of_sexpr expr)
-                    ^ ".\n"
-  in eval_def
+let parse_output (output : string list) : string option= 
+  let flattened = String.concat " " (List.map String.trim output) in
+  let split_on_equal = String.split_on_char '=' flattened in
+  if (List.length split_on_equal != 2)
+  then raise (Failure ("1. Error in parsing output for example propgation (triggered in Evaluate.ml) \nOn line: " ^ flattened))
+  else 
+    (
+      let content = List.hd (List.rev split_on_equal) in
+      let split_from_type = String.split_on_char ':' content in
+      if (List.length split_from_type != 2)
+      then raise (Failure ("2. Error in parsing output for example propgation (triggered in Evaluate.ml) \nOn line: " ^ flattened))
+      else Some (String.trim (List.hd split_from_type))
+    )
 
-let get_compute_string input : string =
-  "\nCompute lfind_eval " ^ input ^ ".\n"
+let econstr_term (context : LFContext.t) (example : (string, string) Hashtbl.t) (expr : EConstr.t) : string option = 
+  let expr_string = LFContext.e_str context expr in
+  let variables_in_expr = LFCoq.vars_from_constr context.env context.sigma [] (EConstr.to_constr context.sigma expr) in
+  let variables_in_expr_str = List.map Names.Id.to_string variables_in_expr in
+  let non_types = List.filter (fun v -> (Hashtbl.mem context.types v) = false) variables_in_expr_str in
+  let args_str = String.concat " " (List.map
+    (fun v -> 
+      let (typ,_,_)  = try Hashtbl.find context.variables v 
+      with _ -> raise (Failure (Consts.fmt "1. Cannot find variable [%s] info (triggered in Evaluate.ml)" v))
+      in "(" ^ v ^ " : " ^ (LFContext.e_str context typ) ^ ")")
+    non_types) in
+  let evaluation_string = get_evaluate_str expr_string args_str variables_in_expr_str example in
+  let eval_file = generate_eval_file context evaluation_string in
+  let output = run_eval context.lfind_dir eval_file context.namespace in
+  parse_output output
 
-(* Either the variable is from the original statement or it is a generalized variable which can be found from the expr mapping *)
-let get_input_string vars example lfind_sigma =
-  List.fold_left (fun acc v ->
-                        let v_example = try (Hashtbl.find example v) 
-                                        with _ -> let generalized_term,_ = (Hashtbl.find lfind_sigma v)
-                                                  in (Hashtbl.find example (Sexp.string_of_sexpr generalized_term))
-                        in acc ^ " " ^ v_example
-                 ) "" vars
-
-let get_evaluate_str expr vars examples lfind_sigma (var_typs:(string, string) Hashtbl.t) =
-  let expr_vars = get_variables_in_expr expr [] vars |> List.rev
-  in let eval_def = get_eval_definition expr expr_vars var_typs
-  in List.fold_left (fun acc example -> let input = get_input_string expr_vars example lfind_sigma
-                                        in acc ^ get_compute_string input
-                    ) eval_def examples
-
-let get_expr_vals output =
-  let val_accm = ref ""
-  in List.fold_left (fun acc op -> 
-                          if Utils.contains op ":"
-                            then 
-                            (
-                                let updated_acc = ("(" ^ !val_accm ^ ")")::acc
-                                in val_accm := "";
-                                updated_acc
-                            )
-                          else 
-                            (
-                              if Utils.contains op "="
-                              then 
-                              (
-                                val_accm := List.hd (List.rev (String.split_on_char '=' op));
-                                acc
-                              )
-                              else
-                              (
-                                val_accm := !val_accm ^ op;
-                                acc
-                              )
-                            )
-                 ) [] output
-
-let evaluate_coq_expr expr examples p_ctxt all_vars 
-(lfind_sigma:(string, Sexp.t list * string) Hashtbl.t) conj
-: (string list) =
-  let synthesizer = !Consts.synthesizer
-  in let var_typs =  match conj with
-                  | None -> (Hashtbl.create 0)
-                  | Some c -> ExprUtils.get_type_vars c all_vars
-  in let evalstr = get_evaluate_str expr all_vars examples lfind_sigma var_typs
-  in let efile = generate_eval_file p_ctxt evalstr
-  in let output = run_eval p_ctxt.dir efile p_ctxt.namespace
-  in List.rev (get_expr_vals output)
+let econstr_term_with_vars (context : LFContext.t) (variables : (string, Evd.econstr * Names.variable * Evd.econstr) Hashtbl.t) 
+(example : (string, string) Hashtbl.t) (expr : EConstr.t) : string option = 
+  let expr_string = LFContext.e_str context expr in
+  let variables_in_expr = LFCoq.vars_from_constr context.env context.sigma [] (EConstr.to_constr context.sigma expr) in
+  let variables_in_expr_str = List.map Names.Id.to_string variables_in_expr in
+  let non_types = List.filter (fun v -> (Hashtbl.mem context.types v) = false) variables_in_expr_str in
+  let args_str = String.concat " " (List.map
+    (fun v -> 
+      let (typ,_,_)  = try Hashtbl.find variables v 
+      with _ -> try Hashtbl.find context.variables v 
+      with _ -> raise (Failure (Consts.fmt "2. Cannot find variable [%s] info (triggered in Evaluate.ml)" v))
+      in "(" ^ v ^ " : " ^ (LFContext.e_str context typ) ^ ")")
+    non_types) in
+  let evaluation_string = get_evaluate_str expr_string args_str variables_in_expr_str example in
+  let eval_file = generate_eval_file context evaluation_string in
+  let output = run_eval context.lfind_dir eval_file context.namespace in
+  parse_output output
